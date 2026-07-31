@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 250 250 252;
+    --surface: 255 255 255;
+    --elevated: 255 255 255;
+    --border: 228 228 235;
+    --fg: 18 18 23;
+    --muted: 106 106 122;
+    --subtle: 148 148 164;
+    --accent: 88 86 214;
+    --accent-fg: 255 255 255;
+    --focus: 88 86 214;
+    --break: 16 163 127;
+    --danger: 220 60 60;
+    --warn: 214 148 36;
+    --success: 22 163 96;
+    --grain: 0.015;
+  }
+
+  /* ── Light ────────────────────────────────────────────────── */
+  [data-theme='light'] {
+    --bg: 248 248 251;
+    --surface: 255 255 255;
+    --elevated: 255 255 255;
+    --border: 228 228 235;
+    --fg: 18 18 23;
+    --muted: 106 106 122;
+    --subtle: 148 148 164;
+    --accent: 88 86 214;
+    --accent-fg: 255 255 255;
+    --focus: 88 86 214;
+    --break: 16 163 127;
+  }
+
+  /* ── Minimal White ────────────────────────────────────────── */
+  [data-theme='minimal'] {
+    --bg: 255 255 255;
+    --surface: 255 255 255;
+    --elevated: 252 252 253;
+    --border: 235 235 238;
+    --fg: 24 24 27;
+    --muted: 113 113 122;
+    --subtle: 161 161 170;
+    --accent: 24 24 27;
+    --accent-fg: 255 255 255;
+    --focus: 24 24 27;
+    --break: 82 82 91;
+  }
+
+  /* ── Dark ─────────────────────────────────────────────────── */
+  [data-theme='dark'] {
+    --bg: 20 20 24;
+    --surface: 28 28 33;
+    --elevated: 34 34 40;
+    --border: 48 48 56;
+    --fg: 242 242 245;
+    --muted: 158 158 172;
+    --subtle: 112 112 126;
+    --accent: 129 127 245;
+    --accent-fg: 255 255 255;
+    --focus: 129 127 245;
+    --break: 45 199 160;
+  }
+
+  /* ── Midnight ─────────────────────────────────────────────── */
+  [data-theme='midnight'] {
+    --bg: 11 12 20;
+    --surface: 18 20 32;
+    --elevated: 24 27 42;
+    --border: 38 42 62;
+    --fg: 233 236 248;
+    --muted: 148 156 184;
+    --subtle: 104 112 140;
+    --accent: 120 134 255;
+    --accent-fg: 255 255 255;
+    --focus: 120 134 255;
+    --break: 64 206 178;
+  }
+
+  /* ── AMOLED ───────────────────────────────────────────────── */
+  [data-theme='amoled'] {
+    --bg: 0 0 0;
+    --surface: 8 8 10;
+    --elevated: 15 15 18;
+    --border: 32 32 38;
+    --fg: 245 245 248;
+    --muted: 150 150 162;
+    --subtle: 100 100 112;
+    --accent: 108 214 255;
+    --accent-fg: 0 0 0;
+    --focus: 108 214 255;
+    --break: 92 230 180;
+  }
+
+  /* ── Forest ───────────────────────────────────────────────── */
+  [data-theme='forest'] {
+    --bg: 13 22 18;
+    --surface: 19 31 25;
+    --elevated: 25 40 32;
+    --border: 40 60 48;
+    --fg: 228 240 231;
+    --muted: 144 172 154;
+    --subtle: 104 132 114;
+    --accent: 106 200 130;
+    --accent-fg: 8 20 12;
+    --focus: 106 200 130;
+    --break: 200 190 110;
+  }
+
+  /* ── Ocean ────────────────────────────────────────────────── */
+  [data-theme='ocean'] {
+    --bg: 9 20 32;
+    --surface: 14 29 45;
+    --elevated: 19 38 58;
+    --border: 32 58 84;
+    --fg: 225 238 248;
+    --muted: 138 165 190;
+    --subtle: 98 125 150;
+    --accent: 86 178 255;
+    --accent-fg: 4 16 28;
+    --focus: 86 178 255;
+    --break: 92 224 208;
+  }
+
+  /* ── Sunset ───────────────────────────────────────────────── */
+  [data-theme='sunset'] {
+    --bg: 26 16 20;
+    --surface: 37 23 28;
+    --elevated: 48 30 36;
+    --border: 70 45 52;
+    --fg: 248 233 232;
+    --muted: 190 152 152;
+    --subtle: 150 116 118;
+    --accent: 255 138 96;
+    --accent-fg: 32 14 8;
+    --focus: 255 138 96;
+    --break: 255 196 110;
+  }
+
+  /* ── Lavender ─────────────────────────────────────────────── */
+  [data-theme='lavender'] {
+    --bg: 245 243 252;
+    --surface: 255 255 255;
+    --elevated: 252 251 255;
+    --border: 226 220 244;
+    --fg: 40 32 60;
+    --muted: 118 106 148;
+    --subtle: 158 146 186;
+    --accent: 139 106 232;
+    --accent-fg: 255 255 255;
+    --focus: 139 106 232;
+    --break: 92 186 190;
+  }
+
+  /* High contrast overlay — layered on top of any theme */
+  [data-contrast='high'] {
+    --border: 128 128 140;
+    --muted: 210 210 220;
+    --subtle: 190 190 200;
+  }
+  [data-contrast='high'][data-mode='light'] {
+    --muted: 40 40 50;
+    --subtle: 60 60 72;
+    --border: 90 90 105;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.28);
+  }
+
+  /* Focus rings — visible for keyboard users, quiet for mouse users */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2;
+    ring-offset-color: rgb(var(--bg));
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--subtle) / 0.35);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--subtle) / 0.55);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-border bg-surface shadow-soft;
+  }
+
+  .panel-hover {
+    @apply transition-all duration-200 hover:border-border hover:shadow-lift;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Subtle top-lit gradient used on hero surfaces */
+  .lit {
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--accent) / 0.06) 0%,
+      transparent 40%
+    );
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+}
+
+/* Respect the OS-level reduced motion setting, and the in-app override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-motion='reduced'] *,
+[data-motion='reduced'] *::before,
+[data-motion='reduced'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
