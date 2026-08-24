@@ -1,5 +1,7 @@
 # FocusOS
 
+[![CI](https://github.com/shankha007/focusos/actions/workflows/ci.yml/badge.svg)](https://github.com/shankha007/focusos/actions/workflows/ci.yml)
+
 A premium, offline-first Pomodoro workspace — not just a timer, but the whole focus workflow:
 plan the day, run deep-focus sessions, log what pulls you away, and get real analysis back.
 
