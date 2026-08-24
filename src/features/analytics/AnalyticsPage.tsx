@@ -62,6 +62,26 @@ const PERIOD_LABEL: Record<Period, string> = {
   year: 'This year',
 };
 
+/**
+ * Recharts picks its own tick values, so a raw `unit` prop can render things
+ * like "0.45h". Format explicitly and keep the label short — the axis is only
+ * as wide as `Y_AXIS_WIDTH`, and anything longer gets clipped.
+ */
+const hourTick = (value: number) => {
+  if (Number.isInteger(value)) return `${value}h`;
+  // A year's worth of focus reaches three digits; a decimal there is noise and
+  // pushes the label wider than the axis.
+  if (Math.abs(value) >= 10) return `${Math.round(value)}h`;
+  return `${Number(value.toFixed(1))}h`;
+};
+
+const minuteTick = (value: number) => `${Math.round(value)}m`;
+
+const minutesAsHoursTick = (value: number) => hourTick(value / 60);
+
+/** Wide enough for the longest label these axes produce, e.g. "120m". */
+const Y_AXIS_WIDTH = 38;
+
 export function AnalyticsPage() {
   const allSessions = useStatsStore((s) => s.sessions);
   const allDistractions = useStatsStore((s) => s.distractions);
@@ -123,6 +143,11 @@ export function AnalyticsPage() {
   }, [sessions]);
 
   const peakHour = hourly.reduce((a, b) => (b.minutes > a.minutes ? b : a), hourly[0]);
+
+  // Over a month or a year the per-hour totals run into the thousands of
+  // minutes, which is both unreadable and too wide for the axis. Switch the
+  // whole axis to hours once the values get big, so the ticks stay consistent.
+  const hourlyTick = peakHour && peakHour.minutes >= 90 ? minutesAsHoursTick : minuteTick;
   const hasData = focusOnly(allSessions).length > 0;
 
   if (!hasData) {
@@ -223,7 +248,7 @@ export function AnalyticsPage() {
         <CardDescription>Hours of completed focus per day.</CardDescription>
         <div className="mt-4 h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={series} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="focusFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity={0.35} />
@@ -242,8 +267,8 @@ export function AnalyticsPage() {
                 tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
                 axisLine={false}
                 tickLine={false}
-                width={44}
-                unit="h"
+                width={Y_AXIS_WIDTH}
+                tickFormatter={hourTick}
               />
               <RTooltip content={<ChartTooltip unit="h" />} />
               <Area
@@ -269,7 +294,7 @@ export function AnalyticsPage() {
           </CardDescription>
           <div className="mt-4 h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourly} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+              <BarChart data={hourly} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -282,8 +307,9 @@ export function AnalyticsPage() {
                   tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
                   axisLine={false}
                   tickLine={false}
-                  width={44}
-                  unit="m"
+                  width={Y_AXIS_WIDTH}
+                  tickFormatter={hourlyTick}
+                  allowDecimals={false}
                 />
                 <RTooltip content={<ChartTooltip unit=" min" />} />
                 <Bar dataKey="minutes" radius={[3, 3, 0, 0]}>
@@ -311,7 +337,7 @@ export function AnalyticsPage() {
           <CardDescription>Completed focus sessions across the period.</CardDescription>
           <div className="mt-4 h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={series} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+              <BarChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -324,7 +350,7 @@ export function AnalyticsPage() {
                   tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
                   axisLine={false}
                   tickLine={false}
-                  width={44}
+                  width={Y_AXIS_WIDTH}
                   allowDecimals={false}
                 />
                 <RTooltip content={<ChartTooltip />} />

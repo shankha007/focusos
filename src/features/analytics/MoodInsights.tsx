@@ -63,7 +63,7 @@ export function MoodInsights({ sessions }: { sessions: Session[] }) {
         <>
           <div className="mt-4 h-[168px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+              <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -77,7 +77,7 @@ export function MoodInsights({ sessions }: { sessions: Session[] }) {
                   tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
                   axisLine={false}
                   tickLine={false}
-                  width={44}
+                  width={26}
                 />
                 <RTooltip
                   cursor={{ fill: 'rgb(var(--elevated))' }}
