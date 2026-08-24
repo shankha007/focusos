@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/primitives';
 import { CommandPalette } from './CommandPalette';
+import { Logo, LogoMark } from '@/components/Logo';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { cn, formatClock } from '@/lib/utils';
@@ -60,15 +61,13 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
     <div className="flex h-full bg-bg">
       {/* Desktop sidebar */}
       <aside className="hidden w-[228px] shrink-0 flex-col border-r border-border bg-surface/50 px-3 py-4 lg:flex">
-        <div className="flex items-center gap-2.5 px-2 pb-5">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-accent text-accent-fg shadow-soft">
-            <span className="text-[13px] font-bold tracking-tight">F</span>
-          </div>
-          <div className="leading-tight">
-            <p className="text-[13px] font-semibold tracking-tight">FocusOS</p>
-            <p className="text-[11px] text-subtle">Deep work companion</p>
-          </div>
-        </div>
+        <button
+          onClick={() => navigate('/')}
+          aria-label="FocusOS — go to dashboard"
+          className="mb-5 flex items-center rounded-2xl px-2 py-1.5 text-left transition-colors hover:bg-elevated"
+        >
+          <Logo size={38} active={running} />
+        </button>
 
         <nav className="flex flex-col gap-0.5">
           {NAV.map(({ to, label, icon: Icon }) => (
@@ -139,10 +138,13 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile / tablet top bar */}
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 lg:hidden">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-accent-fg">
-            <span className="text-xs font-bold">F</span>
-          </div>
-          <span className="text-sm font-semibold tracking-tight">FocusOS</span>
+          <LogoMark size={30} active={running} />
+          <span className="text-[15px] font-semibold tracking-[-0.02em]">
+            Focus
+            <span className="bg-gradient-to-r from-accent to-break bg-clip-text text-transparent">
+              OS
+            </span>
+          </span>
 
           <div className="ml-auto flex items-center gap-2">
             {active && (
