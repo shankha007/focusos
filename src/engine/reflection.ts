@@ -34,7 +34,7 @@ export function generateReflection(
     return {
       headline: 'No sessions logged yet today',
       summary:
-        'Nothing to report so far. A single 25-minute session is enough to get the day on the board — starting is usually the hardest part.',
+        'Nothing to report so far. A single focus session is enough to get the day on the board — starting is usually the hardest part.',
       accomplishments: [],
       bestWindow: null,
       distractionNote: null,

@@ -5,6 +5,14 @@ import { formatClock } from '@/lib/utils';
 import { remainingMs } from '@/engine/timerEngine';
 
 /**
+ * The visual tick only needs to outpace the ring's 0.4s transition for motion
+ * to look continuous — framer-motion interpolates between targets. Ticking on
+ * every frame instead pushed a store update 60 times a second, re-rendering
+ * every timer subscriber for sub-pixel movement nobody can see.
+ */
+const VISUAL_TICK_MS = 100;
+
+/**
  * Drives repaints while a session runs. Two independent clocks on purpose:
  * requestAnimationFrame for smooth visuals (paused by the browser when hidden),
  * and a 1s interval as a safety net that keeps firing — throttled but alive —
@@ -17,8 +25,12 @@ export function useTimerTick(): void {
     if (status !== 'running') return;
 
     let frame = 0;
-    const loop = () => {
-      useTimerStore.getState().doTick();
+    let last = 0;
+    const loop = (now: number) => {
+      if (now - last >= VISUAL_TICK_MS) {
+        last = now;
+        useTimerStore.getState().doTick();
+      }
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);

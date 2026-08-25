@@ -39,6 +39,14 @@ export default {
           from: { opacity: '0', transform: 'translateY(4px)' },
           to: { opacity: '1', transform: 'none' },
         },
+        // A centred dialog carries its own -translate-x/y-1/2, which the plain
+        // fade-in would overwrite for the length of the animation — leaving the
+        // panel offset by half its size until the last frame. This keyframe
+        // rises the same 4px while keeping the centring intact throughout.
+        'dialog-in': {
+          from: { opacity: '0', transform: 'translate(-50%, calc(-50% + 4px))' },
+          to: { opacity: '1', transform: 'translate(-50%, -50%)' },
+        },
         breathe: {
           '0%, 100%': { transform: 'scale(1)', opacity: '0.55' },
           '50%': { transform: 'scale(1.06)', opacity: '0.85' },
@@ -49,6 +57,7 @@ export default {
       },
       animation: {
         'fade-in': 'fade-in 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+        'dialog-in': 'dialog-in 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
         breathe: 'breathe 7s ease-in-out infinite',
       },
     },

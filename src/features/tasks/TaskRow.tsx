@@ -1,9 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Check, GripVertical, Pencil, Play, Trash2 } from 'lucide-react';
 import type { Category, Session, Task } from '@/types';
-import { Badge, Tooltip } from '@/components/ui/primitives';
+import {
+  Badge,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  Tooltip,
+} from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/store/useTaskStore';
 import { estimateTaskSessions } from '@/engine/adaptive';
@@ -25,6 +32,8 @@ export function TaskRow({
 }) {
   const toggleDone = useTaskStore((s) => s.toggleDone);
   const remove = useTaskStore((s) => s.remove);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -123,13 +132,40 @@ export function TaskRow({
         <Button
           size="icon-sm"
           variant="ghost"
-          onClick={() => void remove(task.id)}
+          onClick={() => setConfirmDelete(true)}
           aria-label={`Delete ${task.title}`}
           className="hover:text-danger"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
+
+      {/* Deleting drops the task and its history from IndexedDB with nothing to
+          undo, so a stray click on a 32px icon shouldn't be enough to do it. */}
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Delete this task?</DialogTitle>
+          <DialogDescription>
+            “{task.title}” will be removed for good. Sessions you already logged against it stay in
+            your history.
+          </DialogDescription>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setConfirmDelete(false);
+                void remove(task.id);
+              }}
+            >
+              Delete task
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </li>
   );
 }

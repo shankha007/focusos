@@ -54,6 +54,8 @@ interface TimerStoreState {
   pendingReview: Session | null;
   /** Bumped on every rAF tick so subscribed components re-render. */
   tick: number;
+  /** False until `hydrate` has read localStorage. Nothing may persist before then. */
+  hydrated: boolean;
 
   hydrate: () => void;
   setTask: (taskId: string | null, title: string | null) => void;
@@ -96,6 +98,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   distractionCount: 0,
   pendingReview: null,
   tick: 0,
+  hydrated: false,
 
   /**
    * Restores a session that was running when the tab closed. Because elapsed
@@ -107,7 +110,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     const raw = localStorage.getItem(PERSIST_KEY);
 
     if (!raw) {
-      set({ timer: createTimerState('focus', settings.focusMs) });
+      set({ timer: createTimerState('focus', settings.focusMs), hydrated: true });
       return;
     }
 
@@ -121,13 +124,14 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
         moodBefore: saved.moodBefore,
         energyBefore: saved.energyBefore,
         distractionCount: saved.distractionCount ?? 0,
+        hydrated: true,
       });
       // If it ran to completion while the tab was closed, close it out now.
       if (saved.timer.status === 'running' && remainingMs(saved.timer) <= 0) {
         void get().complete();
       }
     } catch {
-      set({ timer: createTimerState('focus', settings.focusMs) });
+      set({ timer: createTimerState('focus', settings.focusMs), hydrated: true });
     }
   },
 
@@ -209,10 +213,15 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     const meaningful = actual > 60_000;
     const completed = !early;
 
+    // The selected task is kept across a break so the next focus session can
+    // resume it, but the break itself is not work on that task — recording it
+    // as such double-counts the task's time in every report.
+    const isFocus = timer.type === 'focus';
+
     const session: Session = {
       id: state.sessionId ?? `ses_${uid()}`,
-      taskId: state.taskId ?? undefined,
-      taskTitle: state.taskTitle ?? undefined,
+      taskId: isFocus ? (state.taskId ?? undefined) : undefined,
+      taskTitle: isFocus ? (state.taskTitle ?? undefined) : undefined,
       type: timer.type,
       plannedMs: timer.durationMs,
       actualMs: Math.min(actual, timer.durationMs),
@@ -325,3 +334,32 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   remaining: () => remainingMs(get().timer),
   progress: () => progressOf(get().timer),
 }));
+
+/**
+ * Keeps an idle timer in step with the settings. Durations are otherwise only
+ * read when a session starts or ends, so changing "Focus" from 25 to 5 minutes
+ * left the dashboard advertising a 25-minute session it would never run.
+ */
+useSettingsStore.subscribe((state, prev) => {
+  if (
+    state.settings.focusMs === prev.settings.focusMs &&
+    state.settings.shortBreakMs === prev.settings.shortBreakMs &&
+    state.settings.longBreakMs === prev.settings.longBreakMs
+  ) {
+    return;
+  }
+
+  // Settings load before the timer hydrates. Writing here first would persist
+  // the placeholder idle state over a session that was still running.
+  const { timer, hydrated } = useTimerStore.getState();
+  if (!hydrated) return;
+
+  // Only an idle timer is safe to retune — a running one would jump.
+  if (timer.status !== 'idle') return;
+
+  const durationMs = durationForType(timer.type, state.settings);
+  if (durationMs === timer.durationMs) return;
+
+  useTimerStore.setState({ timer: { ...timer, durationMs } });
+  persist(useTimerStore.getState());
+});

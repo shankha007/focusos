@@ -27,14 +27,15 @@ export function startOfDay(ts: number = Date.now()): number {
   return d.getTime();
 }
 
-export function endOfDay(ts: number = Date.now()): number {
-  return startOfDay(ts) + DAY - 1;
-}
-
 export function addDays(ts: number, n: number): number {
   const d = new Date(ts);
   d.setDate(d.getDate() + n);
   return d.getTime();
+}
+
+/** Derived from the next day's start: a DST day is 23 or 25 hours, not 24. */
+export function endOfDay(ts: number = Date.now()): number {
+  return startOfDay(addDays(startOfDay(ts), 1)) - 1;
 }
 
 /** Week starts Monday. */
@@ -75,7 +76,12 @@ export function formatDuration(ms: number, opts: { compact?: boolean } = {}): st
   if (mins < 60) return `${mins}m`;
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  if (opts.compact) return m === 0 ? `${h}h` : `${h}.${Math.round((m / 60) * 10)}h`;
+  if (opts.compact) {
+    // Round to tenths of an hour first, so 2h57m carries to "3h" rather than
+    // rounding the minutes alone into a nonsensical "2.10h".
+    const tenths = Math.round(mins / 6);
+    return tenths % 10 === 0 ? `${tenths / 10}h` : `${Math.floor(tenths / 10)}.${tenths % 10}h`;
+  }
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 

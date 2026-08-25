@@ -111,18 +111,28 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-1">
           {pip.supported && (
             <Tooltip content="Picture-in-picture (P)">
-              <Button variant="ghost" size="icon-sm" onClick={() => void pip.toggle()}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => void pip.toggle()}
+                aria-label="Picture-in-picture"
+              >
                 <PictureInPicture2 className="h-4 w-4" />
               </Button>
             </Tooltip>
           )}
           <Tooltip content="Ambient sound (S)">
-            <Button variant="ghost" size="icon-sm" onClick={() => setShowSound((v) => !v)}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setShowSound((v) => !v)}
+              aria-label="Ambient sound"
+            >
               <Volume2 className="h-4 w-4" />
             </Button>
           </Tooltip>
           <Tooltip content="Exit deep focus (Esc)">
-            <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Exit deep focus">
               <Minimize2 className="h-4 w-4" />
             </Button>
           </Tooltip>
@@ -177,7 +187,13 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
         {/* Controls */}
         <div className="mt-10 flex items-center gap-2">
           <Tooltip content="Reset (R)">
-            <Button variant="ghost" size="icon-lg" onClick={reset} className="rounded-full">
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              onClick={reset}
+              className="rounded-full"
+              aria-label="Reset timer"
+            >
               <RotateCcw className="h-[18px] w-[18px]" />
             </Button>
           </Tooltip>
@@ -199,7 +215,13 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
           </Button>
 
           <Tooltip content="Skip ahead (N)">
-            <Button variant="ghost" size="icon-lg" onClick={() => void skip()} className="rounded-full">
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              onClick={() => void skip()}
+              className="rounded-full"
+              aria-label="Skip ahead"
+            >
               <SkipForward className="h-[18px] w-[18px]" />
             </Button>
           </Tooltip>

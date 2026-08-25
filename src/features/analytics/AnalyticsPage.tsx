@@ -68,6 +68,11 @@ const PERIOD_LABEL: Record<Period, string> = {
  * as wide as `Y_AXIS_WIDTH`, and anything longer gets clipped.
  */
 const hourTick = (value: number) => {
+  if (value === 0) return '0';
+  // Under an hour, Recharts' ticks are fractions that all round to the same
+  // tenth — an axis reading "0h, 0h, 0h, 0.1h, 0.1h". Minutes keep them
+  // distinct and still fit inside Y_AXIS_WIDTH.
+  if (Math.abs(value) < 1) return `${Math.round(value * 60)}m`;
   if (Number.isInteger(value)) return `${value}h`;
   // A year's worth of focus reaches three digits; a decimal there is noise and
   // pushes the label wider than the axis.
