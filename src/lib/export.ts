@@ -8,14 +8,28 @@ function download(blob: Blob, filename: string): void {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.rel = 'noopener';
+  // Firefox only dispatches the download for an anchor that is in the document.
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Revoking in the same task can cancel the download before the browser has
+  // finished reading the blob, so let the current task drain first.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function csvCell(value: unknown): string {
+  // Numbers can never carry an injection payload, and guarding them would
+  // mangle negatives.
+  if (typeof value === 'number') return String(value);
+
   const s = value === null || value === undefined ? '' : String(value);
+  // Spreadsheets evaluate any cell that opens with one of these, so a task
+  // titled `=HYPERLINK(...)` would run on open. A leading apostrophe pins the
+  // cell to text without changing what the reader sees.
+  const guarded = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
   // Escape by RFC 4180: wrap in quotes, double any internal quotes.
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\n]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
 }
 
 export function exportSessionsCsv(sessions: Session[]): void {

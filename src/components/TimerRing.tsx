@@ -61,6 +61,10 @@ export function TimerRing({
             filter: glow ? 'drop-shadow(0 0 12px currentColor)' : undefined,
             opacity: glow ? 0.95 : 1,
           }}
+          // Without an explicit starting offset the first render animates from
+          // `undefined`, which framer-motion cannot interpolate. An empty ring
+          // is the right place to start from.
+          initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         />

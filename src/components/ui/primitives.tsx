@@ -103,8 +103,9 @@ export const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2',
+        'max-h-[calc(100vh-2rem)] overflow-y-auto',
         'rounded-2xl border border-border bg-surface p-6 shadow-lift',
-        'data-[state=open]:animate-fade-in',
+        'data-[state=open]:animate-dialog-in',
         className,
       )}
       {...props}
@@ -179,7 +180,7 @@ Switch.displayName = 'Switch';
 export const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
->(({ className, ...props }, ref) => (
+>(({ className, 'aria-label': ariaLabel, ...props }, ref) => (
   <SliderPrimitive.Root
     ref={ref}
     className={cn('relative flex w-full touch-none select-none items-center', className)}
@@ -188,7 +189,13 @@ export const Slider = React.forwardRef<
     <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-subtle/25">
       <SliderPrimitive.Range className="absolute h-full bg-accent" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-accent bg-surface shadow-soft transition-transform hover:scale-110 focus-visible:outline-none" />
+    {/* Radix puts role="slider" on the thumb, so the label has to travel with
+        it. Left on the root it names a plain wrapper div and assistive tech
+        announces an unlabelled slider. */}
+    <SliderPrimitive.Thumb
+      aria-label={ariaLabel}
+      className="block h-4 w-4 rounded-full border-2 border-accent bg-surface shadow-soft transition-transform hover:scale-110 focus-visible:outline-none"
+    />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = 'Slider';

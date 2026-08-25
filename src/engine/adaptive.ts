@@ -269,7 +269,10 @@ export function buildDailyPlan(
   dailyGoalSessions: number,
 ): Recommendation<PlanBlock[]> {
   const open = tasks
+    // A task that has already met its estimate has nothing left to schedule,
+    // even though it stays open until the user ticks it off.
     .filter((t) => t.status === 'todo' || t.status === 'active')
+    .filter((t) => t.estimatedSessions - t.completedSessions > 0)
     .sort((a, b) => {
       const weight: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
       const p = weight[a.priority] - weight[b.priority];
@@ -294,7 +297,7 @@ export function buildDailyPlan(
 
   for (const task of open) {
     if (budget <= 0) break;
-    const need = Math.max(1, task.estimatedSessions - task.completedSessions);
+    const need = task.estimatedSessions - task.completedSessions;
     const alloc = Math.min(need, budget, 4);
     blocks.push({
       taskId: task.id,
@@ -302,8 +305,10 @@ export function buildDailyPlan(
       startHour: hour % 24,
       sessions: alloc,
       rationale:
-        blocks.length === 0 && peak.value.length > 0
-          ? 'Scheduled first — it lands in your most productive window.'
+        blocks.length === 0
+          ? peak.value.length > 0
+            ? 'Scheduled first — it lands in your most productive window.'
+            : 'Starts the day — nothing open outranks it.'
           : task.priority === 'urgent' || task.priority === 'high'
             ? 'High priority, so it goes early while attention is fresh.'
             : 'Slotted after the heavier work.',

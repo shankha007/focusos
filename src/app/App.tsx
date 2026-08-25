@@ -69,13 +69,17 @@ function Runtime() {
   useTimerTick();
   useAchievementWatcher();
   const deepFocus = useTimerStore((s) => s.timer.status === 'running' || s.timer.status === 'paused');
+  const sessionType = useTimerStore((s) => s.timer.type);
   const [showDeepFocus, setShowDeepFocus] = useState(false);
 
-  // Deep Focus opens automatically when a session starts, but the user can
-  // close it and keep working — so track it separately from timer status.
+  // Deep Focus opens automatically when a focus session starts, but the user
+  // can close it and keep working — so track it separately from timer status.
+  // Breaks never force it open: they auto-start by default, and a full-screen
+  // takeover would land on whatever page the user was reading. If they were
+  // already in Deep Focus it simply stays open across the transition.
   useEffect(() => {
-    if (deepFocus) setShowDeepFocus(true);
-  }, [deepFocus]);
+    if (deepFocus && sessionType === 'focus') setShowDeepFocus(true);
+  }, [deepFocus, sessionType]);
 
   return (
     <>

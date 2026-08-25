@@ -1,5 +1,6 @@
 import { db } from './schema';
 import type {
+  Achievement,
   Category,
   Distraction,
   DistractionCategory,
@@ -160,6 +161,32 @@ export const distractionsRepo = {
 
   async removeCategory(id: string): Promise<void> {
     await db.distractionCategories.delete(id);
+  },
+};
+
+/* ── Achievements ──────────────────────────────────────────── */
+
+/**
+ * Unlock state is derived from session history, so this table exists purely to
+ * pin down *when* each badge first cleared — the one fact the history can't
+ * reconstruct. Without it the JSON backup always shipped an empty list.
+ */
+export const achievementsRepo = {
+  async all(): Promise<Achievement[]> {
+    return db.achievements.toArray();
+  },
+
+  /** Records first-unlock times. Existing rows are never overwritten. */
+  async markUnlocked(ids: string[], at: number = Date.now()): Promise<void> {
+    if (ids.length === 0) return;
+    await db.transaction('rw', db.achievements, async () => {
+      const stored = await db.achievements.bulkGet(ids);
+      const known = new Set(stored.filter(Boolean).map((a) => a!.id));
+      const rows = ids
+        .filter((id) => !known.has(id))
+        .map((id) => ({ id, unlockedAt: at, progress: 1 }));
+      if (rows.length > 0) await db.achievements.bulkPut(rows);
+    });
   },
 };
 
