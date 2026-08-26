@@ -11,3 +11,6 @@ screenshots
 
 # Local codebase reference — not published
 CODEBASE_GUIDE.md
+
+# TypeScript incremental build cache
+*.tsbuildinfo
