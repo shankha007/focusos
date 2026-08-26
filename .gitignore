@@ -8,3 +8,6 @@ screenshots
 
 # Local Netlify folder
 .netlify
+
+# Local codebase reference — not published
+CODEBASE_GUIDE.md
