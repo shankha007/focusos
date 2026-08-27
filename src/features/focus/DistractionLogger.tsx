@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Bookmark } from 'lucide-react';
 import { DynamicIcon } from '@/components/DynamicIcon';
 import {
   Dialog,
@@ -9,6 +10,7 @@ import {
   Input,
 } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useStatsStore } from '@/store/useStatsStore';
@@ -24,14 +26,23 @@ export function DistractionLogger({
   const logDistraction = useTimerStore((s) => s.logDistraction);
   const [note, setNote] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const [park, setPark] = useState(false);
+
+  const trimmed = note.trim();
+  // Nothing to park without a note — there'd be no task to make from it.
+  const canPark = trimmed.length > 0;
 
   const submit = async (categoryId: string) => {
-    await logDistraction(categoryId, note.trim() || undefined);
+    const parking = park && canPark;
+    await logDistraction(categoryId, trimmed || undefined, parking);
     await useStatsStore.getState().refresh();
     const label = categories.find((c) => c.id === categoryId)?.label ?? 'Distraction';
-    toast(`Logged: ${label}`, { description: 'Noted. Get back to it.' });
+    toast(`Logged: ${label}`, {
+      description: parking ? "Parked. It'll come back when the session ends." : 'Noted. Get back to it.',
+    });
     setNote('');
     setSelected(null);
+    setPark(false);
     onOpenChange(false);
   };
 
@@ -68,12 +79,41 @@ export function DistractionLogger({
         <Input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Optional note…"
+          placeholder="Optional note — what was the thought?"
           className="mt-4"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && selected) void submit(selected);
           }}
         />
+
+        <button
+          type="button"
+          disabled={!canPark}
+          aria-pressed={park && canPark}
+          onClick={() => setPark((v) => !v)}
+          className={cn(
+            'mt-2 flex w-full items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
+            park && canPark
+              ? 'border-accent bg-accent/10'
+              : 'border-border hover:border-subtle/40 hover:bg-elevated',
+            !canPark && 'cursor-not-allowed opacity-50 hover:border-border hover:bg-transparent',
+          )}
+        >
+          <Bookmark
+            className={cn(
+              'mt-0.5 h-4 w-4 shrink-0',
+              park && canPark ? 'fill-accent text-accent' : 'text-subtle',
+            )}
+          />
+          <span>
+            <span className="block text-[13px] font-medium">Park it for later</span>
+            <span className="mt-0.5 block text-[12px] leading-relaxed text-muted">
+              {canPark
+                ? "You'll be asked whether to keep it as a task when this session ends."
+                : 'Write the thought down first, then you can park it.'}
+            </span>
+          </span>
+        </button>
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

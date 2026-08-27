@@ -7,6 +7,7 @@ import type {
   Session,
   Settings,
   Task,
+  TimerPreset,
 } from '@/types';
 import { MINUTE, uid } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ export class FocusDB extends Dexie {
   categories!: Table<Category, string>;
   distractionCategories!: Table<DistractionCategory, string>;
   achievements!: Table<Achievement, string>;
+  timerPresets!: Table<TimerPreset, string>;
   settings!: Table<Settings, string>;
 
   constructor() {
@@ -30,6 +32,11 @@ export class FocusDB extends Dexie {
       achievements: 'id, unlockedAt',
       settings: 'id',
     });
+    // Dexie merges each version's stores into the previous schema, so only the
+    // new table needs declaring here.
+    this.version(2).stores({
+      timerPresets: 'id, name, createdAt',
+    });
   }
 }
 
@@ -41,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shortBreakMs: 5 * MINUTE,
   longBreakMs: 15 * MINUTE,
   sessionsUntilLongBreak: 4,
+  activePresetId: 'preset-classic',
   autoStartBreaks: true,
   autoStartFocus: false,
   dailyGoalSessions: 8,
@@ -68,6 +76,40 @@ const BUILT_IN_CATEGORIES: Omit<Category, 'createdAt'>[] = [
   { id: 'cat-admin', name: 'Admin', color: '#9aa0b4' },
 ];
 
+/**
+ * The three cadences most people actually alternate between. Seeded rather
+ * than hard-coded so they can be renamed or retuned like any other preset.
+ */
+const BUILT_IN_PRESETS: Omit<TimerPreset, 'createdAt'>[] = [
+  {
+    id: 'preset-classic',
+    name: 'Classic',
+    focusMs: 25 * MINUTE,
+    shortBreakMs: 5 * MINUTE,
+    longBreakMs: 15 * MINUTE,
+    sessionsUntilLongBreak: 4,
+    builtIn: true,
+  },
+  {
+    id: 'preset-writing',
+    name: 'Writing',
+    focusMs: 50 * MINUTE,
+    shortBreakMs: 10 * MINUTE,
+    longBreakMs: 20 * MINUTE,
+    sessionsUntilLongBreak: 3,
+    builtIn: true,
+  },
+  {
+    id: 'preset-deep',
+    name: 'Deep work',
+    focusMs: 90 * MINUTE,
+    shortBreakMs: 20 * MINUTE,
+    longBreakMs: 30 * MINUTE,
+    sessionsUntilLongBreak: 2,
+    builtIn: true,
+  },
+];
+
 const BUILT_IN_DISTRACTIONS: DistractionCategory[] = [
   { id: 'd-phone', label: 'Phone', icon: 'Smartphone', color: '#f5a524', builtIn: true },
   { id: 'd-social', label: 'Social media', icon: 'AtSign', color: '#ff6b8a', builtIn: true },
@@ -82,6 +124,15 @@ export async function initDb(): Promise<Settings> {
   const existing = await db.settings.get('settings');
   if (!existing) {
     await db.settings.put(DEFAULT_SETTINGS);
+  } else {
+    // A row written by an older build is missing any key added since. Backfill
+    // from the defaults so no setting ever reads back as undefined.
+    const missing = Object.entries(DEFAULT_SETTINGS).filter(
+      ([key]) => !(key in existing),
+    );
+    if (missing.length > 0) {
+      await db.settings.update('settings', Object.fromEntries(missing));
+    }
   }
 
   const catCount = await db.categories.count();
@@ -89,6 +140,11 @@ export async function initDb(): Promise<Settings> {
     await db.categories.bulkPut(
       BUILT_IN_CATEGORIES.map((c) => ({ ...c, createdAt: Date.now() })),
     );
+  }
+
+  const presetCount = await db.timerPresets.count();
+  if (presetCount === 0) {
+    await db.timerPresets.bulkPut(BUILT_IN_PRESETS.map((p) => ({ ...p, createdAt: Date.now() })));
   }
 
   const dCount = await db.distractionCategories.count();

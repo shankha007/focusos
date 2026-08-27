@@ -8,8 +8,10 @@ import {
   Download,
   Eye,
   Palette,
+  Sliders,
   Timer,
   Trash2,
+  Upload,
   Volume2,
   Zap,
 } from 'lucide-react';
@@ -29,10 +31,13 @@ import {
   Switch,
 } from '@/components/ui/primitives';
 import { SoundPicker } from '@/features/focus/SoundPicker';
+import { CategoryPresetMap, PresetManager } from './PresetManager';
+import { RestoreDialog } from './RestoreDialog';
 import { THEME_OPTIONS } from './themes';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
+import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
 import { clearAllData } from '@/db/repositories';
 import { exportJson } from '@/lib/export';
 import { requestNotificationPermission, notificationPermission } from '@/lib/notifications';
@@ -42,7 +47,11 @@ import type { ThemePreference } from '@/types';
 export function SettingsPage() {
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
+  const presets = usePresetStore((s) => s.presets);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+
+  const activePreset = presets.find((p) => matchesSettings(p, settings)) ?? null;
 
   return (
     <PageContainer>
@@ -53,7 +62,19 @@ export function SettingsPage() {
 
       <div className="space-y-4">
         {/* ── Timer ─────────────────────────────────────────── */}
-        <Section icon={Timer} title="Timer" description="Session and break lengths.">
+        <Section
+          icon={Timer}
+          title="Timer"
+          description="Session and break lengths."
+          aside={
+            <Badge
+              tone={activePreset ? 'accent' : 'muted'}
+              title={activePreset ? describePreset(activePreset) : undefined}
+            >
+              {activePreset ? activePreset.name : 'Custom'}
+            </Badge>
+          }
+        >
           <div className="grid gap-4 sm:grid-cols-3">
             <MinuteField
               label="Focus"
@@ -119,6 +140,23 @@ export function SettingsPage() {
                 onCheckedChange={(v) => void update({ autoStartFocus: v })}
               />
             </SettingRow>
+          </div>
+        </Section>
+
+        {/* ── Presets ───────────────────────────────────────── */}
+        <Section
+          icon={Sliders}
+          title="Timer presets"
+          description="Named cadences you can switch between — 25/5 for admin, 90/20 for deep work."
+        >
+          <PresetManager />
+
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="text-[13px] font-medium">Per-category cadence</p>
+            <p className="mb-3 mt-0.5 text-[12px] leading-relaxed text-muted">
+              Focusing on a task in one of these categories switches the timer to its preset first.
+            </p>
+            <CategoryPresetMap />
           </div>
         </Section>
 
@@ -274,11 +312,20 @@ export function SettingsPage() {
               <Download className="h-3.5 w-3.5" />
               Export everything
             </Button>
+            <Button variant="secondary" size="sm" onClick={() => setRestoreOpen(true)}>
+              <Upload className="h-3.5 w-3.5" />
+              Restore from backup
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
               <Trash2 className="h-3.5 w-3.5" />
               Reset all data
             </Button>
           </div>
+
+          <p className="mt-3 text-[12px] leading-relaxed text-muted">
+            Clearing your browser's site data erases everything here permanently — an export is the
+            only way back. Restore reads that same JSON file on this or any other device.
+          </p>
 
           <div className="mt-4 rounded-xl border border-border bg-elevated/50 p-3.5">
             <div className="flex items-start gap-2.5">
@@ -300,6 +347,7 @@ export function SettingsPage() {
       </div>
 
       <ResetDialog open={confirmReset} onOpenChange={setConfirmReset} />
+      <RestoreDialog open={restoreOpen} onOpenChange={setRestoreOpen} />
     </PageContainer>
   );
 }
@@ -310,11 +358,13 @@ function Section({
   icon: Icon,
   title,
   description,
+  aside,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
+  aside?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -323,10 +373,11 @@ function Section({
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-elevated text-muted">
           <Icon className="h-3.5 w-3.5" />
         </span>
-        <div>
+        <div className="min-w-0 flex-1">
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
+        {aside && <div className="shrink-0">{aside}</div>}
       </div>
       {children}
     </Card>

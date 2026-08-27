@@ -8,6 +8,7 @@ import type {
   Session,
   Settings,
   Task,
+  TimerPreset,
 } from '@/types';
 import { startOfDay, uid } from '@/lib/utils';
 
@@ -143,6 +144,30 @@ export const distractionsRepo = {
     return db.distractions.orderBy('at').toArray();
   },
 
+  /**
+   * Parked notes from one session that haven't been reviewed yet. Dexie can't
+   * index `undefined`, so the pending filter is applied in memory.
+   */
+  async pendingParked(sessionId: string): Promise<Distraction[]> {
+    const rows = await db.distractions.where('sessionId').equals(sessionId).toArray();
+    return rows
+      .filter((d) => d.parked && d.parkResolvedAt === undefined)
+      .sort((a, b) => a.at - b.at);
+  },
+
+  /** Answers the park prompt. `taskId` is set only when the note was kept. */
+  async resolveParked(ids: string[], taskIdById: Record<string, string> = {}): Promise<void> {
+    if (ids.length === 0) return;
+    const at = Date.now();
+    await db.transaction('rw', db.distractions, async () => {
+      await Promise.all(
+        ids.map((id) =>
+          db.distractions.update(id, { parkResolvedAt: at, parkedTaskId: taskIdById[id] }),
+        ),
+      );
+    });
+  },
+
   async categories(): Promise<DistractionCategory[]> {
     return db.distractionCategories.toArray();
   },
@@ -203,8 +228,55 @@ export const categoriesRepo = {
     return row;
   },
 
+  async update(id: string, patch: Partial<Category>): Promise<void> {
+    await db.categories.update(id, patch);
+  },
+
   async remove(id: string): Promise<void> {
     await db.categories.delete(id);
+  },
+};
+
+/* ── Timer presets ─────────────────────────────────────────── */
+
+export const presetsRepo = {
+  async all(): Promise<TimerPreset[]> {
+    const rows = await db.timerPresets.toArray();
+    // Built-ins first, then newest custom presets — the order the list reads in.
+    return rows.sort((a, b) => Number(b.builtIn) - Number(a.builtIn) || b.createdAt - a.createdAt);
+  },
+
+  async get(id: string): Promise<TimerPreset | undefined> {
+    return db.timerPresets.get(id);
+  },
+
+  async create(input: Omit<TimerPreset, 'id' | 'builtIn' | 'createdAt'>): Promise<TimerPreset> {
+    const row: TimerPreset = {
+      ...input,
+      name: input.name.trim(),
+      id: `preset_${uid()}`,
+      builtIn: false,
+      createdAt: Date.now(),
+    };
+    await db.timerPresets.put(row);
+    return row;
+  },
+
+  async update(id: string, patch: Partial<TimerPreset>): Promise<void> {
+    await db.timerPresets.update(id, patch);
+  },
+
+  /** Also detaches the preset from any category pointing at it. */
+  async remove(id: string): Promise<void> {
+    await db.transaction('rw', [db.timerPresets, db.categories], async () => {
+      await db.timerPresets.delete(id);
+      // `presetId` isn't indexed — there are only a handful of categories, so a
+      // scan is cheaper than carrying an index for this one cleanup.
+      const attached = (await db.categories.toArray()).filter((c) => c.presetId === id);
+      await Promise.all(
+        attached.map((c) => db.categories.update(c.id, { presetId: undefined })),
+      );
+    });
   },
 };
 
@@ -220,21 +292,36 @@ export const settingsRepo = {
   },
 };
 
-/* ── Bulk data (export / reset) ────────────────────────────── */
+/* ── Bulk data (export / import / reset) ───────────────────── */
+
+/**
+ * Bumped whenever a table is added to the backup. Readers accept anything at
+ * or below this — older files simply carry fewer collections.
+ */
+export const BACKUP_VERSION = 2;
 
 export async function exportAll() {
-  const [tasks, sessions, distractions, categories, distractionCategories, achievements, settings] =
-    await Promise.all([
-      db.tasks.toArray(),
-      db.sessions.toArray(),
-      db.distractions.toArray(),
-      db.categories.toArray(),
-      db.distractionCategories.toArray(),
-      db.achievements.toArray(),
-      db.settings.toArray(),
-    ]);
+  const [
+    tasks,
+    sessions,
+    distractions,
+    categories,
+    distractionCategories,
+    achievements,
+    timerPresets,
+    settings,
+  ] = await Promise.all([
+    db.tasks.toArray(),
+    db.sessions.toArray(),
+    db.distractions.toArray(),
+    db.categories.toArray(),
+    db.distractionCategories.toArray(),
+    db.achievements.toArray(),
+    db.timerPresets.toArray(),
+    db.settings.toArray(),
+  ]);
   return {
-    version: 1,
+    version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     tasks,
     sessions,
@@ -242,6 +329,7 @@ export async function exportAll() {
     categories,
     distractionCategories,
     achievements,
+    timerPresets,
     settings,
   };
 }

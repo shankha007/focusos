@@ -63,6 +63,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   update: async (patch) => {
+    // Hand-editing any of the four cadence fields detaches the preset label:
+    // the settings no longer are that preset, so claiming they are would be a
+    // lie the rest of the app reads. Applying a preset passes activePresetId
+    // in the same patch, which opts out of this.
+    const PRESET_FIELDS = [
+      'focusMs',
+      'shortBreakMs',
+      'longBreakMs',
+      'sessionsUntilLongBreak',
+    ] as const;
+    if (
+      !('activePresetId' in patch) &&
+      PRESET_FIELDS.some((field) => field in patch) &&
+      get().settings.activePresetId !== null
+    ) {
+      patch = { ...patch, activePresetId: null };
+    }
+
     const next = { ...get().settings, ...patch };
     set({ settings: next, resolvedTheme: paint(next) });
     await settingsRepo.patch(patch);

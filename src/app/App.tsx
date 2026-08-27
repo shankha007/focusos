@@ -19,10 +19,12 @@ const SettingsPage = lazy(() =>
   import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
 import { SessionReviewDialog } from '@/features/focus/SessionReviewDialog';
+import { ParkedThoughtsDialog } from '@/features/focus/ParkedThoughtsDialog';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTimerStore } from '@/store/useTimerStore';
+import { usePresetStore } from '@/store/usePresetStore';
 import { useTimerTick } from '@/hooks/useTimerTick';
 import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
 
@@ -33,7 +35,11 @@ function Boot({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       await useSettingsStore.getState().load();
-      await Promise.all([useTaskStore.getState().load(), useStatsStore.getState().refresh()]);
+      await Promise.all([
+        useTaskStore.getState().load(),
+        useStatsStore.getState().refresh(),
+        usePresetStore.getState().load(),
+      ]);
       // Hydrate last so it can read the loaded settings for durations.
       useTimerStore.getState().hydrate();
       if (!cancelled) setReady(true);
@@ -120,6 +126,7 @@ function Runtime() {
       </AnimatePresence>
 
       <SessionReviewDialog />
+      <ParkedThoughtsDialog />
     </>
   );
 }
