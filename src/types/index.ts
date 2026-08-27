@@ -31,6 +31,24 @@ export interface Category {
   /** Hex or rgb triple used for the dot / chart series. */
   color: string;
   icon?: string;
+  /** Timer preset applied automatically when focusing on a task in this category. */
+  presetId?: string;
+  createdAt: number;
+}
+
+/**
+ * A named bundle of the four cadence settings. Switching between "25/5 for
+ * admin" and "90/20 for deep work" is a mode change, not a settings edit.
+ */
+export interface TimerPreset {
+  id: string;
+  name: string;
+  focusMs: number;
+  shortBreakMs: number;
+  longBreakMs: number;
+  sessionsUntilLongBreak: number;
+  /** Seeded presets can be edited but not deleted. */
+  builtIn: boolean;
   createdAt: number;
 }
 
@@ -62,6 +80,12 @@ export interface Distraction {
   at: number;
   /** Where in the session it happened, 0–1. Reveals "I drift at the 20-min mark" patterns. */
   sessionProgress?: number;
+  /** The note was set aside to become a task — reviewed when the session ends. */
+  parked?: boolean;
+  /** When the park prompt was answered. Unset means it is still pending. */
+  parkResolvedAt?: number;
+  /** Set when the parked note was kept and turned into this task. */
+  parkedTaskId?: string;
 }
 
 export interface DistractionCategory {
@@ -107,6 +131,8 @@ export interface Settings {
   shortBreakMs: number;
   longBreakMs: number;
   sessionsUntilLongBreak: number;
+  /** Preset the four cadence fields above last came from, if any. */
+  activePresetId: string | null;
   autoStartBreaks: boolean;
   autoStartFocus: boolean;
   dailyGoalSessions: number;

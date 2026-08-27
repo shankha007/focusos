@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Rating, Session, SessionType } from '@/types';
+import type { Distraction, Rating, Session, SessionType } from '@/types';
 import {
   createTimerState,
   durationForType,
@@ -17,6 +17,7 @@ import { distractionsRepo, sessionsRepo, tasksRepo } from '@/db/repositories';
 import { useSettingsStore } from './useSettingsStore';
 import { useTaskStore } from './useTaskStore';
 import { useStatsStore } from './useStatsStore';
+import { applyPresetForCategory } from './usePresetStore';
 import { xpForSession } from '@/engine/achievements';
 import { ambient } from '@/lib/audio';
 import { uid } from '@/lib/utils';
@@ -52,6 +53,11 @@ interface TimerStoreState {
   distractionCount: number;
   /** Session awaiting a post-session rating, if any. */
   pendingReview: Session | null;
+  /**
+   * Notes parked during the session that just ended, awaiting a keep-or-drop
+   * decision. Shown after the review dialog, never at the same time.
+   */
+  pendingParked: Distraction[];
   /** Bumped on every rAF tick so subscribed components re-render. */
   tick: number;
   /** False until `hydrate` has read localStorage. Nothing may persist before then. */
@@ -67,9 +73,11 @@ interface TimerStoreState {
   reset: () => void;
   skip: () => Promise<void>;
   complete: (opts?: { early?: boolean }) => Promise<void>;
-  logDistraction: (categoryId: string, note?: string) => Promise<void>;
+  logDistraction: (categoryId: string, note?: string, park?: boolean) => Promise<void>;
   submitReview: (productivity: Rating, accomplishment: string) => Promise<void>;
   dismissReview: () => void;
+  clearParked: () => void;
+  resumeAfterPrompts: () => void;
   doTick: () => void;
   remaining: () => number;
   progress: () => number;
@@ -97,6 +105,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   energyBefore: null,
   distractionCount: 0,
   pendingReview: null,
+  pendingParked: [],
   tick: 0,
   hydrated: false,
 
@@ -146,9 +155,18 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   },
 
   startSession: async (type) => {
-    const settings = useSettingsStore.getState().settings;
     const current = get().timer;
     const nextType = type ?? current.type;
+
+    // A task whose category carries a preset switches the cadence before the
+    // duration is read, so "focus on this" and "use this rhythm" are one action.
+    if (nextType === 'focus' && get().taskId) {
+      const task = useTaskStore.getState().tasks.find((t) => t.id === get().taskId);
+      await applyPresetForCategory(task?.categoryId, useTaskStore.getState().categories);
+    }
+
+    // Read after the preset lands — it may have just changed these.
+    const settings = useSettingsStore.getState().settings;
     const duration = durationForType(nextType, settings);
 
     const timer = startState({ ...current, type: nextType, durationMs: duration });
@@ -267,6 +285,14 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     const needsReview =
       timer.type === 'focus' && completed && settings.askProductivityAfter && meaningful;
 
+    // Notes the user set aside mid-session. Collected here rather than in the
+    // review dialog so they surface even when the review is turned off — the
+    // whole point of parking is that the thought comes back.
+    const parked =
+      timer.type === 'focus' && state.sessionId
+        ? await distractionsRepo.pendingParked(state.sessionId)
+        : [];
+
     set({
       timer: {
         ...createTimerState(upcoming, upcomingDuration),
@@ -277,6 +303,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       moodBefore: null,
       energyBefore: null,
       pendingReview: needsReview ? session : null,
+      pendingParked: parked,
     });
     persist(get());
     await useStatsStore.getState().refresh();
@@ -286,12 +313,12 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       (upcoming !== 'focus' && settings.autoStartBreaks) ||
       (upcoming === 'focus' && settings.autoStartFocus);
 
-    if (shouldAutoStart && !needsReview) {
+    if (shouldAutoStart && !needsReview && parked.length === 0) {
       void get().startSession(upcoming);
     }
   },
 
-  logDistraction: async (categoryId, note) => {
+  logDistraction: async (categoryId, note, park = false) => {
     const state = get();
     await distractionsRepo.add({
       sessionId: state.sessionId ?? undefined,
@@ -299,6 +326,9 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       note,
       at: Date.now(),
       sessionProgress: progressOf(state.timer),
+      // Parking is only meaningful with a note — there is nothing to keep
+      // otherwise, and an empty task would just be noise at session end.
+      parked: park && Boolean(note) ? true : undefined,
     });
     set({ distractionCount: state.distractionCount + 1 });
     persist(get());
@@ -312,14 +342,36 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       accomplishment: accomplishment.trim() || undefined,
     });
     set({ pendingReview: null });
-
-    const settings = useSettingsStore.getState().settings;
-    if (settings.autoStartBreaks && get().timer.type !== 'focus') {
-      void get().startSession();
-    }
+    get().resumeAfterPrompts();
   },
 
-  dismissReview: () => set({ pendingReview: null }),
+  dismissReview: () => {
+    set({ pendingReview: null });
+    get().resumeAfterPrompts();
+  },
+
+  clearParked: () => {
+    set({ pendingParked: [] });
+    get().resumeAfterPrompts();
+  },
+
+  /**
+   * Auto-start is deferred while the review or park prompt is up, so a break
+   * doesn't tick away underneath a dialog. Once both are cleared, roll on.
+   */
+  resumeAfterPrompts: () => {
+    const state = get();
+    if (state.pendingReview || state.pendingParked.length > 0) return;
+    if (state.timer.status !== 'idle') return;
+
+    const settings = useSettingsStore.getState().settings;
+    const upcoming = state.timer.type;
+    const shouldAutoStart =
+      (upcoming !== 'focus' && settings.autoStartBreaks) ||
+      (upcoming === 'focus' && settings.autoStartFocus);
+
+    if (shouldAutoStart) void state.startSession(upcoming);
+  },
 
   doTick: () => {
     const state = get();

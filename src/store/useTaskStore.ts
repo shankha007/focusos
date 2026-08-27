@@ -22,6 +22,7 @@ interface TaskStoreState {
   remove: (id: string) => Promise<void>;
   reorder: (orderedIds: string[]) => Promise<void>;
   addCategory: (name: string, color: string) => Promise<void>;
+  setCategoryPreset: (id: string, presetId: string | undefined) => Promise<void>;
   removeCategory: (id: string) => Promise<void>;
   addDistractionCategory: (label: string, color: string) => Promise<void>;
   removeDistractionCategory: (id: string) => Promise<void>;
@@ -79,6 +80,11 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
 
   addCategory: async (name, color) => {
     await categoriesRepo.create(name, color);
+    set({ categories: await categoriesRepo.all() });
+  },
+
+  setCategoryPreset: async (id, presetId) => {
+    await categoriesRepo.update(id, { presetId });
     set({ categories: await categoriesRepo.all() });
   },
 

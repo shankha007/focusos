@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Settings as SettingsIcon,
   SkipForward,
+  Sliders,
   Trophy,
   Volume2,
   VolumeX,
@@ -22,9 +23,11 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/primitives';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
+import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
 import { ambient } from '@/lib/audio';
 import type { ThemePreference } from '@/types';
 import { THEME_OPTIONS } from '@/features/settings/themes';
+import { toast } from 'sonner';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -35,12 +38,14 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState<'root' | 'themes' | 'tasks'>('root');
+  const [page, setPage] = useState<'root' | 'themes' | 'tasks' | 'presets'>('root');
 
   const timer = useTimerStore((s) => s.timer);
   const tasks = useTaskStore((s) => s.tasks);
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.update);
+  const presets = usePresetStore((s) => s.presets);
+  const applyPreset = usePresetStore((s) => s.apply);
 
   useEffect(() => {
     if (!open) {
@@ -55,6 +60,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
   };
 
   const openTasks = tasks.filter((t) => t.status !== 'done' && t.status !== 'archived');
+  const activePreset = presets.find((p) => matchesSettings(p, settings)) ?? null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,7 +86,9 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                   ? 'Choose a theme…'
                   : page === 'tasks'
                     ? 'Pick a task to focus on…'
-                    : 'Type a command or search…'
+                    : page === 'presets'
+                      ? 'Switch to a timer preset…'
+                      : 'Type a command or search…'
               }
               className="h-12 w-full bg-transparent text-sm text-fg outline-none placeholder:text-subtle"
             />
@@ -140,6 +148,15 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                       setSearch('');
                     }}
                   />
+                  <Item
+                    icon={Sliders}
+                    label="Switch timer preset…"
+                    hint={activePreset?.name ?? 'Custom'}
+                    onSelect={() => {
+                      setPage('presets');
+                      setSearch('');
+                    }}
+                  />
                 </Group>
 
                 <Group heading="Go to">
@@ -192,6 +209,36 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                     hint={t.description}
                     active={settings.theme === t.value}
                     onSelect={() => run(() => void updateSettings({ theme: t.value as ThemePreference }))}
+                  />
+                ))}
+              </Group>
+            )}
+
+            {page === 'presets' && (
+              <Group heading="Timer presets">
+                {presets.length === 0 && (
+                  <div className="px-2 py-6 text-center text-[13px] text-subtle">
+                    No presets yet. Save one from Settings.
+                  </div>
+                )}
+                {presets.map((preset) => (
+                  <Item
+                    key={preset.id}
+                    icon={Sliders}
+                    label={preset.name}
+                    hint={describePreset(preset)}
+                    active={activePreset?.id === preset.id}
+                    onSelect={() =>
+                      run(() => {
+                        void applyPreset(preset.id).then((applied) => {
+                          if (applied) {
+                            toast.success(`Switched to ${applied.name}.`, {
+                              description: describePreset(applied),
+                            });
+                          }
+                        });
+                      })
+                    }
                   />
                 ))}
               </Group>
