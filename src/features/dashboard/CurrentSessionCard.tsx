@@ -13,6 +13,7 @@ import {
   remainingMs,
 } from '@/engine/timerEngine';
 
+/** The dashboard's timer panel. Idle, it offers to start the next open task; running, it shows the ring, the time left, when the session ends, and the pause/skip controls. */
 export function CurrentSessionCard({
   onOpenFocus,
   onStart,

@@ -15,6 +15,7 @@ import { useTaskStore } from '@/store/useTaskStore';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useStatsStore } from '@/store/useStatsStore';
 
+/** Two-tap logging of an interruption: pick what pulled you away, optionally write the thought down, and optionally park it to be turned into a task when the session ends. */
 export function DistractionLogger({
   open,
   onOpenChange,
@@ -32,6 +33,7 @@ export function DistractionLogger({
   // Nothing to park without a note — there'd be no task to make from it.
   const canPark = trimmed.length > 0;
 
+  /** Records the distraction against the running session and closes the dialog. */
   const submit = async (categoryId: string) => {
     const parking = park && canPark;
     await logDistraction(categoryId, trimmed || undefined, parking);

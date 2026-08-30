@@ -6,6 +6,7 @@ import { distractionPatterns } from '@/engine/analytics';
 import { fmtHour } from '@/engine/adaptive';
 import { pluralize } from '@/lib/utils';
 
+/** Ranks what interrupts the user most, with each cause's share and the point in a session it usually strikes. */
 export function DistractionReport({
   distractions,
   categories,

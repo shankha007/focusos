@@ -41,6 +41,7 @@ import { pluralize } from '@/lib/utils';
 
 type Filter = 'open' | 'done' | 'all';
 
+/** The task board: filter by state and category, reorder by dragging, and start a focus session on any row. */
 export function TasksPage({ onOpenFocus }: { onOpenFocus: () => void }) {
   const tasks = useTaskStore((s) => s.tasks);
   const categories = useTaskStore((s) => s.categories);
@@ -80,6 +81,7 @@ export function TasksPage({ onOpenFocus }: { onOpenFocus: () => void }) {
 
   const openCount = tasks.filter((t) => t.status === 'todo' || t.status === 'active').length;
 
+  /** Commits a drag: moves the dragged task to where it was dropped and persists the new order. */
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;

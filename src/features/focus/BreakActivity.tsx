@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DynamicIcon } from '@/components/DynamicIcon';
 import { useSettingsStore } from '@/store/useSettingsStore';
 
+/** Suggests something to actually do with the break, matched to its length and how long the user has been sitting. The refresh button rolls a different suggestion. */
 export function BreakActivity({
   type,
   cycleCount,

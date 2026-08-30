@@ -8,6 +8,7 @@ import { MINUTE } from '../utils';
  * shapes that gate actually has to survive.
  */
 
+/** Serialises a backup file with a valid header, so each test only has to state the part it is actually exercising. */
 function file(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({ version: 2, exportedAt: '2026-08-01T10:00:00.000Z', ...overrides });
 }

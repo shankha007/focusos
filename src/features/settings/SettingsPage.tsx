@@ -44,6 +44,7 @@ import { requestNotificationPermission, notificationPermission } from '@/lib/not
 import { MINUTE, cn, clamp } from '@/lib/utils';
 import type { ThemePreference } from '@/types';
 
+/** Every preference in one page: timer cadence and presets, appearance, sound, notifications, check-in prompts, adaptive suggestions, and the backup / restore / reset controls. */
 export function SettingsPage() {
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
@@ -354,6 +355,7 @@ export function SettingsPage() {
 
 /* ── Building blocks ───────────────────────────────────────── */
 
+/** A titled group of settings, with an icon and a line explaining what the group is for. */
 function Section({
   icon: Icon,
   title,
@@ -384,6 +386,7 @@ function Section({
   );
 }
 
+/** One setting: label and explanation on the left, its control on the right. */
 function SettingRow({
   label,
   description,
@@ -404,6 +407,7 @@ function SettingRow({
   );
 }
 
+/** A slider for a duration, stored in milliseconds but edited in whole minutes. */
 function MinuteField({
   label,
   value,
@@ -436,6 +440,7 @@ function MinuteField({
   );
 }
 
+/** A small −/+ control for a count, clamped to the given range. */
 function NumberStepper({
   value,
   min,
@@ -470,9 +475,11 @@ function NumberStepper({
   );
 }
 
+/** Erases the user's history. Destructive and irreversible, so it asks for the word "reset" to be typed before the button works. */
 function ResetDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [confirmText, setConfirmText] = useState('');
 
+  /** Clears the data, reloads the stores, and drops any timer left in localStorage. */
   const reset = async () => {
     await clearAllData();
     await Promise.all([useTaskStore.getState().load(), useStatsStore.getState().refresh()]);

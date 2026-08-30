@@ -17,6 +17,7 @@ import { estimateTaskSessions } from '@/engine/adaptive';
 import { cn, pluralize } from '@/lib/utils';
 import { priorityColor } from '@/features/dashboard/DashboardPage';
 
+/** One draggable row in the task list — progress against its estimate, the adaptive re-estimate, and the tick / start / edit / delete controls. */
 export function TaskRow({
   task,
   sessions,

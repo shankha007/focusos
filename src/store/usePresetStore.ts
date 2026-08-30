@@ -10,6 +10,7 @@ export type PresetShape = Pick<
   'focusMs' | 'shortBreakMs' | 'longBreakMs' | 'sessionsUntilLongBreak'
 >;
 
+/** Extracts just the four settings a preset controls, ready to merge into settings. */
 export function presetShape(preset: TimerPreset): PresetShape {
   return {
     focusMs: preset.focusMs,
@@ -43,20 +44,24 @@ interface PresetStoreState {
   apply: (id: string) => Promise<TimerPreset | null>;
 }
 
+/** The saved timer presets, and the one action that puts a preset into force. */
 export const usePresetStore = create<PresetStoreState>((set, get) => ({
   presets: [],
   loaded: false,
 
+  /** Reads every preset from the database. Run once at startup. */
   load: async () => {
     set({ presets: await presetsRepo.all(), loaded: true });
   },
 
+  /** Saves a new custom preset and returns it. */
   create: async (input) => {
     const preset = await presetsRepo.create(input);
     set({ presets: await presetsRepo.all() });
     return preset;
   },
 
+  /** Edits a preset, and re-applies it to settings if it happens to be the one in force. */
   update: async (id, patch) => {
     await presetsRepo.update(id, patch);
     set({ presets: await presetsRepo.all() });
@@ -70,6 +75,7 @@ export const usePresetStore = create<PresetStoreState>((set, get) => ({
     }
   },
 
+  /** Deletes a preset. The current durations stay put; only the label naming that preset is cleared. */
   remove: async (id) => {
     await presetsRepo.remove(id);
     set({ presets: await presetsRepo.all() });
@@ -80,6 +86,7 @@ export const usePresetStore = create<PresetStoreState>((set, get) => ({
     }
   },
 
+  /** Puts a preset into force and returns it, or null if that preset no longer exists. */
   apply: async (id) => {
     const preset = get().presets.find((p) => p.id === id) ?? (await presetsRepo.get(id)) ?? null;
     if (!preset) return null;

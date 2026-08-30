@@ -20,6 +20,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { cn, pluralize } from '@/lib/utils';
 
+/** Lists the saved timer cadences, switches between them, and offers to save the current one. A preset reads as active only while the live settings still match it. */
 export function PresetManager() {
   const presets = usePresetStore((s) => s.presets);
   const apply = usePresetStore((s) => s.apply);
@@ -90,6 +91,7 @@ export function PresetManager() {
   );
 }
 
+/** Names the current timer settings and saves them as a preset, then puts it into force. Duplicate names are rejected. */
 function CreatePresetDialog({
   open,
   onOpenChange,
@@ -109,6 +111,7 @@ function CreatePresetDialog({
   const trimmed = name.trim();
   const duplicate = presets.some((p) => p.name.toLowerCase() === trimmed.toLowerCase());
 
+  /** Creates the preset from the current settings and applies it. */
   const save = async () => {
     if (!trimmed || duplicate) return;
     const preset = await create({

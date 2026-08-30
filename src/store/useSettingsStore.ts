@@ -5,14 +5,17 @@ import { settingsRepo } from '@/db/repositories';
 
 const DARK_THEMES: ThemeName[] = ['dark', 'midnight', 'amoled', 'forest', 'ocean', 'sunset'];
 
+/** Whether a concrete theme is a dark one — decides the light/dark mode flag the CSS keys off. */
 export function isDarkTheme(theme: ThemeName): boolean {
   return DARK_THEMES.includes(theme);
 }
 
+/** The theme matching the OS appearance right now. */
 export function systemTheme(): ThemeName {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'midnight' : 'light';
 }
 
+/** Turns the stored preference into the theme to actually render, following the OS when it is set to 'system'. */
 export function resolveTheme(pref: ThemePreference): ThemeName {
   return pref === 'system' ? systemTheme() : pref;
 }
@@ -43,11 +46,13 @@ function paint(settings: Settings): ThemeName {
   return theme;
 }
 
+/** Every user preference, plus the resolved theme currently painted on the document. */
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   loaded: false,
   resolvedTheme: 'midnight',
 
+  /** Opens the database, reads settings (seeding defaults on first run), paints the theme, and starts following the OS appearance. */
   load: async () => {
     const settings = await initDb();
     set({ settings, loaded: true, resolvedTheme: paint(settings) });
@@ -62,6 +67,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       });
   },
 
+  /** Saves changed preferences and repaints. Editing a timer duration by hand detaches the active preset label, since the settings are no longer that preset. */
   update: async (patch) => {
     // Hand-editing any of the four cadence fields detaches the preset label:
     // the settings no longer are that preset, so claiming they are would be a
@@ -86,6 +92,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     await settingsRepo.patch(patch);
   },
 
+  /** Re-paints the document from the current settings, e.g. after the OS appearance changes. */
   applyTheme: () => {
     set({ resolvedTheme: paint(get().settings) });
   },

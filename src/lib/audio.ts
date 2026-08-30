@@ -58,11 +58,13 @@ function makeNoiseBuffer(ctx: AudioContext, type: 'white' | 'pink' | 'brown'): A
   return buffer;
 }
 
+/** One voice of a soundscape: the nodes it created, and the call that silences and disconnects them. */
 interface Layer {
   nodes: AudioNode[];
   stop: () => void;
 }
 
+/** Owns the single AudioContext and whichever soundscape is currently playing, so switching sounds or adjusting volume never stacks up overlapping graphs. */
 export class AmbientEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -70,6 +72,7 @@ export class AmbientEngine {
   private current: SoundId | null = null;
   private volume = 0.4;
 
+  /** Lazily creates the AudioContext on first use — building one before a user gesture would start it suspended. */
   private ensureContext(): AudioContext {
     if (!this.ctx) {
       const Ctor =
@@ -83,10 +86,12 @@ export class AmbientEngine {
     return this.ctx;
   }
 
+  /** The soundscape currently playing, or null when silent. */
   get activeSound(): SoundId | null {
     return this.current;
   }
 
+  /** Switches to soundscape `id`, replacing anything already playing and fading in. */
   async play(id: SoundId, volume = this.volume): Promise<void> {
     const ctx = this.ensureContext();
     if (ctx.state === 'suspended') await ctx.resume();
@@ -105,6 +110,7 @@ export class AmbientEngine {
     this.master!.gain.linearRampToValueAtTime(volume, now + 1.2);
   }
 
+  /** Changes the master volume with a short ramp, so the level never steps audibly. */
   setVolume(volume: number): void {
     this.volume = volume;
     if (!this.ctx || !this.master) return;
@@ -114,6 +120,7 @@ export class AmbientEngine {
     this.master.gain.linearRampToValueAtTime(volume, now + 0.2);
   }
 
+  /** Fades the ambience out and tears down its nodes once the fade has finished. */
   stop(): void {
     if (!this.ctx || !this.master) {
       this.current = null;
@@ -129,6 +136,7 @@ export class AmbientEngine {
     window.setTimeout(() => layers.forEach((l) => l.stop()), 700);
   }
 
+  /** Immediately disposes every layer of the current graph, with no fade. */
   private stopLayers(): void {
     this.layers.forEach((l) => l.stop());
     this.layers = [];
@@ -155,6 +163,7 @@ export class AmbientEngine {
     });
   }
 
+  /** Releases the AudioContext entirely. Call when the engine will not be used again. */
   dispose(): void {
     this.stopLayers();
     void this.ctx?.close();
@@ -168,6 +177,7 @@ export class AmbientEngine {
 
 type Builder = (ctx: AudioContext, dest: AudioNode) => Layer[];
 
+/** A looping buffer source playing the requested flavour of noise. */
 function noiseSource(
   ctx: AudioContext,
   type: 'white' | 'pink' | 'brown',
@@ -178,6 +188,7 @@ function noiseSource(
   return src;
 }
 
+/** One steady voice of a soundscape: noise shaped by a filter, at a fixed gain, optionally breathing under a slow LFO. */
 function simpleLayer(
   ctx: AudioContext,
   dest: AudioNode,

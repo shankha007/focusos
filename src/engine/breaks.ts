@@ -104,6 +104,7 @@ export function suggestBreak(
   return list[Math.floor(seed / 1000) % list.length];
 }
 
+/** The full catalogue of break activities, for browsing in settings. */
 export function allBreakSuggestions(): BreakSuggestion[] {
   return SUGGESTIONS;
 }

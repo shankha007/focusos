@@ -10,20 +10,24 @@ import { cn } from '@/lib/utils';
 
 /* ── Card ──────────────────────────────────────────────────── */
 
+/** A padded surface panel — the container most content sits in. */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('panel p-5', className)} {...props} />;
 }
 
+/** The heading inside a card. */
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return <h3 className={cn('text-sm font-semibold tracking-tight', className)} {...props} />;
 }
 
+/** Supporting text under a card's title. */
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn('text-[13px] leading-relaxed text-muted', className)} {...props} />;
 }
 
 /* ── Input / Textarea ──────────────────────────────────────── */
 
+/** A single-line text field in the app's style. */
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
     <input
@@ -41,6 +45,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
 );
 Input.displayName = 'Input';
 
+/** A multi-line text field in the app's style. */
 export const Textarea = React.forwardRef<
   HTMLTextAreaElement,
   React.TextareaHTMLAttributes<HTMLTextAreaElement>
@@ -60,6 +65,7 @@ Textarea.displayName = 'Textarea';
 
 /* ── Badge ─────────────────────────────────────────────────── */
 
+/** A small pill label, coloured by `tone` to signal status. */
 export function Badge({
   className,
   tone = 'default',
@@ -93,6 +99,7 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
+/** The modal panel itself: overlay, centring, scrolling, and a close button unless `hideClose` is set. */
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
@@ -124,6 +131,7 @@ export const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = 'DialogContent';
 
+/** A dialog's heading. Radix requires one for accessibility. */
 export const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
@@ -136,6 +144,7 @@ export const DialogTitle = React.forwardRef<
 ));
 DialogTitle.displayName = 'DialogTitle';
 
+/** Supporting text under a dialog's title, announced with it by screen readers. */
 export const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
@@ -150,6 +159,7 @@ DialogDescription.displayName = 'DialogDescription';
 
 /* ── Switch ────────────────────────────────────────────────── */
 
+/** An on/off toggle, used throughout settings. */
 export const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>
@@ -177,6 +187,7 @@ Switch.displayName = 'Switch';
 
 /* ── Slider ────────────────────────────────────────────────── */
 
+/** A draggable range control. Pass `aria-label` — it is forwarded to the thumb, which is the element assistive tech actually sees. */
 export const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
@@ -204,6 +215,7 @@ Slider.displayName = 'Slider';
 
 export const TooltipProvider = TooltipPrimitive.Provider;
 
+/** Wraps a child so hovering or focusing it reveals `content`. Renders the child bare when there is nothing to say. */
 export function Tooltip({
   children,
   content,
@@ -234,6 +246,7 @@ export function Tooltip({
 
 export const Tabs = TabsPrimitive.Root;
 
+/** The row of tab buttons. */
 export const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -249,6 +262,7 @@ export const TabsList = React.forwardRef<
 ));
 TabsList.displayName = 'TabsList';
 
+/** One tab button, highlighted while its panel is showing. */
 export const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
@@ -272,6 +286,7 @@ export const TabsContent = TabsPrimitive.Content;
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
 
+/** The closed dropdown: shows the current choice and opens the list. */
 export const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
@@ -294,6 +309,7 @@ export const SelectTrigger = React.forwardRef<
 ));
 SelectTrigger.displayName = 'SelectTrigger';
 
+/** The dropdown's popup list, positioned against its trigger. */
 export const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
@@ -316,6 +332,7 @@ export const SelectContent = React.forwardRef<
 ));
 SelectContent.displayName = 'SelectContent';
 
+/** One option in a dropdown, tick-marked while selected. */
 export const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
@@ -339,6 +356,7 @@ SelectItem.displayName = 'SelectItem';
 
 /* ── Empty state ───────────────────────────────────────────── */
 
+/** What a list shows when it has nothing in it: an icon, an explanation, and usually the button that fixes it. */
 export function EmptyState({
   icon: Icon,
   title,

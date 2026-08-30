@@ -1,4 +1,4 @@
-import { db } from './schema';
+import { db } from "./schema";
 import type {
   Achievement,
   Category,
@@ -9,22 +9,29 @@ import type {
   Settings,
   Task,
   TimerPreset,
-} from '@/types';
-import { startOfDay, uid } from '@/lib/utils';
+} from "@/types";
+import { startOfDay, uid } from "@/lib/utils";
 
 /* ── Tasks ─────────────────────────────────────────────────── */
 
+/** Reads and writes for the task list. */
 export const tasksRepo = {
+  /** Every task, including finished and archived ones, in display order. */
   async all(): Promise<Task[]> {
     const rows = await db.tasks.toArray();
     return rows.sort((a, b) => a.order - b.order);
   },
 
+  /** Only the tasks still worth showing on the board — todo and in progress. */
   async active(): Promise<Task[]> {
-    const rows = await db.tasks.where('status').anyOf('todo', 'active').toArray();
+    const rows = await db.tasks
+      .where("status")
+      .anyOf("todo", "active")
+      .toArray();
     return rows.sort((a, b) => a.order - b.order);
   },
 
+  /** Creates a task and puts it at the top of the list. Only a title is required; everything else takes a sensible default. */
   async create(input: {
     title: string;
     notes?: string;
@@ -35,13 +42,13 @@ export const tasksRepo = {
     dueDate?: number;
   }): Promise<Task> {
     const now = Date.now();
-    const lowest = await db.tasks.orderBy('order').first();
+    const lowest = await db.tasks.orderBy("order").first();
     const task: Task = {
       id: `task_${uid()}`,
       title: input.title.trim(),
       notes: input.notes,
-      status: 'todo',
-      priority: input.priority ?? 'medium',
+      status: "todo",
+      priority: input.priority ?? "medium",
       categoryId: input.categoryId,
       estimatedSessions: input.estimatedSessions ?? 1,
       completedSessions: 0,
@@ -55,40 +62,46 @@ export const tasksRepo = {
     return task;
   },
 
+  /** Applies a partial edit and stamps `updatedAt`. */
   async update(id: string, patch: Partial<Task>): Promise<void> {
     await db.tasks.update(id, { ...patch, updatedAt: Date.now() });
   },
 
+  /** Flips a task between done and todo, setting or clearing its completion time. */
   async toggleDone(id: string): Promise<void> {
     const task = await db.tasks.get(id);
     if (!task) return;
-    const done = task.status === 'done';
+    const done = task.status === "done";
     await db.tasks.update(id, {
-      status: done ? 'todo' : 'done',
+      status: done ? "todo" : "done",
       completedAt: done ? undefined : Date.now(),
       updatedAt: Date.now(),
     });
   },
 
+  /** Deletes a task permanently. Sessions already logged against it keep their copy of the title. */
   async remove(id: string): Promise<void> {
     await db.tasks.delete(id);
   },
 
   /** Persists a full reorder in one transaction so the list can't tear. */
   async reorder(orderedIds: string[]): Promise<void> {
-    await db.transaction('rw', db.tasks, async () => {
+    await db.transaction("rw", db.tasks, async () => {
       await Promise.all(
-        orderedIds.map((id, index) => db.tasks.update(id, { order: index, updatedAt: Date.now() })),
+        orderedIds.map((id, index) =>
+          db.tasks.update(id, { order: index, updatedAt: Date.now() }),
+        ),
       );
     });
   },
 
+  /** Credits one finished focus session to the task, moving a fresh task into 'active' on its first. */
   async incrementSessions(id: string): Promise<void> {
     const task = await db.tasks.get(id);
     if (!task) return;
     await db.tasks.update(id, {
       completedSessions: task.completedSessions + 1,
-      status: task.status === 'todo' ? 'active' : task.status,
+      status: task.status === "todo" ? "active" : task.status,
       updatedAt: Date.now(),
     });
   },
@@ -96,32 +109,47 @@ export const tasksRepo = {
 
 /* ── Sessions ──────────────────────────────────────────────── */
 
+/** The append-mostly log of focus and break sessions that every statistic is derived from. */
 export const sessionsRepo = {
+  /** Records a finished session. */
   async add(session: Session): Promise<void> {
     await db.sessions.put(session);
   },
 
+  /** The complete history, oldest first. */
   async all(): Promise<Session[]> {
-    return db.sessions.orderBy('startedAt').toArray();
+    return db.sessions.orderBy("startedAt").toArray();
   },
 
+  /** Sessions started at or after `ts`. */
   async since(ts: number): Promise<Session[]> {
-    return db.sessions.where('startedAt').aboveOrEqual(ts).toArray();
+    return db.sessions.where("startedAt").aboveOrEqual(ts).toArray();
   },
 
+  /** Sessions started within [from, to], both ends included. */
   async between(from: number, to: number): Promise<Session[]> {
-    return db.sessions.where('startedAt').between(from, to, true, true).toArray();
+    return db.sessions
+      .where("startedAt")
+      .between(from, to, true, true)
+      .toArray();
   },
 
+  /** Sessions started since local midnight. */
   async today(): Promise<Session[]> {
     return this.since(startOfDay());
   },
 
+  /** The most recent sessions, newest first — what the activity feed shows. */
   async recent(limit = 10): Promise<Session[]> {
-    const rows = await db.sessions.orderBy('startedAt').reverse().limit(limit).toArray();
+    const rows = await db.sessions
+      .orderBy("startedAt")
+      .reverse()
+      .limit(limit)
+      .toArray();
     return rows;
   },
 
+  /** Applies a partial edit, used when a rating or note is added after the fact. */
   async update(id: string, patch: Partial<Session>): Promise<void> {
     await db.sessions.update(id, patch);
   },
@@ -129,19 +157,23 @@ export const sessionsRepo = {
 
 /* ── Distractions ──────────────────────────────────────────── */
 
+/** Interruptions logged during focus, plus the customisable list of what counts as one. */
 export const distractionsRepo = {
-  async add(input: Omit<Distraction, 'id'>): Promise<Distraction> {
+  /** Logs one interruption and returns the stored row, id included. */
+  async add(input: Omit<Distraction, "id">): Promise<Distraction> {
     const row: Distraction = { ...input, id: `dst_${uid()}` };
     await db.distractions.put(row);
     return row;
   },
 
+  /** Distractions logged at or after `ts`. */
   async since(ts: number): Promise<Distraction[]> {
-    return db.distractions.where('at').aboveOrEqual(ts).toArray();
+    return db.distractions.where("at").aboveOrEqual(ts).toArray();
   },
 
+  /** Every distraction ever logged, oldest first. */
   async all(): Promise<Distraction[]> {
-    return db.distractions.orderBy('at').toArray();
+    return db.distractions.orderBy("at").toArray();
   },
 
   /**
@@ -149,30 +181,45 @@ export const distractionsRepo = {
    * index `undefined`, so the pending filter is applied in memory.
    */
   async pendingParked(sessionId: string): Promise<Distraction[]> {
-    const rows = await db.distractions.where('sessionId').equals(sessionId).toArray();
+    const rows = await db.distractions
+      .where("sessionId")
+      .equals(sessionId)
+      .toArray();
     return rows
       .filter((d) => d.parked && d.parkResolvedAt === undefined)
       .sort((a, b) => a.at - b.at);
   },
 
   /** Answers the park prompt. `taskId` is set only when the note was kept. */
-  async resolveParked(ids: string[], taskIdById: Record<string, string> = {}): Promise<void> {
+  async resolveParked(
+    ids: string[],
+    taskIdById: Record<string, string> = {},
+  ): Promise<void> {
     if (ids.length === 0) return;
     const at = Date.now();
-    await db.transaction('rw', db.distractions, async () => {
+    await db.transaction("rw", db.distractions, async () => {
       await Promise.all(
         ids.map((id) =>
-          db.distractions.update(id, { parkResolvedAt: at, parkedTaskId: taskIdById[id] }),
+          db.distractions.update(id, {
+            parkResolvedAt: at,
+            parkedTaskId: taskIdById[id],
+          }),
         ),
       );
     });
   },
 
+  /** The distraction types offered in the logger — built-ins plus anything the user added. */
   async categories(): Promise<DistractionCategory[]> {
     return db.distractionCategories.toArray();
   },
 
-  async addCategory(label: string, color: string, icon = 'Circle'): Promise<DistractionCategory> {
+  /** Adds a custom distraction type. */
+  async addCategory(
+    label: string,
+    color: string,
+    icon = "Circle",
+  ): Promise<DistractionCategory> {
     const row: DistractionCategory = {
       id: `dc_${uid()}`,
       label: label.trim(),
@@ -184,6 +231,7 @@ export const distractionsRepo = {
     return row;
   },
 
+  /** Deletes a distraction type. Distractions already filed under it keep the id. */
   async removeCategory(id: string): Promise<void> {
     await db.distractionCategories.delete(id);
   },
@@ -197,6 +245,7 @@ export const distractionsRepo = {
  * reconstruct. Without it the JSON backup always shipped an empty list.
  */
 export const achievementsRepo = {
+  /** Every badge with a recorded unlock time. */
   async all(): Promise<Achievement[]> {
     return db.achievements.toArray();
   },
@@ -204,7 +253,7 @@ export const achievementsRepo = {
   /** Records first-unlock times. Existing rows are never overwritten. */
   async markUnlocked(ids: string[], at: number = Date.now()): Promise<void> {
     if (ids.length === 0) return;
-    await db.transaction('rw', db.achievements, async () => {
+    await db.transaction("rw", db.achievements, async () => {
       const stored = await db.achievements.bulkGet(ids);
       const known = new Set(stored.filter(Boolean).map((a) => a!.id));
       const rows = ids
@@ -217,21 +266,31 @@ export const achievementsRepo = {
 
 /* ── Categories ────────────────────────────────────────────── */
 
+/** The colour-coded categories tasks and sessions are grouped by. */
 export const categoriesRepo = {
+  /** Every category, built-in and custom. */
   async all(): Promise<Category[]> {
     return db.categories.toArray();
   },
 
+  /** Adds a category. */
   async create(name: string, color: string): Promise<Category> {
-    const row: Category = { id: `cat_${uid()}`, name: name.trim(), color, createdAt: Date.now() };
+    const row: Category = {
+      id: `cat_${uid()}`,
+      name: name.trim(),
+      color,
+      createdAt: Date.now(),
+    };
     await db.categories.put(row);
     return row;
   },
 
+  /** Renames or recolours a category. */
   async update(id: string, patch: Partial<Category>): Promise<void> {
     await db.categories.update(id, patch);
   },
 
+  /** Deletes a category. Tasks pointing at it keep the dangling id and render uncategorised. */
   async remove(id: string): Promise<void> {
     await db.categories.delete(id);
   },
@@ -239,18 +298,27 @@ export const categoriesRepo = {
 
 /* ── Timer presets ─────────────────────────────────────────── */
 
+/** Saved timer cadences the user can switch between. */
 export const presetsRepo = {
+  /** Every preset, ordered for the picker. */
   async all(): Promise<TimerPreset[]> {
     const rows = await db.timerPresets.toArray();
     // Built-ins first, then newest custom presets — the order the list reads in.
-    return rows.sort((a, b) => Number(b.builtIn) - Number(a.builtIn) || b.createdAt - a.createdAt);
+    return rows.sort(
+      (a, b) =>
+        Number(b.builtIn) - Number(a.builtIn) || b.createdAt - a.createdAt,
+    );
   },
 
+  /** One preset by id, or undefined if it has since been deleted. */
   async get(id: string): Promise<TimerPreset | undefined> {
     return db.timerPresets.get(id);
   },
 
-  async create(input: Omit<TimerPreset, 'id' | 'builtIn' | 'createdAt'>): Promise<TimerPreset> {
+  /** Saves a custom preset from the durations the user entered. */
+  async create(
+    input: Omit<TimerPreset, "id" | "builtIn" | "createdAt">,
+  ): Promise<TimerPreset> {
     const row: TimerPreset = {
       ...input,
       name: input.name.trim(),
@@ -262,19 +330,24 @@ export const presetsRepo = {
     return row;
   },
 
+  /** Retunes or renames a preset. */
   async update(id: string, patch: Partial<TimerPreset>): Promise<void> {
     await db.timerPresets.update(id, patch);
   },
 
   /** Also detaches the preset from any category pointing at it. */
   async remove(id: string): Promise<void> {
-    await db.transaction('rw', [db.timerPresets, db.categories], async () => {
+    await db.transaction("rw", [db.timerPresets, db.categories], async () => {
       await db.timerPresets.delete(id);
       // `presetId` isn't indexed — there are only a handful of categories, so a
       // scan is cheaper than carrying an index for this one cleanup.
-      const attached = (await db.categories.toArray()).filter((c) => c.presetId === id);
+      const attached = (await db.categories.toArray()).filter(
+        (c) => c.presetId === id,
+      );
       await Promise.all(
-        attached.map((c) => db.categories.update(c.id, { presetId: undefined })),
+        attached.map((c) =>
+          db.categories.update(c.id, { presetId: undefined }),
+        ),
       );
     });
   },
@@ -282,13 +355,16 @@ export const presetsRepo = {
 
 /* ── Settings ──────────────────────────────────────────────── */
 
+/** The single settings row — every preference in the app lives on it. */
 export const settingsRepo = {
+  /** The stored settings, or undefined before `initDb` has seeded them. */
   async get(): Promise<Settings | undefined> {
-    return db.settings.get('settings');
+    return db.settings.get("settings");
   },
 
+  /** Writes just the changed preferences, leaving the rest of the row alone. */
   async patch(patch: Partial<Settings>): Promise<void> {
-    await db.settings.update('settings', patch);
+    await db.settings.update("settings", patch);
   },
 };
 
@@ -300,6 +376,7 @@ export const settingsRepo = {
  */
 export const BACKUP_VERSION = 2;
 
+/** Snapshots every table into one plain object — the payload written to a JSON backup and read back by `parseBackup`. */
 export async function exportAll() {
   const [
     tasks,
@@ -334,9 +411,10 @@ export async function exportAll() {
   };
 }
 
+/** Erases the user's history — tasks, sessions, distractions and badges — in one transaction. Settings, categories and presets are deliberately kept, so the app is empty rather than un-set-up. */
 export async function clearAllData(): Promise<void> {
   await db.transaction(
-    'rw',
+    "rw",
     [db.tasks, db.sessions, db.distractions, db.achievements],
     async () => {
       await Promise.all([

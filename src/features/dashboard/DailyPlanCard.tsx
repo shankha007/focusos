@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { computeAdaptive, fmtHour } from '@/engine/adaptive';
 import { MINUTE, pluralize } from '@/lib/utils';
 
+/** The suggested running order for the day, built from the user's own history. Each block can be started in place. Hidden entirely when adaptive suggestions are switched off. */
 export function DailyPlanCard({
   onStart,
 }: {
@@ -91,6 +92,7 @@ export function DailyPlanCard({
   );
 }
 
+/** One line of reasoning under the plan, marked with an icon that explains where the suggestion came from. */
 function Insight({ text }: { text: string }) {
   return (
     <p className="flex items-start gap-2 text-[12px] leading-relaxed text-muted">

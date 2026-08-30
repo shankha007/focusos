@@ -18,6 +18,7 @@ const TIER_STYLE = {
   platinum: 'text-accent bg-accent/12 border-accent/25',
 } as const;
 
+/** The progress screen: current level and XP, lifetime stats, badges earned, and the ones still in reach ordered by how close they are. */
 export function AchievementsPage() {
   const sessions = useStatsStore((s) => s.sessions);
   const settings = useSettingsStore((s) => s.settings);
@@ -154,6 +155,7 @@ export function AchievementsPage() {
   );
 }
 
+/** One badge. Earned, it is shown in its tier colour; unearned, dimmed with a bar showing how far along it is. */
 function AchievementCard({
   achievement,
   index,
@@ -207,6 +209,7 @@ function AchievementCard({
   );
 }
 
+/** The title that goes with a level — the reward that isn't a number. */
 function levelTitle(level: number): string {
   if (level >= 25) return 'Focus Legend';
   if (level >= 18) return 'Deep Work Master';

@@ -28,6 +28,7 @@ import { cn, pluralize } from '@/lib/utils';
 /** Anything larger is not a backup this app wrote; refuse before parsing. */
 const MAX_BYTES = 100 * 1024 * 1024;
 
+/** Restores a backup file in three steps: pick it, review what parsed out of it, then confirm. Nothing is written to the database until the last one, and a replace additionally has to be typed out. */
 export function RestoreDialog({
   open,
   onOpenChange,
@@ -43,6 +44,7 @@ export function RestoreDialog({
   const [confirmText, setConfirmText] = useState('');
   const [busy, setBusy] = useState(false);
 
+  /** Closes the dialog and clears the picked file, so reopening starts fresh. */
   const close = () => {
     setBackup(null);
     setFileName('');
@@ -52,6 +54,7 @@ export function RestoreDialog({
     onOpenChange(false);
   };
 
+  /** Reads and validates the chosen file, then shows the preview — or the reason it can't be used. */
   const pick = async (file: File) => {
     setError(null);
     setBackup(null);
@@ -75,6 +78,7 @@ export function RestoreDialog({
     }
   };
 
+  /** Writes the backup, reloads every store from the database, and reports what came back. On failure the existing data is left untouched. */
   const run = async () => {
     if (!backup) return;
     setBusy(true);
@@ -261,6 +265,7 @@ export function RestoreDialog({
   );
 }
 
+/** One of the two restore modes, presented as a radio card. `danger` styles the destructive choice. */
 function ModeOption({
   icon: Icon,
   title,

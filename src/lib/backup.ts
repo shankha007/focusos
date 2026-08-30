@@ -56,26 +56,32 @@ export interface ParsedBackup {
   skipped: Record<string, number>;
 }
 
+/** A backup file that can't be used, carrying a message written for the user rather than for a log. */
 export class BackupError extends Error {}
 
 /* ── Field validators ──────────────────────────────────────── */
 
+/** Narrows to a plain object — arrays and null are rejected. */
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+/** The value if it is a string, else undefined. */
 function str(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
+/** The value if it is a finite number — NaN and Infinity are rejected. */
 function num(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
 
+/** The value if it is a boolean, else undefined. */
 function bool(v: unknown): boolean | undefined {
   return typeof v === 'boolean' ? v : undefined;
 }
 
+/** The value if it is one of `allowed`, else undefined — used for union-typed fields. */
 function oneOf<T extends string>(v: unknown, allowed: readonly T[]): T | undefined {
   return typeof v === 'string' && (allowed as readonly string[]).includes(v)
     ? (v as T)
@@ -87,6 +93,7 @@ function rating(v: unknown): 1 | 2 | 3 | 4 | 5 | undefined {
   return v === 1 || v === 2 || v === 3 || v === 4 || v === 5 ? v : undefined;
 }
 
+/** The string members of an array, dropping anything else; [] for a non-array. */
 function strings(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
@@ -97,6 +104,7 @@ const STATUSES = ['todo', 'active', 'done', 'archived'] as const;
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 const SESSION_TYPES = ['focus', 'short-break', 'long-break'] as const;
 
+/** Validates one row into a Task, or null if it has no id or title. Every other field falls back to the default a freshly created task would have. */
 function toTask(raw: unknown): Task | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -121,6 +129,7 @@ function toTask(raw: unknown): Task | null {
   };
 }
 
+/** Validates one row into a Session, or null without an id and start time. */
 function toSession(raw: unknown): Session | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -147,6 +156,7 @@ function toSession(raw: unknown): Session | null {
   };
 }
 
+/** Validates one row into a Distraction, or null without an id, category and timestamp. */
 function toDistraction(raw: unknown): Distraction | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -166,6 +176,7 @@ function toDistraction(raw: unknown): Distraction | null {
   };
 }
 
+/** Validates one row into a task Category, or null without an id and name. */
 function toCategory(raw: unknown): Category | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -181,6 +192,7 @@ function toCategory(raw: unknown): Category | null {
   };
 }
 
+/** Validates one row into a DistractionCategory, or null without an id and label. */
 function toDistractionCategory(raw: unknown): DistractionCategory | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -195,6 +207,7 @@ function toDistractionCategory(raw: unknown): DistractionCategory | null {
   };
 }
 
+/** Validates one row into an Achievement, or null without an id. */
 function toAchievement(raw: unknown): Achievement | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -202,6 +215,7 @@ function toAchievement(raw: unknown): Achievement | null {
   return { id, unlockedAt: num(raw.unlockedAt), progress: num(raw.progress) ?? 0 };
 }
 
+/** Validates one row into a TimerPreset, or null without an id, name and positive focus length. */
 function toPreset(raw: unknown): TimerPreset | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
@@ -228,6 +242,7 @@ function toPreset(raw: unknown): TimerPreset | null {
 function toSettings(raw: unknown): Settings | null {
   if (!isObject(raw)) return null;
   const merged = { ...DEFAULT_SETTINGS, ...raw, id: 'settings' as const };
+  /** Keeps a duration only if it is a positive number, else the shipped default. */
   const positive = (v: unknown, fallback: number) => {
     const n = num(v);
     return n !== undefined && n > 0 ? n : fallback;
@@ -250,6 +265,7 @@ function toSettings(raw: unknown): Settings | null {
 
 /* ── Parsing ───────────────────────────────────────────────── */
 
+/** Runs `validate` over a raw table, returning the rows that survived and a count of those dropped. Duplicate ids keep the first occurrence. */
 function collect<T extends { id: string }>(
   raw: unknown,
   validate: (row: unknown) => T | null,

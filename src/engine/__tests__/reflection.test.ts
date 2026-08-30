@@ -8,6 +8,7 @@ const CATEGORIES: DistractionCategory[] = [
 ];
 
 let counter = 0;
+/** A completed focus session, with any field overridden. Ids are unique per call. */
 function session(overrides: Partial<Session> = {}): Session {
   const startedAt = overrides.startedAt ?? startOfDay() + 10 * 3_600_000;
   return {

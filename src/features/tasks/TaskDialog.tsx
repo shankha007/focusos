@@ -21,6 +21,7 @@ import { priorityColor } from '@/features/dashboard/DashboardPage';
 
 const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'urgent'];
 
+/** The create-and-edit form for a task. Pass a `task` to edit it, or null to create a new one; the fields reset from that every time the dialog opens. */
 export function TaskDialog({
   open,
   onOpenChange,
@@ -51,6 +52,7 @@ export function TaskDialog({
     setTagInput(task?.tags.join(', ') ?? '');
   }, [open, task]);
 
+  /** Validates and writes the form — updating the task being edited, or creating a new one — then closes. A blank title is rejected silently. */
   const save = async () => {
     if (!title.trim()) return;
     const tags = tagInput

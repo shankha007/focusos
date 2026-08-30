@@ -32,6 +32,7 @@ export function SessionReviewDialog() {
 
   if (!pending) return null;
 
+  /** Files the rating and note against the finished session. An unanswered rating is stored as the neutral middle. */
   const save = async () => {
     await submitReview(productivity ?? 3, accomplishment);
     await useStatsStore.getState().refresh();

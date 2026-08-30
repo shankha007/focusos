@@ -1,3 +1,4 @@
+/** The title block at the top of a page, with an optional subtitle and a right-aligned action. */
 export function PageHeader({
   title,
   subtitle,
@@ -18,6 +19,7 @@ export function PageHeader({
   );
 }
 
+/** Centres a page's content and applies the standard max width and padding. */
 export function PageContainer({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{children}</div>;
 }

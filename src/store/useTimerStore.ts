@@ -83,6 +83,7 @@ interface TimerStoreState {
   progress: () => number;
 }
 
+/** Mirrors the running session into localStorage, so closing the tab mid-session doesn't lose it. */
 function persist(state: TimerStoreState) {
   const payload: PersistedTimer = {
     timer: state.timer,
@@ -96,6 +97,7 @@ function persist(state: TimerStoreState) {
   localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
 }
 
+/** The running timer and everything attached to the session in flight: the task, the pre-session mood, distractions logged so far, and the prompts queued for when it ends. */
 export const useTimerStore = create<TimerStoreState>((set, get) => ({
   timer: createTimerState('focus', 25 * 60_000),
   taskId: null,
@@ -144,16 +146,19 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     }
   },
 
+  /** Points the timer at a task. The title is stored alongside the id so history survives the task being deleted. */
   setTask: (taskId, title) => {
     set({ taskId, taskTitle: title });
     persist(get());
   },
 
+  /** Records how the user felt going in, asked before a focus session starts. */
   setMood: (mood, energy) => {
     set({ moodBefore: mood, energyBefore: energy });
     persist(get());
   },
 
+  /** Starts a session, defaulting to whichever type is queued up. Applies the task category's preset first, then begins the countdown and any ambience. */
   startSession: async (type) => {
     const current = get().timer;
     const nextType = type ?? current.type;
@@ -178,16 +183,19 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     }
   },
 
+  /** Pauses the countdown. Paused time is excluded from the session's recorded focus. */
   pause: () => {
     set({ timer: pauseState(get().timer) });
     persist(get());
   },
 
+  /** Un-pauses the countdown. */
   resume: () => {
     set({ timer: resumeState(get().timer) });
     persist(get());
   },
 
+  /** What the primary button and the spacebar do: start, pause, or resume depending on where the timer is. */
   toggle: () => {
     const { timer, startSession, pause, resume } = get();
     if (timer.status === 'idle' || timer.status === 'completed') void startSession();
@@ -195,6 +203,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     else resume();
   },
 
+  /** Abandons the current interval without logging it, returning the clock to a full session. */
   reset: () => {
     const settings = useSettingsStore.getState().settings;
     const timer = get().timer;
@@ -212,6 +221,11 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     await get().complete({ early: true });
   },
 
+  /**
+   * Ends the current interval and writes it to history. Awards XP, credits the task, queues the review and parked-thought prompts, and lines up the next session — auto-starting it when nothing needs the user's attention first.
+   *
+   * `early` marks the session as abandoned rather than finished; anything under a minute is treated as a false start and not logged at all.
+   */
   complete: async ({ early = false } = {}) => {
     const state = get();
     const { timer } = state;
@@ -318,6 +332,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     }
   },
 
+  /** Records an interruption against the running session, along with how far into it the user was. `park` sets the note aside to be revisited when the session ends. */
   logDistraction: async (categoryId, note, park = false) => {
     const state = get();
     await distractionsRepo.add({
@@ -334,6 +349,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     persist(get());
   },
 
+  /** Saves the post-session rating and note, then lets any deferred auto-start proceed. */
   submitReview: async (productivity, accomplishment) => {
     const review = get().pendingReview;
     if (!review) return;
@@ -345,11 +361,13 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     get().resumeAfterPrompts();
   },
 
+  /** Closes the review without rating the session. */
   dismissReview: () => {
     set({ pendingReview: null });
     get().resumeAfterPrompts();
   },
 
+  /** Closes the parked-thoughts prompt once every note has been kept or dropped. */
   clearParked: () => {
     set({ pendingParked: [] });
     get().resumeAfterPrompts();
@@ -373,6 +391,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     if (shouldAutoStart) void state.startSession(upcoming);
   },
 
+  /** Called on each animation frame: repaints the readout, or finishes the session if the clock has run out. */
   doTick: () => {
     const state = get();
     if (state.timer.status !== 'running') return;
@@ -383,7 +402,9 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     set({ tick: state.tick + 1 });
   },
 
+  /** Milliseconds left in the current session. */
   remaining: () => remainingMs(get().timer),
+  /** How far through the session we are, 0 to 1. */
   progress: () => progressOf(get().timer),
 }));
 
