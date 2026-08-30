@@ -1,8 +1,8 @@
-export type SessionType = 'focus' | 'short-break' | 'long-break';
+export type SessionType = "focus" | "short-break" | "long-break";
 
-export type Priority = 'low' | 'medium' | 'high' | 'urgent';
+export type Priority = "low" | "medium" | "high" | "urgent";
 
-export type TaskStatus = 'todo' | 'active' | 'done' | 'archived';
+export type TaskStatus = "todo" | "active" | "done" | "archived";
 
 /** 1 = worst, 5 = best. Used for mood, energy, and productivity alike. */
 export type Rating = 1 | 2 | 3 | 4 | 5;
@@ -103,30 +103,30 @@ export interface Achievement {
 }
 
 export type ThemeName =
-  | 'light'
-  | 'dark'
-  | 'minimal'
-  | 'midnight'
-  | 'amoled'
-  | 'forest'
-  | 'ocean'
-  | 'sunset'
-  | 'lavender';
+  | "light"
+  | "dark"
+  | "minimal"
+  | "midnight"
+  | "amoled"
+  | "forest"
+  | "ocean"
+  | "sunset"
+  | "lavender";
 
-export type ThemePreference = ThemeName | 'system';
+export type ThemePreference = ThemeName | "system";
 
 export type SoundId =
-  | 'rain'
-  | 'forest'
-  | 'ocean'
-  | 'cafe'
-  | 'white'
-  | 'brown'
-  | 'fireplace'
-  | 'wind';
+  | "rain"
+  | "forest"
+  | "ocean"
+  | "cafe"
+  | "white"
+  | "brown"
+  | "fireplace"
+  | "wind";
 
 export interface Settings {
-  id: 'settings';
+  id: "settings";
   focusMs: number;
   shortBreakMs: number;
   longBreakMs: number;
