@@ -6,10 +6,12 @@ import { DynamicIcon } from '@/components/DynamicIcon';
 import type { SoundId } from '@/types';
 import { cn } from '@/lib/utils';
 
+/** Picks the ambient soundscape and sets its volume. `compact` drops the descriptions for the narrow panel in Deep Focus. */
 export function SoundPicker({ compact = false }: { compact?: boolean }) {
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
 
+  /** Switches to a soundscape and starts it, or stops the ambience if that one was already playing. */
   const select = async (id: SoundId) => {
     if (settings.activeSound === id && settings.soundEnabled) {
       ambient.stop();

@@ -1,10 +1,12 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+/** Joins class names and resolves conflicting Tailwind utilities so the last one wins. */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Generates a fresh unique id for a new row. */
 export function uid(): string {
   return crypto.randomUUID();
 }
@@ -21,12 +23,14 @@ export function dateKey(ts: number | Date = Date.now()): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+/** Timestamp of midnight at the start of the day containing `ts`, in local time. */
 export function startOfDay(ts: number = Date.now()): number {
   const d = new Date(ts);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
 }
 
+/** Shifts a timestamp by `n` calendar days (negative goes backwards). */
 export function addDays(ts: number, n: number): number {
   const d = new Date(ts);
   d.setDate(d.getDate() + n);
@@ -46,6 +50,7 @@ export function startOfWeek(ts: number = Date.now()): number {
   return d.getTime();
 }
 
+/** Timestamp of midnight on the 1st of the month containing `ts`. */
 export function startOfMonth(ts: number = Date.now()): number {
   const d = new Date(ts);
   d.setDate(1);
@@ -53,6 +58,7 @@ export function startOfMonth(ts: number = Date.now()): number {
   return d.getTime();
 }
 
+/** Timestamp of midnight on January 1st of the year containing `ts`. */
 export function startOfYear(ts: number = Date.now()): number {
   const d = new Date(ts);
   d.setMonth(0, 1);
@@ -85,14 +91,17 @@ export function formatDuration(ms: number, opts: { compact?: boolean } = {}): st
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
+/** Clock time only, e.g. "3:45 PM", in the reader's locale. */
 export function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
+/** Short calendar label for chart axes and lists, e.g. "Mar 4". */
 export function formatDateLabel(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+/** How long ago `ts` was, in words — "just now", "20m ago", "yesterday", then a date. */
 export function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
   if (diff < MINUTE) return 'just now';
@@ -104,15 +113,18 @@ export function relativeTime(ts: number): string {
   return formatDateLabel(ts);
 }
 
+/** Pins `n` inside the inclusive range [min, max]. */
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
+/** Average of `values`, or null for an empty list — never NaN. */
 export function mean(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
+/** Total of `values`; 0 for an empty list. */
 export function sum(values: number[]): number {
   return values.reduce((a, b) => a + b, 0);
 }
@@ -137,6 +149,7 @@ export function correlation(xs: number[], ys: number[]): number | null {
   return num / Math.sqrt(dx * dy);
 }
 
+/** Picks the singular or plural word to match `n`. */
 export function pluralize(n: number, one: string, many = `${one}s`): string {
   return n === 1 ? one : many;
 }

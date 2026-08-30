@@ -28,6 +28,7 @@ import { usePresetStore } from '@/store/usePresetStore';
 import { useTimerTick } from '@/hooks/useTimerTick';
 import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
 
+/** Holds a loading screen until the database is open and every store is populated. Rendering the app against empty stores would flash zeroed stats and, worse, let the timer persist a blank state over a session still in progress. */
 function Boot({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
@@ -63,6 +64,7 @@ function Boot({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Spinner shown while a lazily-loaded page is being fetched. */
 function RouteFallback() {
   return (
     <div className="grid h-[60vh] place-items-center">
@@ -71,6 +73,7 @@ function RouteFallback() {
   );
 }
 
+/** The running application: routes, the clocks that drive the timer, and the dialogs that can appear over any page. */
 function Runtime() {
   useTimerTick();
   useAchievementWatcher();
@@ -131,6 +134,7 @@ function Runtime() {
   );
 }
 
+/** Application root — providers, boot sequence, router, and the toast host. */
 export function App() {
   return (
     <TooltipProvider delayDuration={400}>

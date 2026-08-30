@@ -80,13 +80,16 @@ const hourTick = (value: number) => {
   return `${Number(value.toFixed(1))}h`;
 };
 
+/** Axis tick for a minutes-based scale. */
 const minuteTick = (value: number) => `${Math.round(value)}m`;
 
+/** Axis tick for minute values that have grown large enough to read better as hours. */
 const minutesAsHoursTick = (value: number) => hourTick(value / 60);
 
 /** Wide enough for the longest label these axes produce, e.g. "120m". */
 const Y_AXIS_WIDTH = 38;
 
+/** The reporting screen: headline stats, focus over time, peak hours, distraction and mood breakdowns, and a year-long heatmap — for the selected period, all computed on the device. Also the export point for CSV, JSON and PDF. */
 export function AnalyticsPage() {
   const allSessions = useStatsStore((s) => s.sessions);
   const allDistractions = useStatsStore((s) => s.distractions);
@@ -394,6 +397,7 @@ interface TooltipPayload {
   label?: string;
 }
 
+/** The hover card shared by every chart on this page. */
 function ChartTooltip({ active, payload, label, unit = '' }: TooltipPayload & { unit?: string }) {
   if (!active || !payload?.length) return null;
   return (

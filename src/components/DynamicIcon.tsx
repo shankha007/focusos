@@ -78,6 +78,7 @@ const REGISTRY: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap,
 };
 
+/** Renders an icon chosen by name at runtime, falling back to a plain circle when the name isn't in the registry — as happens with data written by a newer build. */
 export function DynamicIcon({
   name,
   className,

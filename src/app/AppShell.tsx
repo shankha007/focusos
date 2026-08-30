@@ -30,6 +30,7 @@ const NAV = [
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
+/** The frame every page renders inside: sidebar on desktop, top bar and bottom nav on mobile, a live timer readout while a session runs, and the global keyboard shortcuts. */
 export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const navigate = useNavigate();

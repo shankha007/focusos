@@ -10,6 +10,7 @@ import { levelForXp, xpForLevel, xpForSession } from '../achievements';
 import { MINUTE, startOfDay } from '@/lib/utils';
 
 let counter = 0;
+/** A completed 25-minute focus session at 10am, with any field overridden. Ids are unique per call so sessions never collide. */
 function session(overrides: Partial<Session> = {}): Session {
   const startedAt = overrides.startedAt ?? startOfDay() + 10 * 3_600_000;
   return {
@@ -26,6 +27,7 @@ function session(overrides: Partial<Session> = {}): Session {
   };
 }
 
+/** An open, medium-priority task estimated at two sessions, with any field overridden. */
 function task(overrides: Partial<Task> = {}): Task {
   return {
     id: `t${counter++}`,

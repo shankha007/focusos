@@ -15,6 +15,7 @@ type FeedItem = {
   tone: string;
 };
 
+/** A merged, newest-first timeline of recent sessions and distractions — the day's story in one column. */
 export function ActivityFeed() {
   const sessions = useStatsStore((s) => s.sessions);
   const distractions = useStatsStore((s) => s.distractions);

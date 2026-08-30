@@ -3,6 +3,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+/** The button's Tailwind classes for every variant and size. Exported so other elements — links, for one — can be styled as buttons. */
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-150 disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98] select-none',
   {
@@ -36,6 +37,7 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+/** The app's button. Set `asChild` to hand the styling to a child element, e.g. an anchor, instead of rendering a `<button>`. */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button';

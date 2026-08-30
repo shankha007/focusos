@@ -42,6 +42,7 @@ export function ParkedThoughtsDialog() {
   // Wait for the review to be answered first.
   if (parked.length === 0 || pendingReview) return null;
 
+  /** Flips one parked note between keep and drop. */
   const toggle = (id: string) => {
     setKeep((prev) => {
       const next = new Set(prev);
@@ -51,6 +52,7 @@ export function ParkedThoughtsDialog() {
     });
   };
 
+  /** Turns every kept note into a task, marks all of them resolved so none resurfaces later, and closes. */
   const finish = async () => {
     setSaving(true);
     try {

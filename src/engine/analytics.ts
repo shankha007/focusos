@@ -11,13 +11,16 @@ import {
   sum,
 } from '@/lib/utils';
 
+/** Drops breaks — most stats are about focus time only. */
 export const focusOnly = (sessions: Session[]) => sessions.filter((s) => s.type === 'focus');
 
 /* ── Daily rollups ─────────────────────────────────────────── */
 
+/** Buckets sessions and distractions into one row per calendar day, keyed by local date. Only days with activity appear; use `dayRange` to fill the gaps. */
 export function toDayStats(sessions: Session[], distractions: Distraction[]): Map<string, DayStat> {
   const map = new Map<string, DayStat>();
 
+  /** The row for a date, created empty on first sight of that day. */
   const ensure = (key: string): DayStat => {
     let row = map.get(key);
     if (!row) {
@@ -183,6 +186,7 @@ export interface HourStat {
   completionRate: number;
 }
 
+/** Focus totals split across the 24 hours of the day, aggregated over every date in `sessions` — the basis for spotting peak hours. */
 export function byHour(sessions: Session[]): HourStat[] {
   const buckets: { ms: number; total: number; completed: number; prod: number[] }[] = Array.from(
     { length: 24 },
@@ -219,6 +223,7 @@ export interface DistractionPattern {
   peakHour: number | null;
 }
 
+/** Groups distractions by what caused them, ranked most frequent first, with each one's share of the total, typical point in a session, and busiest hour. */
 export function distractionPatterns(
   distractions: Distraction[],
   categories: DistractionCategory[],
@@ -266,6 +271,7 @@ export interface MoodCorrelation {
   byMood: { mood: number; avgProductivity: number; count: number }[];
 }
 
+/** Relates how the user felt going into a session to how productive they rated it afterwards. Only sessions with all three ratings are included. */
 export function moodCorrelation(sessions: Session[]): MoodCorrelation {
   const points = focusOnly(sessions)
     .filter((s) => s.moodBefore && s.energyBefore && s.productivityAfter)
@@ -312,6 +318,7 @@ export interface PeriodSummary {
   activeDays: number;
 }
 
+/** Headline totals for a period — the numbers shown on the analytics cards and at the top of the PDF report. */
 export function summarize(sessions: Session[], distractions: Distraction[]): PeriodSummary {
   const focus = focusOnly(sessions);
   const completed = focus.filter((s) => s.completed);

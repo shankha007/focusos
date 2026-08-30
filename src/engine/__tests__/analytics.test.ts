@@ -11,6 +11,7 @@ import {
 import { DAY, MINUTE, dateKey, startOfDay } from '@/lib/utils';
 
 let counter = 0;
+/** A completed focus session, with any field overridden. Ids are unique per call. */
 function session(overrides: Partial<Session> = {}): Session {
   const startedAt = overrides.startedAt ?? Date.now();
   return {
@@ -27,6 +28,7 @@ function session(overrides: Partial<Session> = {}): Session {
   };
 }
 
+/** A logged distraction, with any field overridden. */
 function distraction(overrides: Partial<Distraction> = {}): Distraction {
   return {
     id: `d${counter++}`,

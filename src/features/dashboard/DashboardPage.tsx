@@ -26,6 +26,7 @@ import { useStartSession } from '@/hooks/useStartSession';
 import { computeFocusScore, computeStreak, focusOnly } from '@/engine/analytics';
 import { formatDuration, pluralize, startOfDay } from '@/lib/utils';
 
+/** The landing screen: today's focus score and headline stats, the timer, the suggested plan, the daily reflection, and recent activity. */
 export function DashboardPage({ onOpenFocus }: { onOpenFocus: () => void }) {
   const sessions = useStatsStore((s) => s.sessions);
   const distractions = useStatsStore((s) => s.distractions);
@@ -192,6 +193,7 @@ export function DashboardPage({ onOpenFocus }: { onOpenFocus: () => void }) {
   );
 }
 
+/** Time-of-day greeting for the page header. */
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 5) return 'Still up';
@@ -201,6 +203,7 @@ function getGreeting(): string {
   return 'Working late';
 }
 
+/** Puts a word to the focus score, so the number reads as a judgement rather than a bare figure. */
 function scoreLabel(score: number): string {
   if (score >= 85) return 'Exceptional day';
   if (score >= 65) return 'Strong day';
@@ -209,6 +212,7 @@ function scoreLabel(score: number): string {
   return 'Not started';
 }
 
+/** The dot colour for a task priority. Shared with the task list and dialog so the mapping is defined once. */
 export function priorityColor(priority: string): string {
   switch (priority) {
     case 'urgent':

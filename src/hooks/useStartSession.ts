@@ -15,6 +15,7 @@ export function useStartSession(onOpenFocus?: () => void) {
     title: null,
   });
 
+  /** Starts focusing on a task, or opens the mood check-in first when that is switched on. */
   const begin = useCallback(
     (taskId: string | null, taskTitle: string | null) => {
       useTimerStore.getState().setTask(taskId, taskTitle);
@@ -29,6 +30,7 @@ export function useStartSession(onOpenFocus?: () => void) {
     [askMoodBefore, onOpenFocus],
   );
 
+  /** Records the check-in answers and starts the session that was waiting on them. */
   const confirmMood = useCallback(
     (mood: Rating, energy: Rating) => {
       const store = useTimerStore.getState();

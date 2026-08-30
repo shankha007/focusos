@@ -15,6 +15,7 @@ import { moodCorrelation } from '@/engine/analytics';
 
 const MOOD_LABEL = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];
 
+/** Relates pre-session mood to how the session was rated afterwards, and puts the correlation into a sentence — including the useful case where it turns out not to matter. */
 export function MoodInsights({ sessions }: { sessions: Session[] }) {
   const data = useMemo(() => moodCorrelation(sessions), [sessions]);
 
@@ -112,6 +113,7 @@ export function MoodInsights({ sessions }: { sessions: Session[] }) {
   );
 }
 
+/** One correlation coefficient with a plain-language read on how strong it is. */
 function Correlation({ label, value }: { label: string; value: number | null }) {
   const strength =
     value === null

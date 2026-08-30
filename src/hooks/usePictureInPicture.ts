@@ -20,6 +20,7 @@ export function usePictureInPicture() {
     'pictureInPictureEnabled' in document &&
     document.pictureInPictureEnabled;
 
+  /** Paints one frame of the floating timer — progress ring, countdown, and the task or break label — then queues the next. */
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -73,6 +74,7 @@ export function usePictureInPicture() {
     rafRef.current = requestAnimationFrame(draw);
   }, []);
 
+  /** Opens the floating window, creating the canvas and video on first use, or closes it if it is already open. */
   const toggle = useCallback(async () => {
     if (!supported) return;
 

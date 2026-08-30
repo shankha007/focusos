@@ -26,6 +26,7 @@ export function useTimerTick(): void {
 
     let frame = 0;
     let last = 0;
+    /** Animation-frame loop, throttled to the visual tick rate. */
     const loop = (now: number) => {
       if (now - last >= VISUAL_TICK_MS) {
         last = now;
@@ -38,6 +39,7 @@ export function useTimerTick(): void {
     const interval = window.setInterval(() => useTimerStore.getState().doTick(), 1000);
 
     // Coming back to the tab, reconcile immediately rather than waiting a frame.
+    /** Catches the timer up the moment the tab is looked at again. */
     const onVisible = () => {
       if (document.visibilityState === 'visible') useTimerStore.getState().doTick();
     };
@@ -52,6 +54,7 @@ export function useTimerTick(): void {
 
   // Mirror the countdown into the tab title so it's readable from another tab.
   useEffect(() => {
+    /** Writes the current countdown into the tab title, or restores the plain title when nothing is running. */
     const update = () => {
       const { timer } = useTimerStore.getState();
       if (timer.status === 'running' || timer.status === 'paused') {

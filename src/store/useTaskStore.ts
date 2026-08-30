@@ -28,12 +28,14 @@ interface TaskStoreState {
   removeDistractionCategory: (id: string) => Promise<void>;
 }
 
+/** Tasks and the two kinds of category, mirrored from IndexedDB. Every mutation writes through to the database and then re-reads, so the store and the disk can't disagree. */
 export const useTaskStore = create<TaskStoreState>((set, get) => ({
   tasks: [],
   categories: [],
   distractionCategories: [],
   loaded: false,
 
+  /** Fills the store from the database. Run once at startup. */
   load: async () => {
     const [tasks, categories, distractionCategories] = await Promise.all([
       tasksRepo.all(),
@@ -43,27 +45,32 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
     set({ tasks, categories, distractionCategories, loaded: true });
   },
 
+  /** Adds a task and returns it, so the caller can immediately select or open it. */
   create: async (input) => {
     const task = await tasksRepo.create(input);
     set({ tasks: await tasksRepo.all() });
     return task;
   },
 
+  /** Applies a partial edit to one task. */
   update: async (id, patch) => {
     await tasksRepo.update(id, patch);
     set({ tasks: await tasksRepo.all() });
   },
 
+  /** Ticks a task off, or un-ticks it. */
   toggleDone: async (id) => {
     await tasksRepo.toggleDone(id);
     set({ tasks: await tasksRepo.all() });
   },
 
+  /** Deletes a task. */
   remove: async (id) => {
     await tasksRepo.remove(id);
     set({ tasks: await tasksRepo.all() });
   },
 
+  /** Commits a drag-and-drop reorder. `orderedIds` lists the moved tasks in their new order; anything not mentioned keeps its place. */
   reorder: async (orderedIds) => {
     // Reorder optimistically — waiting on IndexedDB makes dragging feel laggy.
     const byId = new Map(get().tasks.map((t) => [t.id, t]));
@@ -78,26 +85,31 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
     await tasksRepo.reorder(orderedIds);
   },
 
+  /** Creates a task category. */
   addCategory: async (name, color) => {
     await categoriesRepo.create(name, color);
     set({ categories: await categoriesRepo.all() });
   },
 
+  /** Attaches a timer preset to a category, so starting work in it switches cadence. Pass undefined to detach. */
   setCategoryPreset: async (id, presetId) => {
     await categoriesRepo.update(id, { presetId });
     set({ categories: await categoriesRepo.all() });
   },
 
+  /** Deletes a task category. */
   removeCategory: async (id) => {
     await categoriesRepo.remove(id);
     set({ categories: await categoriesRepo.all() });
   },
 
+  /** Adds a custom distraction type to the logger. */
   addDistractionCategory: async (label, color) => {
     await distractionsRepo.addCategory(label, color);
     set({ distractionCategories: await distractionsRepo.categories() });
   },
 
+  /** Removes a distraction type from the logger. */
   removeDistractionCategory: async (id) => {
     await distractionsRepo.removeCategory(id);
     set({ distractionCategories: await distractionsRepo.categories() });

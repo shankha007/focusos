@@ -13,6 +13,7 @@ const EMOJI = {
   productivity: ['🌪️', '😕', '👌', '🎯', '🚀'],
 } as const;
 
+/** A 1–5 picker rendered as five labelled faces. The scale chooses the wording — mood, energy, or how productive the session felt. */
 export function RatingPicker({
   scale,
   value,

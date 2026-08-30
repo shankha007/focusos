@@ -35,6 +35,7 @@ interface CommandPaletteProps {
   onOpenFocus: () => void;
 }
 
+/** The ⌘K palette. Beyond navigation it can drive the timer, switch theme or preset, and start focusing on a task — the sub-pages are reached by selecting an item that ends in "…", and Backspace on an empty search goes back. */
 export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -54,6 +55,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
     }
   }, [open]);
 
+  /** Runs a command and closes the palette behind it. */
   const run = (fn: () => void) => {
     fn();
     onOpenChange(false);
@@ -275,6 +277,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
   );
 }
 
+/** A titled section of the command list. */
 function Group({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <Command.Group
@@ -286,6 +289,7 @@ function Group({ heading, children }: { heading: string; children: React.ReactNo
   );
 }
 
+/** One selectable command, with an optional hint, keyboard shortcut, and a dot marking it as the current choice. */
 function Item({
   icon: Icon,
   label,

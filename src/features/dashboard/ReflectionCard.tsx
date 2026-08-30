@@ -91,6 +91,7 @@ export function ReflectionCard() {
   );
 }
 
+/** A labelled block within the reflection — accomplishments, best window, and so on. */
 function Section({
   icon: Icon,
   title,

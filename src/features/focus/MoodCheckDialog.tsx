@@ -22,6 +22,7 @@ export function MoodCheckDialog({
   const [mood, setMood] = useState<Rating | null>(null);
   const [energy, setEnergy] = useState<Rating | null>(null);
 
+  /** Starts the session with whatever was picked, defaulting both scales to the middle when the user skips. */
   const start = () => {
     onConfirm(mood ?? 3, energy ?? 3);
     setMood(null);

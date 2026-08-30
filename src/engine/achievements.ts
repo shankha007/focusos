@@ -25,6 +25,7 @@ export interface AchievementContext {
   zeroDistractionSessions: number;
 }
 
+/** Rolls the entire session history into the counters every badge is scored against, so each definition stays a one-line comparison. */
 export function buildContext(sessions: Session[], dailyGoal: number): AchievementContext {
   const focus = focusOnly(sessions);
   const completed = focus.filter((s) => s.completed);
@@ -49,6 +50,7 @@ export function buildContext(sessions: Session[], dailyGoal: number): Achievemen
   };
 }
 
+/** Progress toward a goal as 0–1, never overshooting past complete. */
 const ratio = (value: number, goal: number) => Math.min(1, value / goal);
 
 export const ACHIEVEMENTS: AchievementDef[] = [
@@ -177,6 +179,7 @@ export const XP_PER_SESSION = 25;
 export const XP_PER_FOCUS_MINUTE = 1;
 export const XP_ACHIEVEMENT_BONUS = 100;
 
+/** XP earned by one session: a flat award, a point per focused minute, and a bonus for finishing it undistracted. Unfinished sessions and breaks earn nothing. */
 export function xpForSession(session: Session): number {
   if (session.type !== 'focus' || !session.completed) return 0;
   const minutes = Math.round(session.actualMs / MINUTE);
@@ -198,6 +201,7 @@ export function levelForXp(xp: number): { level: number; into: number; needed: n
   return { level, into, needed, pct: needed > 0 ? into / needed : 0 };
 }
 
+/** Cumulative XP needed to reach `level`. Level 1 starts at zero. */
 export function xpForLevel(level: number): number {
   if (level <= 1) return 0;
   return Math.round(100 * Math.pow(level - 1, 1.5));
@@ -208,6 +212,7 @@ export interface AchievementState extends AchievementDef {
   unlocked: boolean;
 }
 
+/** Scores every badge against the current history, marking those at full progress as unlocked. */
 export function evaluateAchievements(ctx: AchievementContext): AchievementState[] {
   return ACHIEVEMENTS.map((def) => {
     const p = def.progress(ctx);

@@ -12,6 +12,7 @@ interface StatCardProps {
   delay?: number;
 }
 
+/** A single headline number with its label, icon and optional progress bar. Fades in on mount; `delay` staggers a row of them. */
 export function StatCard({
   label,
   value,

@@ -3,6 +3,7 @@ import { exportAll } from '@/db/repositories';
 import { dateKey, formatDuration, formatTime } from '@/lib/utils';
 import { distractionPatterns, summarize, toDayStats } from '@/engine/analytics';
 
+/** Hands a generated blob to the browser as a file download. */
 function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -18,6 +19,7 @@ function download(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Renders one value as a CSV cell: escaped per RFC 4180 and neutralised so spreadsheets can't execute it as a formula. */
 function csvCell(value: unknown): string {
   // Numbers can never carry an injection payload, and guarding them would
   // mangle negatives.
@@ -32,6 +34,7 @@ function csvCell(value: unknown): string {
   return /[",\n]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
 }
 
+/** Downloads the given sessions as a spreadsheet-ready CSV, one row per session. */
 export function exportSessionsCsv(sessions: Session[]): void {
   const headers = [
     'date',
@@ -69,6 +72,7 @@ export function exportSessionsCsv(sessions: Session[]): void {
   download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `focusos-sessions-${dateKey()}.csv`);
 }
 
+/** Downloads a complete backup of every table as JSON — the file `parseBackup` reads back in. */
 export async function exportJson(): Promise<void> {
   const data = await exportAll();
   download(

@@ -15,6 +15,7 @@ export interface Recommendation<T> {
 
 const MIN_SESSIONS_FOR_SIGNAL = 10;
 
+/** How much to trust a recommendation drawn from `n` sessions. */
 function confidenceFor(n: number): Recommendation<unknown>['confidence'] {
   if (n >= 40) return 'high';
   if (n >= MIN_SESSIONS_FOR_SIGNAL) return 'medium';
@@ -24,6 +25,7 @@ function confidenceFor(n: number): Recommendation<unknown>['confidence'] {
 /** Candidate session lengths we're willing to recommend, in minutes. */
 const LENGTH_BUCKETS = [15, 20, 25, 30, 40, 45, 50, 60];
 
+/** Snaps an arbitrary session length to the nearest candidate bucket, so 24- and 26-minute sessions are counted as the same experiment. */
 function bucketFor(ms: number): number {
   const mins = ms / MINUTE;
   return LENGTH_BUCKETS.reduce((best, b) =>
@@ -197,6 +199,7 @@ export function findPeakWindows(sessions: Session[]): Recommendation<PeakWindow[
   };
 }
 
+/** An hour of the day as "9am" / "3pm". Wraps, so hour 25 reads as 1am. */
 export function fmtHour(h: number): string {
   const hour = ((h % 24) + 24) % 24;
   const suffix = hour < 12 ? 'am' : 'pm';
@@ -334,6 +337,7 @@ export interface AdaptiveInsights {
   plan: Recommendation<PlanBlock[]>;
 }
 
+/** Runs every recommendation in one pass — what the settings and dashboard screens read. */
 export function computeAdaptive(
   sessions: Session[],
   tasks: Task[],

@@ -19,6 +19,7 @@ export const useStatsStore = create<StatsState>((set) => ({
   distractions: [],
   loaded: false,
 
+  /** Re-reads every session and distraction from IndexedDB. Call after anything that writes history, so open charts pick the change up. */
   refresh: async () => {
     const [sessions, distractions] = await Promise.all([
       sessionsRepo.all(),

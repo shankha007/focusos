@@ -22,6 +22,7 @@ export interface TimerState {
   cycleCount: number;
 }
 
+/** A fresh, idle timer for the given session type and length. Nothing runs until `start` is called. */
 export function createTimerState(type: SessionType, durationMs: number): TimerState {
   return {
     status: 'idle',
@@ -34,15 +35,18 @@ export function createTimerState(type: SessionType, durationMs: number): TimerSt
   };
 }
 
+/** Begins the countdown from `now`, clearing any pause history from a previous run. */
 export function start(state: TimerState, now = Date.now()): TimerState {
   return { ...state, status: 'running', startedAt: now, pausedAccumMs: 0, pausedAt: null };
 }
 
+/** Freezes a running timer. Time spent paused is later excluded from elapsed. No-op unless the timer is running. */
 export function pause(state: TimerState, now = Date.now()): TimerState {
   if (state.status !== 'running') return state;
   return { ...state, status: 'paused', pausedAt: now };
 }
 
+/** Restarts a paused timer, banking the length of the pause so it doesn't count as focus. No-op unless the timer is paused. */
 export function resume(state: TimerState, now = Date.now()): TimerState {
   if (state.status !== 'paused' || state.pausedAt === null) return state;
   return {
@@ -53,6 +57,7 @@ export function resume(state: TimerState, now = Date.now()): TimerState {
   };
 }
 
+/** Returns the timer to idle, optionally with a new duration. Used when the user stops a session or switches session type. */
 export function reset(state: TimerState, durationMs = state.durationMs): TimerState {
   return {
     ...state,
@@ -72,6 +77,7 @@ export function elapsedMs(state: TimerState, now = Date.now()): number {
   return Math.max(0, raw);
 }
 
+/** Milliseconds left on the clock, floored at zero. An idle timer reports its full duration. */
 export function remainingMs(state: TimerState, now = Date.now()): number {
   if (state.status === 'idle') return state.durationMs;
   return Math.max(0, state.durationMs - elapsedMs(state, now));
@@ -83,6 +89,7 @@ export function progress(state: TimerState, now = Date.now()): number {
   return Math.min(1, elapsedMs(state, now) / state.durationMs);
 }
 
+/** Whether a started session has run out of time. */
 export function isComplete(state: TimerState, now = Date.now()): boolean {
   return state.status !== 'idle' && remainingMs(state, now) <= 0;
 }
@@ -107,6 +114,7 @@ export function nextSessionType(
   return completed % sessionsUntilLongBreak === 0 ? 'long-break' : 'short-break';
 }
 
+/** The configured length for a focus, short-break or long-break session. */
 export function durationForType(
   type: SessionType,
   settings: { focusMs: number; shortBreakMs: number; longBreakMs: number },
@@ -121,6 +129,7 @@ export function durationForType(
   }
 }
 
+/** Human-readable name of a session type, for headings and notifications. */
 export function labelForType(type: SessionType): string {
   switch (type) {
     case 'focus':
