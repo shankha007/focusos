@@ -37,7 +37,11 @@ export function TimerRing({
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="-rotate-90"
+        // The stroke's outer edge sits exactly on the viewport edge, and an
+        // <svg> clips to that edge by default — which sliced the glow into a
+        // hard square outline around the ring. The halo is decorative, so let
+        // it paint outside the box instead of shrinking the ring to fit it.
+        className="-rotate-90 overflow-visible"
         aria-hidden="true"
       >
         <circle
