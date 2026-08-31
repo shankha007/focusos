@@ -8,6 +8,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // src/lib/pwa.ts imports the virtual module and registers the worker
+      // itself. The script this plugin would otherwise inject is a bare
+      // `navigator.serviceWorker.register` with no update handling, and having
+      // both would register twice.
+      injectRegister: null,
       includeAssets: ["favicon.svg"],
       manifest: {
         name: "FocusOS — Deep Work Companion",
