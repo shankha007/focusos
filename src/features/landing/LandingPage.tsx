@@ -39,6 +39,13 @@ function prefersNoMotion(): boolean {
 
 let animation = 0;
 
+/** Stops any tween in flight. Called on unmount so a scroll that was still
+ *  running does not keep firing frames against a detached element. */
+function cancelScroll() {
+  cancelAnimationFrame(animation);
+  animation = 0;
+}
+
 /**
  * Scrolls the container with a hand-rolled tween.
  *
@@ -114,6 +121,10 @@ export function LandingPage() {
   // #root is a fixed-height flex shell. The nav needs that element to know when
   // content has passed under it.
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  // Leaving for /dashboard mid-scroll would otherwise leave the tween running
+  // against an element that is no longer in the document.
+  useEffect(() => cancelScroll, []);
 
   return (
     <div id={SCROLLER_ID} ref={scrollerRef} className="h-full overflow-y-auto bg-bg">
