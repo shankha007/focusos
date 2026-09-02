@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/primitives';
@@ -150,9 +150,9 @@ export function App() {
   return (
     <TooltipProvider delayDuration={400}>
       <Boot>
-        <HashRouter>
+        <BrowserRouter>
           <Runtime />
-        </HashRouter>
+        </BrowserRouter>
       </Boot>
       <Toaster
         position="bottom-right"

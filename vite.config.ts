@@ -25,8 +25,8 @@ export default defineConfig({
         orientation: "portrait-primary",
         // "/" is the marketing page. Someone who has installed the app has
         // already been sold on it, so the installed entry point skips straight
-        // to the workspace. HashRouter means the route lives in the fragment.
-        start_url: "/#/dashboard",
+        // to the workspace.
+        start_url: "/dashboard",
         scope: "/",
         icons: [
           {

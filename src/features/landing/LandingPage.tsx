@@ -83,12 +83,10 @@ function scrollTo(top: number) {
 }
 
 /**
- * The app runs on HashRouter, so the URL already owns the fragment: an
- * `href="#features"` would be read as a route and throw the visitor off the
- * page. In-page navigation therefore scrolls by element id instead of linking.
- *
- * The offset is measured against the scroll container rather than handed to
- * `scrollIntoView`, which is one of the APIs the tween above exists to avoid.
+ * In-page navigation scrolls by element id rather than linking to `#features`.
+ * A real anchor would push a history entry and leave a fragment on every route,
+ * and the offset below is measured against the scroll container rather than
+ * handed to `scrollIntoView`, which is one of the APIs the tween above avoids.
  */
 function scrollToId(id: string) {
   const scroller = getScroller();
