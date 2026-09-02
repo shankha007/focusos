@@ -45,6 +45,9 @@ npm run dev
 Open **http://localhost:5173** in your browser. That's it — there's no database to provision, no
 `.env` file, and no API keys. The app creates its local storage on first load.
 
+`/` is the landing page; the workspace itself lives at **/#/dashboard**, which is also where the
+installed PWA starts.
+
 ### 3. Build for production (optional)
 
 ```bash

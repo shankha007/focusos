@@ -23,7 +23,7 @@ import { remainingMs } from '@/engine/timerEngine';
 import { labelForType } from '@/engine/timerEngine';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/achievements', label: 'Progress', icon: Trophy },
@@ -48,7 +48,7 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
       () => [
         { key: 'k', meta: true, handler: () => setPaletteOpen((v) => !v), allowInInput: true },
         { key: 'f', meta: true, shift: true, handler: onOpenFocus },
-        { key: '1', meta: true, handler: () => navigate('/') },
+        { key: '1', meta: true, handler: () => navigate('/dashboard') },
         { key: '2', meta: true, handler: () => navigate('/tasks') },
         { key: '3', meta: true, handler: () => navigate('/analytics') },
         { key: '4', meta: true, handler: () => navigate('/achievements') },
@@ -63,7 +63,7 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
       {/* Desktop sidebar */}
       <aside className="hidden w-[228px] shrink-0 flex-col border-r border-border bg-surface/50 px-3 py-4 lg:flex">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           aria-label="FocusOS — go to dashboard"
           className="mb-5 flex items-center rounded-2xl px-2 py-1.5 text-left transition-colors hover:bg-elevated"
         >
@@ -72,7 +72,7 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
 
         <nav className="flex flex-col gap-0.5">
           {NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} end={to === '/'}>
+            <NavLink key={to} to={to}>
               {({ isActive }) => (
                 <span
                   className={cn(
@@ -175,7 +175,7 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden">
           {NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} end={to === '/'} className="flex-1">
+            <NavLink key={to} to={to} className="flex-1">
               {({ isActive }) => (
                 <span
                   className={cn(

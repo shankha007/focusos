@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/primitives';
 import { AppShell } from './AppShell';
+import { LandingPage } from '@/features/landing/LandingPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { TasksPage } from '@/features/tasks/TasksPage';
 import { DeepFocusMode } from '@/features/focus/DeepFocusMode';
@@ -93,8 +94,16 @@ function Runtime() {
   return (
     <>
       <Routes>
+        {/* The marketing page renders outside AppShell — no sidebar, no timer
+            chrome. It is the front door for new visitors; the installed PWA
+            starts at /dashboard instead (see start_url in vite.config.ts). */}
+        <Route path="/" element={<LandingPage />} />
+
         <Route element={<AppShell onOpenFocus={() => setShowDeepFocus(true)} />}>
-          <Route path="/" element={<DashboardPage onOpenFocus={() => setShowDeepFocus(true)} />} />
+          <Route
+            path="/dashboard"
+            element={<DashboardPage onOpenFocus={() => setShowDeepFocus(true)} />}
+          />
           <Route path="/tasks" element={<TasksPage onOpenFocus={() => setShowDeepFocus(true)} />} />
           <Route
             path="/analytics"
@@ -120,7 +129,9 @@ function Runtime() {
               </Suspense>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* An unrecognised path belongs in the app, not back out on the
+              marketing page — someone reaching it already has a session. */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
 

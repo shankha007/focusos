@@ -162,7 +162,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                 </Group>
 
                 <Group heading="Go to">
-                  <Item icon={LayoutDashboard} label="Dashboard" shortcut="⌘1" onSelect={() => run(() => navigate('/'))} />
+                  <Item icon={LayoutDashboard} label="Dashboard" shortcut="⌘1" onSelect={() => run(() => navigate('/dashboard'))} />
                   <Item icon={CheckSquare} label="Tasks" shortcut="⌘2" onSelect={() => run(() => navigate('/tasks'))} />
                   <Item icon={BarChart3} label="Analytics" shortcut="⌘3" onSelect={() => run(() => navigate('/analytics'))} />
                   <Item icon={Trophy} label="Progress" shortcut="⌘4" onSelect={() => run(() => navigate('/achievements'))} />
