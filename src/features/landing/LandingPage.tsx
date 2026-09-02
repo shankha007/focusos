@@ -16,13 +16,87 @@ import { TimerRing } from '@/components/TimerRing';
 import { FeedbackForm } from './FeedbackForm';
 import { CREATOR, FEATURES, STATS, STEPS } from './content';
 
+/** The page's scroll container. Addressed by id so the scroll helpers below can
+ *  stay plain functions rather than threading a ref through every section. */
+const SCROLLER_ID = 'landing-scroll';
+
+/** Height of the sticky header, so a section does not land underneath it. */
+const HEADER_OFFSET = 72;
+
+function getScroller(): HTMLElement | null {
+  return document.getElementById(SCROLLER_ID);
+}
+
+/** Whether the visitor has asked for less movement, by OS setting or the app's
+ *  own Accessibility toggle. */
+function prefersNoMotion(): boolean {
+  return (
+    document.documentElement.dataset.motion === 'reduced' ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+let animation = 0;
+
+/**
+ * Scrolls the container with a hand-rolled tween.
+ *
+ * Native smooth scrolling is not dependable here: `scrollIntoView`,
+ * `scrollTo({behavior:'smooth'})` and CSS `scroll-behavior` are all silently
+ * ignored on this container by some engines, which turns every in-page nav
+ * click into a dead button with nothing logged. Driving the position ourselves
+ * always moves, and lets the app's own reduced-motion setting opt out — which
+ * the CSS media query alone would not cover.
+ */
+function scrollTo(top: number) {
+  const scroller = getScroller();
+  if (!scroller) return;
+
+  const target = Math.max(0, Math.min(top, scroller.scrollHeight - scroller.clientHeight));
+  const start = scroller.scrollTop;
+  const distance = target - start;
+
+  cancelAnimationFrame(animation);
+  if (prefersNoMotion() || Math.abs(distance) < 2) {
+    scroller.scrollTop = target;
+    return;
+  }
+
+  const duration = Math.min(700, 220 + Math.abs(distance) * 0.35);
+  const startedAt = performance.now();
+
+  const step = (now: number) => {
+    const t = Math.min(1, (now - startedAt) / duration);
+    // easeOutCubic — quick departure, soft landing.
+    scroller.scrollTop = start + distance * (1 - Math.pow(1 - t, 3));
+    if (t < 1) animation = requestAnimationFrame(step);
+  };
+  animation = requestAnimationFrame(step);
+}
+
 /**
  * The app runs on HashRouter, so the URL already owns the fragment: an
  * `href="#features"` would be read as a route and throw the visitor off the
  * page. In-page navigation therefore scrolls by element id instead of linking.
+ *
+ * The offset is measured against the scroll container rather than handed to
+ * `scrollIntoView`, which is one of the APIs the tween above exists to avoid.
  */
 function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scroller = getScroller();
+  const target = document.getElementById(id);
+  if (!scroller || !target) return;
+
+  scrollTo(
+    target.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top +
+      scroller.scrollTop -
+      HEADER_OFFSET,
+  );
+}
+
+function scrollToTop() {
+  scrollTo(0);
 }
 
 /** Fade-and-rise used on each section as it enters. Honours reduced motion via
@@ -41,7 +115,7 @@ export function LandingPage() {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div ref={scrollerRef} className="h-full overflow-y-auto bg-bg">
+    <div id={SCROLLER_ID} ref={scrollerRef} className="h-full overflow-y-auto bg-bg">
       <LandingNav scrollerRef={scrollerRef} />
       <main>
         <Hero />
@@ -81,7 +155,14 @@ function LandingNav({ scrollerRef }: { scrollerRef: React.RefObject<HTMLDivEleme
       }
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 sm:px-8">
-        <Logo size={36} />
+        {/* Already home, so the logo returns to the top rather than navigating. */}
+        <button
+          onClick={scrollToTop}
+          aria-label="FocusOS — back to top"
+          className="-mx-2 rounded-2xl px-2 py-1 transition-colors hover:bg-elevated"
+        >
+          <Logo size={36} />
+        </button>
 
         <nav className="ml-auto hidden items-center gap-1 md:flex">
           {[
@@ -300,8 +381,16 @@ function Privacy() {
       >
         <div aria-hidden className="lit pointer-events-none absolute inset-0" />
         <div className="relative mx-auto max-w-3xl text-center">
-          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent/12 text-accent">
-            <ShieldCheck className="h-5 w-5" />
+          {/* This is the section's only visual anchor, so the badge carries a
+              ring and a halo rather than sitting as a bare glyph. */}
+          <span className="relative mx-auto grid h-20 w-20 place-items-center">
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-[28%] bg-accent/25 blur-xl"
+            />
+            <span className="relative grid h-20 w-20 place-items-center rounded-[28%] bg-accent/15 text-accent ring-1 ring-inset ring-accent/30">
+              <ShieldCheck className="h-9 w-9" strokeWidth={1.75} />
+            </span>
           </span>
           <h2 className="mt-5 text-[26px] font-semibold tracking-[-0.02em] text-fg sm:text-[32px]">
             Your focus data never leaves your browser

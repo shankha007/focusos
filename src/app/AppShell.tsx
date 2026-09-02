@@ -62,9 +62,11 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
     <div className="flex h-full bg-bg">
       {/* Desktop sidebar */}
       <aside className="hidden w-[228px] shrink-0 flex-col border-r border-border bg-surface/50 px-3 py-4 lg:flex">
+        {/* The logo is the way back out to the landing page — the usual
+            convention. Dashboard already has its own nav item and ⌘1. */}
         <button
-          onClick={() => navigate('/dashboard')}
-          aria-label="FocusOS — go to dashboard"
+          onClick={() => navigate('/')}
+          aria-label="FocusOS — go to the home page"
           className="mb-5 flex items-center rounded-2xl px-2 py-1.5 text-left transition-colors hover:bg-elevated"
         >
           <Logo size={38} active={running} />
@@ -139,13 +141,19 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile / tablet top bar */}
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 lg:hidden">
-          <LogoMark size={30} active={running} />
-          <span className="text-[15px] font-semibold tracking-[-0.02em]">
-            Focus
-            <span className="bg-gradient-to-r from-accent to-break bg-clip-text text-transparent">
-              OS
+          <button
+            onClick={() => navigate('/')}
+            aria-label="FocusOS — go to the home page"
+            className="-mx-1 flex items-center gap-3 rounded-xl px-1 py-1 transition-colors hover:bg-elevated"
+          >
+            <LogoMark size={30} active={running} />
+            <span className="text-[15px] font-semibold tracking-[-0.02em]">
+              Focus
+              <span className="bg-gradient-to-r from-accent to-break bg-clip-text text-transparent">
+                OS
+              </span>
             </span>
-          </span>
+          </button>
 
           <div className="ml-auto flex items-center gap-2">
             {active && (
