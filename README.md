@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/shankha007/focusos/actions/workflows/ci.yml/badge.svg)](https://github.com/shankha007/focusos/actions/workflows/ci.yml)
 
+**Live at [focusos.pro](https://focusos.pro)** — no sign-up, works offline, installable as an app.
+
 A premium, offline-first Pomodoro workspace — not just a timer, but the whole focus workflow:
 plan the day, run deep-focus sessions, log what pulls you away, and get real analysis back.
 
@@ -56,7 +58,9 @@ npm run preview
 ```
 
 Because it's fully static with no backend, `dist/` can be dropped on any static host
-(Netlify, Vercel, GitHub Pages, S3, or your own nginx).
+(Vercel, Netlify, GitHub Pages, S3, or your own nginx). [focusos.pro](https://focusos.pro) is
+deployed on Vercel from `main`; [vercel.json](vercel.json) carries the SPA fallback, asset
+caching, and security headers.
 
 ### All commands
 
@@ -71,9 +75,10 @@ Because it's fully static with no backend, `dist/` can be dropped on any static 
 
 ### Installing as an app (PWA)
 
-FocusOS is a Progressive Web App. Once it's running, your browser will offer an **Install** option
-(address-bar icon in Chrome/Edge, or *Share → Add to Dock/Home Screen* in Safari). Installed, it
-opens in its own window without browser chrome and works with no internet connection.
+FocusOS is a Progressive Web App. Open [focusos.pro](https://focusos.pro) (or your local dev
+server) and your browser will offer an **Install** option (address-bar icon in Chrome/Edge, or
+*Share → Add to Dock/Home Screen* in Safari). Installed, it opens in its own window without browser
+chrome and works with no internet connection.
 
 ---
 
