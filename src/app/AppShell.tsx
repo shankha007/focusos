@@ -144,7 +144,7 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
           <button
             onClick={() => navigate('/')}
             aria-label="FocusOS — go to the home page"
-            className="-mx-1 flex items-center gap-3 rounded-xl px-1 py-1 transition-colors hover:bg-elevated"
+            className="-mx-1 flex items-center gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-elevated"
           >
             <LogoMark size={30} active={running} />
             <span className="text-[15px] font-semibold tracking-[-0.02em]">

@@ -160,7 +160,9 @@ function LandingNav({ scrollerRef }: { scrollerRef: React.RefObject<HTMLDivEleme
         <button
           onClick={scrollToTop}
           aria-label="FocusOS — back to top"
-          className="-mx-2 rounded-2xl px-2 py-1 transition-colors hover:bg-elevated"
+          // text-left: a <button> centres its text, which would centre the
+          // wordmark over the wider tagline beneath it.
+          className="-mx-2 rounded-2xl px-2 py-1 text-left transition-colors hover:bg-elevated"
         >
           <Logo size={36} />
         </button>
