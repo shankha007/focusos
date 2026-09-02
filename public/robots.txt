@@ -1,0 +1,15 @@
+# FocusOS — https://focusos.pro
+#
+# Only "/" has content worth indexing. Every other route serves the same
+# client-rendered shell over the visitor's own local data, so crawling them
+# yields a set of near-identical thin pages and nothing else.
+
+User-agent: *
+Allow: /$
+Disallow: /dashboard
+Disallow: /tasks
+Disallow: /analytics
+Disallow: /achievements
+Disallow: /settings
+
+Sitemap: https://focusos.pro/sitemap.xml

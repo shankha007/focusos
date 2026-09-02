@@ -45,6 +45,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // The share-card image is only ever fetched by crawlers and link-preview
+        // bots, never by the running app — precaching it would spend 147 KB of
+        // every visitor's offline storage on something they never see.
+        globIgnores: ["**/og-image.png"],
         navigateFallback: "index.html",
       },
     }),

@@ -5,14 +5,88 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0b0f" />
+
+    <title>FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion</title>
     <meta
       name="description"
-      content="FocusOS — a premium, offline-first Pomodoro workspace with adaptive sessions, deep focus mode, and analytics."
+      content="A free offline Pomodoro timer that learns the session length you actually finish. Deep focus mode, distraction tracking, and analytics. No account needed."
     />
-    <title>FocusOS</title>
+    <!-- index.html is served for every route, so the canonical points at the one
+         page with content. robots.txt keeps crawlers off the app routes. -->
+    <link rel="canonical" href="https://focusos.pro/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FocusOS" />
+    <meta property="og:url" content="https://focusos.pro/" />
+    <meta property="og:title" content="FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion" />
+    <meta
+      property="og:description"
+      content="A free offline Pomodoro timer that learns the session length you actually finish. Deep focus mode, distraction tracking, and analytics. No account needed."
+    />
+    <meta property="og:image" content="https://focusos.pro/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FocusOS — not just a timer, the whole focus workflow." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion" />
+    <meta
+      name="twitter:description"
+      content="A free offline Pomodoro timer that learns the session length you actually finish. Deep focus mode, distraction tracking, and analytics. No account needed."
+    />
+    <meta name="twitter:image" content="https://focusos.pro/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "FocusOS",
+        "url": "https://focusos.pro/",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Any modern web browser",
+        "description": "An offline-first Pomodoro workspace: plan the day, run deep-focus sessions, log distractions, and get analysis back. Data never leaves the browser.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "Shankha Shubhra Das" }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      React replaces everything inside #root on mount, so this markup is what a
+      crawler that does not execute JavaScript sees — and, for everyone else, a
+      first paint with real words in it rather than a blank page. Keep it in
+      step with the hero in src/features/landing/LandingPage.tsx; it is a
+      summary of that page, never different claims.
+    -->
+    <div id="root">
+      <div id="seo-shell" style="max-width: 44rem; margin: 0 auto; padding: 12vh 1.5rem; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #e9ecf8;">
+        <h1 style="font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 1rem;">
+          FocusOS — not just a timer, the whole focus workflow
+        </h1>
+        <p style="font-size: 1.0625rem; line-height: 1.6; color: #949cb8; margin: 0 0 1.5rem;">
+          A free, offline-first Pomodoro workspace. Plan the day, run deep-focus sessions, log what
+          pulls you away, and get real analysis back. FocusOS learns the session length you actually
+          finish — not the one you optimistically planned. No account, no tracking, no backend: your
+          data stays in your browser.
+        </p>
+        <ul style="font-size: 0.9375rem; line-height: 1.9; color: #949cb8; padding-left: 1.1rem; margin: 0;">
+          <li>Deep Focus Mode with a full-screen countdown and picture-in-picture</li>
+          <li>An adaptive engine that learns your best session length, break length and peak hours</li>
+          <li>Analytics: focus over time, your best hours, mood vs productivity, distraction patterns</li>
+          <li>A written daily reflection assembled from your own numbers, not a language model</li>
+          <li>Tasks with priorities, categories and session estimates that drive a daily plan</li>
+          <li>Eight ambient soundscapes synthesized live in the browser</li>
+          <li>Nine themes, full keyboard navigation, high-contrast and reduce-motion modes</li>
+          <li>Installable as a Progressive Web App and fully usable offline</li>
+        </ul>
+      </div>
+    </div>
+    <noscript>
+      <p style="max-width: 44rem; margin: 0 auto; padding: 0 1.5rem 12vh; font-family: system-ui, sans-serif; color: #949cb8;">
+        FocusOS is an offline-first web app and needs JavaScript to run. Enable it and reload to
+        start a session.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
