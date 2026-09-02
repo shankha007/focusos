@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight,
   Github,
+  Linkedin,
   Mail,
   ShieldCheck,
   Sparkles,
@@ -504,6 +505,19 @@ function FeedbackSection() {
 
 /* ── Footer ────────────────────────────────────────────────── */
 
+/** `external` opens in a new tab; the mailto hand-off must not, or the browser
+ *  is left holding an empty tab after the mail client takes over. */
+const CONTACT_LINKS: {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+  external?: boolean;
+}[] = [
+  { icon: Mail, label: 'Email', href: `mailto:${CREATOR.email}` },
+  { icon: Linkedin, label: 'LinkedIn', href: CREATOR.linkedin, external: true },
+  { icon: Github, label: 'GitHub', href: CREATOR.github, external: true },
+];
+
 function Footer() {
   return (
     <footer className="border-t border-border bg-surface/40 px-5 py-12 sm:px-8">
@@ -520,22 +534,17 @@ function Footer() {
             <p className="mt-0.5 text-[13px] text-muted">{CREATOR.role}</p>
 
             <div className="mt-4 flex flex-wrap gap-2 md:justify-end">
-              <a
-                href={`mailto:${CREATOR.email}`}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-elevated px-3 py-2 text-[12.5px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                Email
-              </a>
-              <a
-                href={CREATOR.github}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-elevated px-3 py-2 text-[12.5px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
-              >
-                <Github className="h-3.5 w-3.5" />
-                GitHub
-              </a>
+              {CONTACT_LINKS.map(({ icon: Icon, label, href, external }) => (
+                <a
+                  key={label}
+                  href={href}
+                  {...(external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-elevated px-3 py-2 text-[12.5px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </a>
+              ))}
             </div>
           </div>
         </div>

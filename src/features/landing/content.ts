@@ -118,4 +118,5 @@ export const CREATOR = {
     'FocusOS started as a timer I wanted for my own work and grew into the whole focus workflow. It has no backend, no tracking, and no business model — just a tool I use every day. If it helps you too, I would genuinely like to hear about it.',
   email: 'shankhasdas07@gmail.com',
   github: 'https://github.com/shankha007',
+  linkedin: 'https://www.linkedin.com/in/shankhad/',
 } as const;
