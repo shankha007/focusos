@@ -73,7 +73,7 @@ caching, and security headers.
 | `npm run build` | Type-check, then build to `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm run typecheck` | Type-check only, no output |
-| `npm test` | Run the engine unit tests (50 tests) |
+| `npm test` | Run the engine unit tests (66 tests) |
 | `npm run test:watch` | Tests in watch mode |
 
 ### Installing as an app (PWA)
