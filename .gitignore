@@ -6,8 +6,8 @@ dev-dist
 .vite
 screenshots
 
-# Local Netlify folder
-.netlify
+# Local Vercel folder
+.vercel
 
 # Local codebase reference — not published
 CODEBASE_GUIDE.md

@@ -18,7 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Matches NODE_VERSION in netlify.toml, so CI and the deploy build agree.
+      # Matches the engines.node range in package.json, which Vercel also uses,
+      # so CI and the deploy build agree.
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
