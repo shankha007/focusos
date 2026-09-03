@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardTitle, EmptyState } from '@/components/ui/primitives';
 import { MoodCheckDialog } from '@/features/focus/MoodCheckDialog';
 import { CurrentSessionCard } from './CurrentSessionCard';
+import { WaterBreakCard } from '@/features/focus/WaterBreakCard';
 import { DailyPlanCard } from './DailyPlanCard';
 import { ActivityFeed } from './ActivityFeed';
 import { ReflectionCard } from './ReflectionCard';
@@ -116,6 +117,7 @@ export function DashboardPage({ onOpenFocus }: { onOpenFocus: () => void }) {
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <CurrentSessionCard onOpenFocus={onOpenFocus} onStart={begin} />
+          <WaterBreakCard />
           <DailyPlanCard onStart={begin} />
           <ReflectionCard />
         </div>

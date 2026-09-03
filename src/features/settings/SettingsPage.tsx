@@ -6,6 +6,7 @@ import {
   CloudOff,
   Contrast,
   Download,
+  Droplet,
   Eye,
   Palette,
   Sliders,
@@ -247,6 +248,36 @@ export function SettingsPage() {
               <Switch
                 checked={settings.adaptiveEnabled}
                 onCheckedChange={(v) => void update({ adaptiveEnabled: v })}
+              />
+            </SettingRow>
+          </div>
+        </Section>
+
+        {/* ── Breaks ────────────────────────────────────────── */}
+        <Section
+          icon={Droplet}
+          title="Breaks"
+          description="What happens in the gaps between sessions."
+        >
+          <div className="space-y-1">
+            <SettingRow
+              label="Water break reminder"
+              description="Shows a one-tap water tracker during short and long breaks."
+            >
+              <Switch
+                checked={settings.hydrationEnabled}
+                onCheckedChange={(v) => void update({ hydrationEnabled: v })}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Daily water goal"
+              description="Glasses to aim for. The count resets at midnight."
+            >
+              <NumberStepper
+                value={settings.dailyGlassGoal}
+                min={1}
+                max={16}
+                onChange={(v) => void update({ dailyGlassGoal: v })}
               />
             </SettingRow>
           </div>

@@ -16,6 +16,7 @@ import { Tooltip } from '@/components/ui/primitives';
 import { TimerRing } from '@/components/TimerRing';
 import { DistractionLogger } from './DistractionLogger';
 import { BreakActivity } from './BreakActivity';
+import { WaterBreakCard } from './WaterBreakCard';
 import { SoundPicker } from './SoundPicker';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -244,7 +245,12 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
           </button>
         )}
 
-        {!isFocus && <BreakActivity type={timer.type} cycleCount={timer.cycleCount} />}
+        {!isFocus && (
+          <>
+            <BreakActivity type={timer.type} cycleCount={timer.cycleCount} />
+            <WaterBreakCard className="mt-3 w-full max-w-sm" />
+          </>
+        )}
       </div>
 
       {/* Shortcut legend */}

@@ -4,6 +4,7 @@ import type {
   Category,
   Distraction,
   DistractionCategory,
+  HydrationLog,
   Session,
   Settings,
   Task,
@@ -20,6 +21,7 @@ export class FocusDB extends Dexie {
   distractionCategories!: Table<DistractionCategory, string>;
   achievements!: Table<Achievement, string>;
   timerPresets!: Table<TimerPreset, string>;
+  hydration!: Table<HydrationLog, string>;
   settings!: Table<Settings, string>;
 
   /** Declares the table indexes for each schema version. Dexie replays these in order to migrate an existing database. */
@@ -38,6 +40,10 @@ export class FocusDB extends Dexie {
     // new table needs declaring here.
     this.version(2).stores({
       timerPresets: "id, name, createdAt",
+    });
+    // Keyed by local date — one row per day, created lazily on the first glass.
+    this.version(3).stores({
+      hydration: "date",
     });
   }
 }
@@ -66,6 +72,8 @@ export const DEFAULT_SETTINGS: Settings = {
   askMoodBefore: true,
   askProductivityAfter: true,
   adaptiveEnabled: true,
+  hydrationEnabled: true,
+  dailyGlassGoal: 8,
   onboarded: false,
   xp: 0,
   createdAt: Date.now(),
