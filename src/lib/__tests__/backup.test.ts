@@ -182,6 +182,30 @@ describe('parseBackup — dropping bad rows without failing the file', () => {
     expect(parsed.skipped.timerPresets).toBe(2);
   });
 
+  it('keys hydration rows by date, dropping ones without a usable day', () => {
+    const parsed = parseBackup(
+      file({
+        hydration: [
+          { date: '2026-08-01', glasses: 6, lastAt: 1_700_000_000_000 },
+          { date: '2026-08-01', glasses: 99, lastAt: 1_700_000_000_000 },
+          { date: 'yesterday', glasses: 3 },
+          { glasses: 3 },
+        ],
+      }),
+    );
+    expect(parsed.rows.hydration).toEqual([
+      { date: '2026-08-01', glasses: 6, lastAt: 1_700_000_000_000 },
+    ]);
+    expect(parsed.skipped.hydration).toBe(3);
+  });
+
+  it('rounds a nonsense glass count back into whole glasses', () => {
+    const parsed = parseBackup(
+      file({ hydration: [{ date: '2026-08-01', glasses: -4.6 }] }),
+    );
+    expect(parsed.rows.hydration[0]).toEqual({ date: '2026-08-01', glasses: 0, lastAt: 0 });
+  });
+
   it('replaces settings values that would break the timer', () => {
     const parsed = parseBackup(
       file({

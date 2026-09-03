@@ -4,13 +4,14 @@ import type {
   Category,
   Distraction,
   DistractionCategory,
+  HydrationLog,
   Priority,
   Session,
   Settings,
   Task,
   TimerPreset,
 } from "@/types";
-import { startOfDay, uid } from "@/lib/utils";
+import { dateKey, startOfDay, uid } from "@/lib/utils";
 
 /* ── Tasks ─────────────────────────────────────────────────── */
 
@@ -353,6 +354,58 @@ export const presetsRepo = {
   },
 };
 
+/* ── Hydration ─────────────────────────────────────────────── */
+
+/**
+ * Water logged during breaks, one row per local date. Rows are created lazily,
+ * so a day with no glasses simply has none — the count "resets" at midnight
+ * because tomorrow reads a different key.
+ */
+export const hydrationRepo = {
+  /** Today's row, or undefined before the first glass. */
+  async today(): Promise<HydrationLog | undefined> {
+    return db.hydration.get(dateKey());
+  },
+
+  /** Every day ever logged, oldest first. */
+  async all(): Promise<HydrationLog[]> {
+    const rows = await db.hydration.toArray();
+    return rows.sort((a, b) => a.date.localeCompare(b.date));
+  },
+
+  /**
+   * Adds one glass to today and returns the updated row. The read and the write
+   * share a transaction because the button is easy to double-tap, and two
+   * overlapping increments would otherwise both read the same count and land as
+   * one.
+   */
+  async logGlass(): Promise<HydrationLog> {
+    const date = dateKey();
+    return db.transaction("rw", db.hydration, async () => {
+      const current = await db.hydration.get(date);
+      const row: HydrationLog = {
+        date,
+        glasses: (current?.glasses ?? 0) + 1,
+        lastAt: Date.now(),
+      };
+      await db.hydration.put(row);
+      return row;
+    });
+  },
+
+  /** Takes one glass back off today — the undo for a mis-tap. */
+  async undoGlass(): Promise<HydrationLog | undefined> {
+    const date = dateKey();
+    return db.transaction("rw", db.hydration, async () => {
+      const current = await db.hydration.get(date);
+      if (!current || current.glasses <= 0) return current;
+      const row: HydrationLog = { ...current, glasses: current.glasses - 1 };
+      await db.hydration.put(row);
+      return row;
+    });
+  },
+};
+
 /* ── Settings ──────────────────────────────────────────────── */
 
 /** The single settings row — every preference in the app lives on it. */
@@ -374,7 +427,7 @@ export const settingsRepo = {
  * Bumped whenever a table is added to the backup. Readers accept anything at
  * or below this — older files simply carry fewer collections.
  */
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
 /** Snapshots every table into one plain object — the payload written to a JSON backup and read back by `parseBackup`. */
 export async function exportAll() {
@@ -386,6 +439,7 @@ export async function exportAll() {
     distractionCategories,
     achievements,
     timerPresets,
+    hydration,
     settings,
   ] = await Promise.all([
     db.tasks.toArray(),
@@ -395,6 +449,7 @@ export async function exportAll() {
     db.distractionCategories.toArray(),
     db.achievements.toArray(),
     db.timerPresets.toArray(),
+    db.hydration.toArray(),
     db.settings.toArray(),
   ]);
   return {
@@ -407,6 +462,7 @@ export async function exportAll() {
     distractionCategories,
     achievements,
     timerPresets,
+    hydration,
     settings,
   };
 }
@@ -415,13 +471,14 @@ export async function exportAll() {
 export async function clearAllData(): Promise<void> {
   await db.transaction(
     "rw",
-    [db.tasks, db.sessions, db.distractions, db.achievements],
+    [db.tasks, db.sessions, db.distractions, db.achievements, db.hydration],
     async () => {
       await Promise.all([
         db.tasks.clear(),
         db.sessions.clear(),
         db.distractions.clear(),
         db.achievements.clear(),
+        db.hydration.clear(),
       ]);
     },
   );

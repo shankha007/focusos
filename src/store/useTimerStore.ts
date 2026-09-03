@@ -22,6 +22,7 @@ import { xpForSession } from '@/engine/achievements';
 import { ambient } from '@/lib/audio';
 import { uid } from '@/lib/utils';
 import { notify } from '@/lib/notifications';
+import { useHydrationStore } from './useHydrationStore';
 
 const PERSIST_KEY = 'focusos:timer';
 
@@ -31,6 +32,19 @@ const PERSIST_KEY = 'focusos:timer';
  * `complete` for how that happens.
  */
 const completing = new Set<number>();
+
+/**
+ * Trailing sentence for the break notification, saying how far off today's
+ * water goal the user is. Empty once the goal is met — a met goal is not worth
+ * a second line of notification text. Refreshing the store here also means the
+ * break card opens with an up-to-date count.
+ */
+async function hydrationNudge(goal: number): Promise<string> {
+  await useHydrationStore.getState().load();
+  const { glasses } = useHydrationStore.getState();
+  if (glasses >= goal) return '';
+  return ` Grab a glass of water too — ${glasses} of ${goal} today.`;
+}
 
 interface PersistedTimer {
   timer: TimerState;
@@ -288,10 +302,17 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     if (settings.chimeEnabled && completed) void ambient.chime('complete');
 
     if (completed && settings.notificationsEnabled) {
+      // The break notification is the one moment the user is guaranteed to be
+      // looking away from the work, so the water nudge rides along with it
+      // rather than firing as a second alert.
+      const water =
+        timer.type === 'focus' && settings.hydrationEnabled
+          ? await hydrationNudge(settings.dailyGlassGoal)
+          : '';
       notify(
         timer.type === 'focus' ? 'Focus session complete' : 'Break over',
         timer.type === 'focus'
-          ? `Nice work${state.taskTitle ? ` on ${state.taskTitle}` : ''}. Time for a ${upcoming === 'long-break' ? 'long' : 'short'} break.`
+          ? `Nice work${state.taskTitle ? ` on ${state.taskTitle}` : ''}. Time for a ${upcoming === 'long-break' ? 'long' : 'short'} break.${water}`
           : 'Ready to get back into it?',
       );
     }

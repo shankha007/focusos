@@ -148,10 +148,26 @@ export interface Settings {
   askMoodBefore: boolean;
   askProductivityAfter: boolean;
   adaptiveEnabled: boolean;
+  /** Show the water-break reminder during short and long breaks. */
+  hydrationEnabled: boolean;
+  /** Glasses of water to aim for in a day. */
+  dailyGlassGoal: number;
   /** Set once the user has seen the first-run tour. */
   onboarded: boolean;
   xp: number;
   createdAt: number;
+}
+
+/**
+ * One day's water intake. Keyed by local date so the count resets at midnight
+ * without a scheduled job — a new day simply has no row yet.
+ */
+export interface HydrationLog {
+  /** ISO date, YYYY-MM-DD, in the user's local timezone. */
+  date: string;
+  glasses: number;
+  /** When the last glass was logged, used for the "last one was 40m ago" line. */
+  lastAt: number;
 }
 
 export interface DayStat {

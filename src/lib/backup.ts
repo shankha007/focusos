@@ -5,6 +5,7 @@ import type {
   Category,
   Distraction,
   DistractionCategory,
+  HydrationLog,
   Session,
   Settings,
   Task,
@@ -34,6 +35,7 @@ export const BACKUP_TABLES = [
   'distractionCategories',
   'timerPresets',
   'achievements',
+  'hydration',
 ] as const;
 
 export type BackupTable = (typeof BACKUP_TABLES)[number];
@@ -50,6 +52,7 @@ export interface ParsedBackup {
     distractionCategories: DistractionCategory[];
     achievements: Achievement[];
     timerPresets: TimerPreset[];
+    hydration: HydrationLog[];
   };
   settings: Settings | null;
   /** Rows dropped because they failed validation, per table. */
@@ -234,6 +237,19 @@ function toPreset(raw: unknown): TimerPreset | null {
   };
 }
 
+/** Validates one row into a HydrationLog, or null without a date. A negative or fractional count is rounded back into a whole number of glasses. */
+function toHydration(raw: unknown): HydrationLog | null {
+  if (!isObject(raw)) return null;
+  const date = str(raw.date);
+  // The date is the primary key — a row without one has no day to belong to.
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return {
+    date,
+    glasses: Math.max(0, Math.round(num(raw.glasses) ?? 0)),
+    lastAt: num(raw.lastAt) ?? 0,
+  };
+}
+
 /**
  * Settings are merged over the current defaults rather than validated field by
  * field: an unknown key is harmless, and a missing one has a sane default. Only
@@ -257,6 +273,7 @@ function toSettings(raw: unknown): Settings | null {
       DEFAULT_SETTINGS.sessionsUntilLongBreak,
     ),
     dailyGoalSessions: positive(merged.dailyGoalSessions, DEFAULT_SETTINGS.dailyGoalSessions),
+    dailyGlassGoal: positive(merged.dailyGlassGoal, DEFAULT_SETTINGS.dailyGlassGoal),
     soundVolume: Math.min(1, Math.max(0, num(merged.soundVolume) ?? DEFAULT_SETTINGS.soundVolume)),
     xp: Math.max(0, num(merged.xp) ?? 0),
     createdAt: num(merged.createdAt) ?? Date.now(),
@@ -265,10 +282,11 @@ function toSettings(raw: unknown): Settings | null {
 
 /* ── Parsing ───────────────────────────────────────────────── */
 
-/** Runs `validate` over a raw table, returning the rows that survived and a count of those dropped. Duplicate ids keep the first occurrence. */
-function collect<T extends { id: string }>(
+/** Runs `validate` over a raw table, returning the rows that survived and a count of those dropped. Duplicate keys keep the first occurrence — `keyOf` names the table's primary key, which is not always `id`. */
+function collect<T>(
   raw: unknown,
   validate: (row: unknown) => T | null,
+  keyOf: (row: T) => string,
 ): { rows: T[]; skipped: number } {
   if (raw === undefined || raw === null) return { rows: [], skipped: 0 };
   if (!Array.isArray(raw)) return { rows: [], skipped: 0 };
@@ -283,13 +301,14 @@ function collect<T extends { id: string }>(
       skipped++;
       continue;
     }
-    // A file with duplicate ids would otherwise silently lose rows in bulkPut;
+    // A file with duplicate keys would otherwise silently lose rows in bulkPut;
     // keep the first and count the rest as skipped so the number adds up.
-    if (seen.has(parsed.id)) {
+    const key = keyOf(parsed);
+    if (seen.has(key)) {
       skipped++;
       continue;
     }
-    seen.add(parsed.id);
+    seen.add(key);
     rows.push(parsed);
   }
 
@@ -322,14 +341,16 @@ export function parseBackup(text: string): ParsedBackup {
     );
   }
 
+  const byId = <T extends { id: string }>(row: T) => row.id;
   const parsed = {
-    tasks: collect(raw.tasks, toTask),
-    sessions: collect(raw.sessions, toSession),
-    distractions: collect(raw.distractions, toDistraction),
-    categories: collect(raw.categories, toCategory),
-    distractionCategories: collect(raw.distractionCategories, toDistractionCategory),
-    achievements: collect(raw.achievements, toAchievement),
-    timerPresets: collect(raw.timerPresets, toPreset),
+    tasks: collect(raw.tasks, toTask, byId),
+    sessions: collect(raw.sessions, toSession, byId),
+    distractions: collect(raw.distractions, toDistraction, byId),
+    categories: collect(raw.categories, toCategory, byId),
+    distractionCategories: collect(raw.distractionCategories, toDistractionCategory, byId),
+    achievements: collect(raw.achievements, toAchievement, byId),
+    timerPresets: collect(raw.timerPresets, toPreset, byId),
+    hydration: collect(raw.hydration, toHydration, (row) => row.date),
   };
 
   // `settings` ships as a one-row table, matching the Dexie layout.
@@ -352,6 +373,7 @@ export function parseBackup(text: string): ParsedBackup {
       distractionCategories: parsed.distractionCategories.rows,
       achievements: parsed.achievements.rows,
       timerPresets: parsed.timerPresets.rows,
+      hydration: parsed.hydration.rows,
     },
     settings,
     skipped: Object.fromEntries(
@@ -392,6 +414,7 @@ export async function restoreBackup(
     db.distractionCategories,
     db.achievements,
     db.timerPresets,
+    db.hydration,
     db.settings,
   ];
 
@@ -407,6 +430,7 @@ export async function restoreBackup(
         db.distractionCategories.clear(),
         db.achievements.clear(),
         db.timerPresets.clear(),
+        db.hydration.clear(),
       ]);
     }
 
@@ -418,6 +442,7 @@ export async function restoreBackup(
       db.sessions.bulkPut(backup.rows.sessions),
       db.distractions.bulkPut(backup.rows.distractions),
       db.achievements.bulkPut(backup.rows.achievements),
+      db.hydration.bulkPut(backup.rows.hydration),
     ]);
 
     if (settingsRestored) {
@@ -447,6 +472,7 @@ export function tableLabel(table: string, count: number): string {
     distractionCategories: ['distraction type', 'distraction types'],
     achievements: ['badge', 'badges'],
     timerPresets: ['preset', 'presets'],
+    hydration: ['hydration day', 'hydration days'],
   };
   const [one, many] = labels[table] ?? [table, table];
   return count === 1 ? one : many;
