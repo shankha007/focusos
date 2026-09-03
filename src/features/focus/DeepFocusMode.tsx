@@ -17,6 +17,7 @@ import { TimerRing } from '@/components/TimerRing';
 import { DistractionLogger } from './DistractionLogger';
 import { BreakActivity } from './BreakActivity';
 import { WaterBreakCard } from './WaterBreakCard';
+import { AmbientOrbs } from './AmbientOrbs';
 import { SoundPicker } from './SoundPicker';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -73,7 +74,10 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
       aria-modal="true"
       aria-label="Deep focus mode"
     >
-      {/* Ambient background — two slow-drifting radial washes tinted by session type */}
+      {/* Ambient background — two slow-drifting radial washes tinted by session
+          type, with a field of smaller lights rising through them. The washes
+          set the mood; the orbs are what stop a 90-minute session from looking
+          like a still image. */}
       {!reducedMotion && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <motion.div
@@ -92,6 +96,7 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
             animate={{ x: [0, -50, 20, 0], y: [0, -30, -70, 0], scale: [1, 0.94, 1.1, 1] }}
             transition={{ duration: 34, repeat: Infinity, ease: 'easeInOut' }}
           />
+          <AmbientOrbs type={timer.type} />
         </div>
       )}
 

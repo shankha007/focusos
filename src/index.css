@@ -271,6 +271,73 @@
   transition-duration: 0.001ms !important;
 }
 
+/*
+ * Deep focus ambient orbs — soft lights drifting up the screen.
+ *
+ * The circles are radial gradients, not blurred boxes: `filter: blur()` forces
+ * the compositor to re-rasterise the layer, and a dozen of those animating at
+ * once is the difference between a smooth screen and a hot laptop. A gradient
+ * fading to transparent reads identically and costs nothing to move.
+ *
+ * Only `transform` and `opacity` animate, so the whole field runs on the
+ * compositor and never touches layout. Each orb is two elements because it
+ * carries two independent transforms: the parent rises, the child sways.
+ */
+@keyframes orb-rise {
+  0% {
+    transform: translate3d(0, 115vh, 0);
+    opacity: 0;
+  }
+  14% {
+    opacity: var(--orb-peak);
+  }
+  76% {
+    opacity: var(--orb-peak);
+  }
+  100% {
+    transform: translate3d(0, -30vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes orb-sway {
+  from {
+    transform: translate3d(calc(var(--orb-drift) * -1), 0, 0) scale(0.92);
+  }
+  to {
+    transform: translate3d(var(--orb-drift), 0, 0) scale(1.08);
+  }
+}
+
+.orb {
+  position: absolute;
+  /* Anchored at the top so the rise keyframe's translateY reads as an absolute
+     viewport position: 115vh parks it just below the fold, -30vh clears it off
+     the top. Anchoring at the bottom would offset every value by one screen. */
+  top: 0;
+  left: var(--orb-x);
+  width: var(--orb-size);
+  height: var(--orb-size);
+  margin-left: calc(var(--orb-size) / -2);
+  opacity: 0;
+  animation: orb-rise var(--orb-duration) linear var(--orb-delay) infinite;
+}
+
+.orb-body {
+  /* A span is inline by default, and width/height do not apply to inline boxes. */
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgb(var(--orb-tint) / var(--orb-alpha)) 0%,
+    rgb(var(--orb-tint) / 0) var(--orb-falloff)
+  );
+  animation: orb-sway var(--orb-sway-duration) ease-in-out var(--orb-delay)
+    infinite alternate;
+}
+
 /* Logo mark — the progress arc sweeps while a session is live */
 @keyframes logo-sweep {
   from {
