@@ -45,7 +45,11 @@ export function RatingPicker({
                   : 'border-border hover:border-subtle/40 hover:bg-elevated',
               )}
             >
-              <span className="text-base leading-none">{EMOJI[scale][i]}</span>
+              {/* Decoration. Without this a screen reader reads the label as
+                  "disappointed face Rough" — the word already says it. */}
+              <span aria-hidden="true" className="text-base leading-none">
+                {EMOJI[scale][i]}
+              </span>
               <span
                 className={cn(
                   'text-[10px] font-medium leading-tight',

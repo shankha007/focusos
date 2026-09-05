@@ -220,12 +220,15 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   /** Abandons the current interval without logging it, returning the clock to a full session. */
   reset: () => {
     const settings = useSettingsStore.getState().settings;
-    const timer = get().timer;
+    const { timer, sessionId } = get();
     set({
       timer: resetState(timer, durationForType(timer.type, settings)),
       sessionId: null,
       distractionCount: 0,
     });
+    // The session is never written, so anything logged against it would be
+    // stranded — counted in the day's totals with no session to explain it.
+    if (sessionId) void distractionsRepo.removeForSession(sessionId);
     ambient.stop();
     persist(get());
   },
@@ -292,10 +295,17 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
           .getState()
           .update({ xp: settings.xp + xpForSession(session) });
       }
+    } else if (state.sessionId) {
+      // A false start is not written to history, so anything logged against it
+      // has nothing left to point at. Drop it rather than let it skew the day.
+      await distractionsRepo.removeForSession(state.sessionId);
     }
 
+    // Only a session that actually ran to the end banks a cycle slot. The
+    // upcoming break is read from the count *after* that, so skipping a focus
+    // session cannot buy the long break the cycle hasn't earned yet.
     const cycleCount = timer.type === 'focus' && completed ? timer.cycleCount + 1 : timer.cycleCount;
-    const upcoming = nextSessionType(timer.type, timer.cycleCount, settings.sessionsUntilLongBreak);
+    const upcoming = nextSessionType(timer.type, cycleCount, settings.sessionsUntilLongBreak);
     const upcomingDuration = durationForType(upcoming, settings);
 
     if (timer.type === 'focus') ambient.stop();
@@ -353,11 +363,21 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     }
   },
 
-  /** Records an interruption against the running session, along with how far into it the user was. `park` sets the note aside to be revisited when the session ends. */
+  /**
+   * Records an interruption against the running session, along with how far
+   * into it the user was. `park` sets the note aside to be revisited when the
+   * session ends.
+   *
+   * A distraction only means anything relative to the session it interrupted:
+   * an unattached one still counts toward the day's totals and the
+   * "distractions per session" rate, but can never be explained by a session.
+   * With no session in flight there is nothing to interrupt, so refuse.
+   */
   logDistraction: async (categoryId, note, park = false) => {
     const state = get();
+    if (!state.sessionId) return;
     await distractionsRepo.add({
-      sessionId: state.sessionId ?? undefined,
+      sessionId: state.sessionId,
       categoryId,
       note,
       at: Date.now(),

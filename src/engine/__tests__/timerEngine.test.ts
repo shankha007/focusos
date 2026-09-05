@@ -78,14 +78,22 @@ describe('timerEngine', () => {
 
   describe('cycle scheduling', () => {
     it('alternates focus and short breaks', () => {
-      expect(nextSessionType('focus', 0, 4)).toBe('short-break');
       expect(nextSessionType('focus', 1, 4)).toBe('short-break');
       expect(nextSessionType('focus', 2, 4)).toBe('short-break');
+      expect(nextSessionType('focus', 3, 4)).toBe('short-break');
     });
 
     it('inserts a long break every Nth focus session', () => {
-      expect(nextSessionType('focus', 3, 4)).toBe('long-break');
-      expect(nextSessionType('focus', 7, 4)).toBe('long-break');
+      expect(nextSessionType('focus', 4, 4)).toBe('long-break');
+      expect(nextSessionType('focus', 8, 4)).toBe('long-break');
+    });
+
+    // A skipped session banks nothing, so the count is unchanged and the cycle
+    // must not hand out the long break the user did not work for.
+    it('does not award a long break when nothing has been banked', () => {
+      expect(nextSessionType('focus', 0, 4)).toBe('short-break');
+      expect(nextSessionType('focus', 0, 1)).toBe('short-break');
+      expect(nextSessionType('focus', 3, 4)).toBe('short-break');
     });
 
     it('always returns to focus after any break', () => {

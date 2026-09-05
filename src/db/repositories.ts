@@ -178,6 +178,17 @@ export const distractionsRepo = {
   },
 
   /**
+   * Drops every distraction attached to a session, for the case where the
+   * session itself is never written — a reset, or a false start too short to
+   * log. Left behind, those rows would still be counted in the day's totals and
+   * the per-session distraction rate while pointing at a session that does not
+   * exist.
+   */
+  async removeForSession(sessionId: string): Promise<void> {
+    await db.distractions.where("sessionId").equals(sessionId).delete();
+  },
+
+  /**
    * Parked notes from one session that haven't been reviewed yet. Dexie can't
    * index `undefined`, so the pending filter is applied in memory.
    */

@@ -13,6 +13,14 @@ import { remainingMs } from '@/engine/timerEngine';
 const VISUAL_TICK_MS = 100;
 
 /**
+ * The title the document was served with. Captured at module load — before
+ * anything here has written to it — so the countdown can be peeled back off
+ * without flattening the marketing title in index.html, which is what the
+ * landing page is indexed and shared under.
+ */
+const BASE_TITLE = typeof document === 'undefined' ? 'FocusOS' : document.title;
+
+/**
  * Drives repaints while a session runs. Two independent clocks on purpose:
  * requestAnimationFrame for smooth visuals (paused by the browser when hidden),
  * and a 1s interval as a safety net that keeps firing — throttled but alive —
@@ -54,7 +62,7 @@ export function useTimerTick(): void {
 
   // Mirror the countdown into the tab title so it's readable from another tab.
   useEffect(() => {
-    /** Writes the current countdown into the tab title, or restores the plain title when nothing is running. */
+    /** Writes the current countdown into the tab title, or restores the title the page was served with when nothing is running. */
     const update = () => {
       const { timer } = useTimerStore.getState();
       if (timer.status === 'running' || timer.status === 'paused') {
@@ -62,7 +70,7 @@ export function useTimerTick(): void {
         const paused = timer.status === 'paused' ? ' (paused)' : '';
         document.title = `${formatClock(remainingMs(timer))} · ${label}${paused} — FocusOS`;
       } else {
-        document.title = 'FocusOS';
+        document.title = BASE_TITLE;
       }
     };
     update();
