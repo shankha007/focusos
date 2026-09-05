@@ -61,6 +61,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
     onOpenChange(false);
   };
 
+  const searching = search.trim() !== '';
   const openTasks = tasks.filter((t) => t.status !== 'done' && t.status !== 'archived');
   const activePreset = presets.find((p) => matchesSettings(p, settings)) ?? null;
 
@@ -70,6 +71,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
         <DialogTitle className="sr-only">Command palette</DialogTitle>
         <Command
           loop
+          filter={rank}
           className="overflow-hidden"
           onKeyDown={(e) => {
             if (e.key === 'Backspace' && search === '' && page !== 'root') {
@@ -102,8 +104,8 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
             </Command.Empty>
 
             {page === 'root' && (
-              <>
-                <Group heading="Timer">
+              <Results searching={searching}>
+                <Group heading="Timer" searching={searching}>
                   {timer.status === 'running' ? (
                     <Item
                       icon={Pause}
@@ -161,7 +163,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                   />
                 </Group>
 
-                <Group heading="Go to">
+                <Group heading="Go to" searching={searching}>
                   <Item icon={LayoutDashboard} label="Dashboard" shortcut="⌘1" onSelect={() => run(() => navigate('/dashboard'))} />
                   <Item icon={CheckSquare} label="Tasks" shortcut="⌘2" onSelect={() => run(() => navigate('/tasks'))} />
                   <Item icon={BarChart3} label="Analytics" shortcut="⌘3" onSelect={() => run(() => navigate('/analytics'))} />
@@ -169,7 +171,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                   <Item icon={SettingsIcon} label="Settings" shortcut="⌘," onSelect={() => run(() => navigate('/settings'))} />
                 </Group>
 
-                <Group heading="Preferences">
+                <Group heading="Preferences" searching={searching}>
                   <Item
                     icon={Palette}
                     label="Change theme…"
@@ -198,7 +200,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                   />
                   <Item icon={Plus} label="New task" onSelect={() => run(() => navigate('/tasks?new=1'))} />
                 </Group>
-              </>
+              </Results>
             )}
 
             {page === 'themes' && (
@@ -277,8 +279,44 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
   );
 }
 
-/** A titled section of the command list. */
-function Group({ heading, children }: { heading: string; children: React.ReactNode }) {
+/**
+ * Holds every result of a multi-section page in one container while a search is
+ * running.
+ *
+ * cmdk ranks items and then reorders them, but only ever within the group they
+ * belong to — it moves each item back under `closest('[cmdk-group]')`. Sections
+ * therefore cannot interleave, and an item with no group at all is never moved.
+ * Collapsing the sections into a single group for the duration of a search is
+ * what lets the best match anywhere actually reach the top.
+ */
+function Results({ searching, children }: { searching: boolean; children: React.ReactNode }) {
+  if (!searching) return <>{children}</>;
+  return <Command.Group>{children}</Command.Group>;
+}
+
+/**
+ * A titled section of the command list — while the list is being browsed.
+ *
+ * cmdk ranks items against each other inside a group but leaves the groups
+ * themselves in source order, so with headings on, "Settings" can only ever
+ * appear below every Timer command no matter how well it matches: typing "sett"
+ * left "Reset timer" selected. Once there is a query the headings stop earning
+ * their keep anyway — the user is aiming at one command, not browsing a
+ * category — so the sections dissolve into a single ranked list and the best
+ * match rises to the top where Enter will hit it.
+ */
+function Group({
+  heading,
+  searching = false,
+  children,
+}: {
+  heading: string;
+  /** Only for pages that render several sections; see `Results`. */
+  searching?: boolean;
+  children: React.ReactNode;
+}) {
+  if (searching) return <>{children}</>;
+
   return (
     <Command.Group
       heading={heading}
@@ -287,6 +325,41 @@ function Group({ heading, children }: { heading: string; children: React.ReactNo
       {children}
     </Command.Group>
   );
+}
+
+/**
+ * Ranks a command against what has been typed, 0 for no match.
+ *
+ * cmdk's own scorer is a fuzzy subsequence matcher, which is what you want for
+ * "swtprst" → "Switch timer preset" but not for the common case: typing "sett"
+ * scored "Reset timer" above "Settings", because those letters happen to fall
+ * in order inside it, and "theme" pulled in "Switch timer preset" over "Change
+ * theme…". Literal matches are ranked first here — prefix, then word start,
+ * then substring — and a scattered subsequence can only ever place below all of
+ * them, tie-broken by how short the command is so the tightest match wins.
+ */
+export function rank(value: string, search: string): number {
+  const query = search.trim().toLowerCase();
+  if (!query) return 1;
+
+  const haystack = value.toLowerCase();
+  // Shorter commands are the better answer among equally literal matches:
+  // "Tasks" should beat "Focus on a task…" for "task".
+  const brevity = 1 / (1 + haystack.length / 100);
+
+  if (haystack.startsWith(query)) return 0.9 + 0.1 * brevity;
+  if (haystack.split(/\s+/).some((word) => word.startsWith(query))) return 0.7 + 0.1 * brevity;
+  if (haystack.includes(query)) return 0.5 + 0.1 * brevity;
+
+  // Fall back to a subsequence match — every query letter present, in order —
+  // so initials and abbreviations still find their command.
+  let at = 0;
+  for (const ch of query) {
+    at = haystack.indexOf(ch, at);
+    if (at === -1) return 0;
+    at += 1;
+  }
+  return 0.1 + 0.1 * brevity;
 }
 
 /** One selectable command, with an optional hint, keyboard shortcut, and a dot marking it as the current choice. */

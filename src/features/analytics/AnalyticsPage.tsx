@@ -80,6 +80,31 @@ const hourTick = (value: number) => {
   return `${Number(value.toFixed(1))}h`;
 };
 
+/**
+ * A whole-minute scale for the focus-per-day axis, in hours, or `undefined` to
+ * let Recharts decide.
+ *
+ * Left to itself, Recharts divides the domain into equal fractions. Under an
+ * hour those land between whole minutes — 1.25, 2.5, 3.75 — and `hourTick`
+ * rounds them to labels that repeat or skip, so the axis reads "1m, 2m, 4m, 5m"
+ * with no 3m and uneven gaps. Choosing the step ourselves keeps the labels
+ * distinct and evenly spaced. The domain is pinned to match, since ticks
+ * outside it are simply dropped. Past an hour the default fractions already
+ * read well, so leave them alone.
+ */
+function focusAxisScale(maxHours: number): { ticks: number[]; domain: [number, number] } | undefined {
+  const maxMinutes = maxHours * 60;
+  if (maxMinutes <= 0 || maxMinutes >= 60) return undefined;
+
+  // Aim for at most five gaps, on a step that reads roundly in minutes.
+  const step = [1, 2, 5, 10, 15, 20, 30].find((m) => maxMinutes / m <= 5) ?? 30;
+  const top = Math.ceil(maxMinutes / step) * step;
+
+  const ticks: number[] = [];
+  for (let m = 0; m <= top; m += step) ticks.push(m / 60);
+  return { ticks, domain: [0, top / 60] };
+}
+
 /** Axis tick for a minutes-based scale. */
 const minuteTick = (value: number) => `${Math.round(value)}m`;
 
@@ -137,6 +162,12 @@ export function AnalyticsPage() {
       distractions: d.distractions,
     }));
   }, [sessions, distractions, from]);
+
+  /** Whole-minute gridlines for the focus-per-day chart while the day is short. */
+  const focusScale = useMemo(
+    () => focusAxisScale(Math.max(...series.map((d) => d.hours), 0)),
+    [series],
+  );
 
   const hourly = useMemo(() => {
     const rows = byHour(sessions);
@@ -253,7 +284,7 @@ export function AnalyticsPage() {
       {/* Focus timeline */}
       <Card className="mt-4">
         <CardTitle>Focus over time</CardTitle>
-        <CardDescription>Hours of completed focus per day.</CardDescription>
+        <CardDescription>Completed focus per day.</CardDescription>
         <div className="mt-4 h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
@@ -277,6 +308,8 @@ export function AnalyticsPage() {
                 tickLine={false}
                 width={Y_AXIS_WIDTH}
                 tickFormatter={hourTick}
+                ticks={focusScale?.ticks}
+                domain={focusScale?.domain ?? [0, 'auto']}
               />
               <RTooltip content={<ChartTooltip unit="h" />} />
               <Area
@@ -375,7 +408,7 @@ export function AnalyticsPage() {
           <div>
             <CardTitle>Focus history</CardTitle>
             <CardDescription>
-              Every day you've focused, going back a year. Darker means deeper.
+              Every day you've focused, up to a year back. Darker means deeper.
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={() => exportSessionsCsv(allSessions)}>

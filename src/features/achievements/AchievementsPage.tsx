@@ -117,7 +117,7 @@ export function AchievementsPage() {
         <StatCard
           label="Clean sessions"
           value={`${ctx.zeroDistractionSessions}`}
-          hint="No distractions logged"
+          hint="Finished without an interruption"
           icon={ShieldCheck}
         />
       </div>

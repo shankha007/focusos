@@ -103,15 +103,23 @@ export function projectedEndAt(state: TimerState, now = Date.now()): number | nu
   return now + remainingMs(state, now);
 }
 
-/** Standard Pomodoro cadence: long break after every N focus sessions. */
+/**
+ * Standard Pomodoro cadence: long break after every N focus sessions.
+ *
+ * `completedFocusSessions` is the number banked in the current cycle *including*
+ * the interval that just ended, so a skipped session — which banks nothing —
+ * cannot earn a long break it did not work for.
+ */
 export function nextSessionType(
   justFinished: SessionType,
-  cycleCount: number,
+  completedFocusSessions: number,
   sessionsUntilLongBreak: number,
 ): SessionType {
   if (justFinished !== 'focus') return 'focus';
-  const completed = cycleCount + 1;
-  return completed % sessionsUntilLongBreak === 0 ? 'long-break' : 'short-break';
+  // Nothing banked yet means the cycle hasn't started; 0 % N is 0, which would
+  // otherwise read as "a full cycle done".
+  if (completedFocusSessions === 0) return 'short-break';
+  return completedFocusSessions % sessionsUntilLongBreak === 0 ? 'long-break' : 'short-break';
 }
 
 /** The configured length for a focus, short-break or long-break session. */

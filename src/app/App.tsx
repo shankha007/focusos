@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/primitives';
@@ -82,6 +82,13 @@ function Runtime() {
   const sessionType = useTimerStore((s) => s.timer.type);
   const [showDeepFocus, setShowDeepFocus] = useState(false);
 
+  // The marketing page is the front door, and a visitor who lands on it should
+  // see it — not a full-screen timer belonging to a session running in the
+  // background. The same goes for the end-of-session prompts: they are about
+  // work the landing page knows nothing about, and answering them there makes
+  // no sense. All three wait until the user is back inside the app.
+  const onLandingPage = useLocation().pathname === '/';
+
   // Deep Focus opens automatically when a focus session starts, but the user
   // can close it and keep working — so track it separately from timer status.
   // Breaks never force it open: they auto-start by default, and a full-screen
@@ -136,11 +143,17 @@ function Runtime() {
       </Routes>
 
       <AnimatePresence>
-        {showDeepFocus && <DeepFocusMode onClose={() => setShowDeepFocus(false)} />}
+        {showDeepFocus && !onLandingPage && (
+          <DeepFocusMode onClose={() => setShowDeepFocus(false)} />
+        )}
       </AnimatePresence>
 
-      <SessionReviewDialog />
-      <ParkedThoughtsDialog />
+      {!onLandingPage && (
+        <>
+          <SessionReviewDialog />
+          <ParkedThoughtsDialog />
+        </>
+      )}
     </>
   );
 }

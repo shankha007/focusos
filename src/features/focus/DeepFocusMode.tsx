@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Minimize2,
@@ -12,7 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle, Tooltip } from '@/components/ui/primitives';
 import { TimerRing } from '@/components/TimerRing';
 import { DistractionLogger } from './DistractionLogger';
 import { BreakActivity } from './BreakActivity';
@@ -23,7 +23,7 @@ import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { usePictureInPicture } from '@/hooks/usePictureInPicture';
-import { cn, formatClock, formatTime } from '@/lib/utils';
+import { MINUTE, cn, formatClock, formatTime } from '@/lib/utils';
 import { labelForType, progress as progressOf, projectedEndAt, remainingMs } from '@/engine/timerEngine';
 
 /** The full-screen session view: nothing but the ring, the time, and the controls. Everything here is reachable from the keyboard — space to start or pause, N to skip, D to log a distraction, S for sound, P to float the timer, Esc to leave. */
@@ -41,12 +41,33 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
 
   const [showDistraction, setShowDistraction] = useState(false);
   const [showSound, setShowSound] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const running = timer.status === 'running';
   const isFocus = timer.type === 'focus';
+  // A distraction is an interruption *of something*. Between sessions there is
+  // nothing to interrupt, so the logger stays out of the way until the clock is
+  // actually going.
+  const inSession = timer.status === 'running' || timer.status === 'paused';
   const remaining = remainingMs(timer);
   const pct = progressOf(timer);
   const endsAt = projectedEndAt(timer);
+
+  /**
+   * Reset throws the interval away without writing anything to history, so once
+   * there is real work in it there is nothing to recover. Under a minute is a
+   * false start and clears without ceremony; past that, one keystroke should
+   * not be able to erase the last forty minutes.
+   */
+  const elapsed = timer.durationMs - remaining;
+  const resetLosesWork = inSession && elapsed > MINUTE;
+
+  /** Clears the interval, asking first if that would discard real work. */
+  const requestReset = useCallback(() => {
+    if (resetLosesWork) setConfirmReset(true);
+    else reset();
+  }, [resetLosesWork, reset]);
 
   useHotkeys(
     useMemo(
@@ -54,17 +75,66 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
         { key: ' ', handler: toggle },
         { key: 'escape', handler: onClose },
         { key: 'n', handler: () => void skip() },
-        { key: 'r', handler: reset },
-        { key: 'd', handler: () => setShowDistraction(true) },
+        { key: 'r', handler: requestReset },
+        {
+          key: 'd',
+          handler: () => {
+            if (isFocus && inSession) setShowDistraction(true);
+          },
+        },
         { key: 's', handler: () => setShowSound((v) => !v) },
         { key: 'p', handler: () => void pip.toggle() },
       ],
-      [toggle, onClose, skip, reset, pip],
+      [toggle, onClose, skip, requestReset, pip, isFocus, inSession],
     ),
   );
 
+  /**
+   * `aria-modal` alone is a promise, not a mechanism: the page underneath keeps
+   * its buttons in the tab order and in the accessibility tree, so a screen
+   * reader hears the dashboard's controls duplicated behind the overlay. Mark
+   * everything alongside it inert for as long as it is open, and hand it back
+   * untouched on the way out.
+   */
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    const covered = Array.from(overlay?.parentElement?.children ?? []).filter(
+      (el): el is HTMLElement =>
+        el instanceof HTMLElement &&
+        el !== overlay &&
+        // The toast host is a live region sitting at the same level. Silencing
+        // it would swallow the very confirmations this screen produces, so it
+        // stays announceable and clickable.
+        !el.hasAttribute('aria-live') &&
+        !el.querySelector('[aria-live]'),
+    );
+
+    // Remember what each element looked like rather than assuming it was
+    // untouched: StrictMode runs this twice, and putting back a guessed state
+    // is how one of the two attributes ends up dropped.
+    const previous = covered.map((el) => ({
+      el,
+      inert: el.hasAttribute('inert'),
+      ariaHidden: el.getAttribute('aria-hidden'),
+    }));
+
+    for (const el of covered) {
+      el.setAttribute('inert', '');
+      el.setAttribute('aria-hidden', 'true');
+    }
+
+    return () => {
+      for (const { el, inert, ariaHidden } of previous) {
+        if (!inert) el.removeAttribute('inert');
+        if (ariaHidden === null) el.removeAttribute('aria-hidden');
+        else el.setAttribute('aria-hidden', ariaHidden);
+      }
+    };
+  }, []);
+
   return (
     <motion.div
+      ref={overlayRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -197,7 +267,7 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
             <Button
               variant="ghost"
               size="icon-lg"
-              onClick={reset}
+              onClick={requestReset}
               className="rounded-full"
               aria-label="Reset timer"
             >
@@ -234,8 +304,8 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
           </Tooltip>
         </div>
 
-        {/* Distraction logger — focus sessions only */}
-        {isFocus && (
+        {/* Distraction logger — focus sessions only, and only while one runs */}
+        {isFocus && inSession && (
           <button
             onClick={() => setShowDistraction(true)}
             className="mt-8 flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13px] text-muted transition-colors hover:border-warn/40 hover:text-fg"
@@ -298,6 +368,31 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
       </AnimatePresence>
 
       <DistractionLogger open={showDistraction} onOpenChange={setShowDistraction} />
+
+      <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Discard this session?</DialogTitle>
+          <DialogDescription>
+            {formatClock(elapsed)} of {labelForType(timer.type).toLowerCase()} will be thrown away
+            without being logged. Skip instead if you want it counted.
+          </DialogDescription>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirmReset(false)}>
+              Keep going
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setConfirmReset(false);
+                reset();
+              }}
+            >
+              Discard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
