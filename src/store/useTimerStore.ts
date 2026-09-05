@@ -33,6 +33,12 @@ const PERSIST_KEY = 'focusos:timer';
  */
 const completing = new Set<number>();
 
+/** Drops a session's distractions, but only while no session owns them. */
+async function discardOrphanDistractions(sessionId: string): Promise<void> {
+  if (await sessionsRepo.get(sessionId)) return;
+  await distractionsRepo.removeForSession(sessionId);
+}
+
 /**
  * Trailing sentence for the break notification, saying how far off today's
  * water goal the user is. Empty once the goal is met — a met goal is not worth
@@ -228,7 +234,10 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     });
     // The session is never written, so anything logged against it would be
     // stranded — counted in the day's totals with no session to explain it.
-    if (sessionId) void distractionsRepo.removeForSession(sessionId);
+    // Unless history already holds it: a restore clears the running timer this
+    // way, and by then the backup may have supplied both the session and the
+    // distractions that belong to it.
+    if (sessionId) void discardOrphanDistractions(sessionId);
     ambient.stop();
     persist(get());
   },

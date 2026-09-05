@@ -80,8 +80,11 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
         return task ? { ...task, order: index } : null;
       })
       .filter((t): t is Task => t !== null);
-    const untouched = get().tasks.filter((t) => !orderedIds.includes(t.id));
-    set({ tasks: [...reordered, ...untouched] });
+    // Anything the caller left out keeps the order it already had, so it has to
+    // be merged back by that number rather than pushed to the end.
+    const moved = new Set(orderedIds);
+    const untouched = get().tasks.filter((t) => !moved.has(t.id));
+    set({ tasks: [...reordered, ...untouched].sort((a, b) => a.order - b.order) });
     await tasksRepo.reorder(orderedIds);
   },
 

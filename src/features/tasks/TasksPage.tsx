@@ -41,6 +41,43 @@ import { pluralize } from '@/lib/utils';
 
 type Filter = 'open' | 'done' | 'all';
 
+/**
+ * The visible ids with `movedId` lifted out and dropped where `targetId` sits,
+ * or null if either is not on screen.
+ */
+export function moveWithin(ids: string[], movedId: string, targetId: string): string[] | null {
+  const from = ids.indexOf(movedId);
+  const to = ids.indexOf(targetId);
+  if (from === -1 || to === -1) return null;
+  const next = [...ids];
+  next.splice(to, 0, next.splice(from, 1)[0]);
+  return next;
+}
+
+/**
+ * Folds a rearrangement of the on-screen rows back into the full task order.
+ *
+ * The order written to the database is global, but a drag only ever rearranges
+ * what a filter left on screen. Handing those ids to `reorder` on their own
+ * renumbers them 0..n-1 and collides with everything the filter is hiding —
+ * reordering two tasks inside one category sent that whole category jumping to
+ * the top of the unfiltered list, and left two tasks sharing each order number.
+ * Slotting the new arrangement back into the positions those rows already
+ * occupied keeps every hidden task exactly where it was.
+ */
+export function applyToFullOrder(fullIds: string[], rearrangedVisible: string[]): string[] {
+  const onScreen = new Set(rearrangedVisible);
+  const out = [...fullIds];
+  let next = 0;
+  for (let i = 0; i < out.length; i += 1) {
+    if (onScreen.has(out[i])) {
+      out[i] = rearrangedVisible[next];
+      next += 1;
+    }
+  }
+  return out;
+}
+
 /** The task board: filter by state and category, reorder by dragging, and start a focus session on any row. */
 export function TasksPage({ onOpenFocus }: { onOpenFocus: () => void }) {
   const tasks = useTaskStore((s) => s.tasks);
@@ -85,13 +122,13 @@ export function TasksPage({ onOpenFocus }: { onOpenFocus: () => void }) {
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const ids = visible.map((t) => t.id);
-    const from = ids.indexOf(String(active.id));
-    const to = ids.indexOf(String(over.id));
-    if (from === -1 || to === -1) return;
-    const next = [...ids];
-    next.splice(to, 0, next.splice(from, 1)[0]);
-    void reorder(next);
+    const next = moveWithin(
+      visible.map((t) => t.id),
+      String(active.id),
+      String(over.id),
+    );
+    if (!next) return;
+    void reorder(applyToFullOrder(tasks.map((t) => t.id), next));
   };
 
   return (
