@@ -74,6 +74,14 @@ export function usePictureInPicture() {
     rafRef.current = requestAnimationFrame(draw);
   }, []);
 
+  const onEnter = useCallback(() => setActive(true), []);
+
+  /** The floating window is gone; stop painting frames for it. */
+  const onLeave = useCallback(() => {
+    setActive(false);
+    cancelAnimationFrame(rafRef.current);
+  }, []);
+
   /** Opens the floating window, creating the canvas and video on first use, or closes it if it is already open. */
   const toggle = useCallback(async () => {
     if (!supported) return;
@@ -93,6 +101,13 @@ export function usePictureInPicture() {
       const video = document.createElement('video');
       video.muted = true;
       video.playsInline = true;
+      // Bound here rather than in an effect: the element does not exist until
+      // the first toggle, so an effect running at mount has nothing to listen
+      // to — and the leave handler is what stops the paint loop, which would
+      // otherwise keep drawing a canvas nobody can see for the rest of the
+      // session.
+      video.addEventListener('enterpictureinpicture', onEnter);
+      video.addEventListener('leavepictureinpicture', onLeave);
       videoRef.current = video;
     }
 
@@ -101,35 +116,28 @@ export function usePictureInPicture() {
 
     draw();
 
-    if (!video.srcObject) {
-      video.srcObject = canvas.captureStream(30);
+    try {
+      if (!video.srcObject) {
+        video.srcObject = canvas.captureStream(30);
+      }
+      await video.play();
+      await video.requestPictureInPicture();
+    } catch {
+      // Blocked, or the gesture expired. Nothing is floating, so stop painting
+      // frames for a window that never opened.
+      cancelAnimationFrame(rafRef.current);
     }
-    await video.play();
-    await video.requestPictureInPicture();
-  }, [draw, supported]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    const onEnter = () => setActive(true);
-    const onLeave = () => {
-      setActive(false);
-      cancelAnimationFrame(rafRef.current);
-    };
-    video?.addEventListener('enterpictureinpicture', onEnter);
-    video?.addEventListener('leavepictureinpicture', onLeave);
-    return () => {
-      video?.removeEventListener('enterpictureinpicture', onEnter);
-      video?.removeEventListener('leavepictureinpicture', onLeave);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [active]);
+  }, [draw, supported, onEnter, onLeave]);
 
   useEffect(
     () => () => {
+      const video = videoRef.current;
+      video?.removeEventListener('enterpictureinpicture', onEnter);
+      video?.removeEventListener('leavepictureinpicture', onLeave);
       cancelAnimationFrame(rafRef.current);
       if (document.pictureInPictureElement) void document.exitPictureInPicture();
     },
-    [],
+    [onEnter, onLeave],
   );
 
   return { supported, active, toggle };

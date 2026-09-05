@@ -117,6 +117,11 @@ export const sessionsRepo = {
     await db.sessions.put(session);
   },
 
+  /** One session by id, or undefined if it was never written. */
+  async get(id: string): Promise<Session | undefined> {
+    return db.sessions.get(id);
+  },
+
   /** The complete history, oldest first. */
   async all(): Promise<Session[]> {
     return db.sessions.orderBy("startedAt").toArray();
