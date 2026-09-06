@@ -49,6 +49,38 @@
         "author": { "@type": "Person", "name": "Shankha Shubhra Das" }
       }
     </script>
+    <style>
+      /*
+        #seo-shell below is static markup inside #root: it is what a crawler
+        that does not run JavaScript reads, and the browser paints it the
+        instant the HTML arrives. React wipes it on mount, so for a normal
+        visitor it was a flash of unrelated copy before the landing page.
+        Start it hidden and only reveal it if React has not taken over after a
+        moment — a healthy load never shows it, and a slow or broken bundle
+        still ends up with real content instead of a blank page.
+      */
+      #seo-shell {
+        opacity: 0;
+      }
+    </style>
+    <noscript>
+      <!-- Nothing will ever replace the shell without JavaScript: show it at once. -->
+      <style>
+        #seo-shell {
+          opacity: 1;
+        }
+      </style>
+    </noscript>
+    <script>
+      // Deliberately a timer rather than a CSS animation: animations are paused
+      // in background tabs and flattened by reduce-motion, either of which
+      // could leave the fallback copy invisible for good. If React has mounted
+      // by now the element is gone and this does nothing.
+      setTimeout(function () {
+        var shell = document.getElementById("seo-shell");
+        if (shell) shell.style.opacity = "1";
+      }, 900);
+    </script>
   </head>
   <body>
     <!--
