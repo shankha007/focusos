@@ -16,6 +16,7 @@ interface TaskStoreState {
     categoryId?: string;
     estimatedSessions?: number;
     tags?: string[];
+    dueDate?: number;
   }) => Promise<Task>;
   update: (id: string, patch: Partial<Task>) => Promise<void>;
   toggleDone: (id: string) => Promise<void>;

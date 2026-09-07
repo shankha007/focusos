@@ -113,6 +113,20 @@ export function relativeTime(ts: number): string {
   return formatDateLabel(ts);
 }
 
+/**
+ * How a due date reads on a task row: "Overdue", "Today", "Tomorrow", then a
+ * short date. Deliberately relative near the present, where the difference
+ * between today and tomorrow is what the reader is actually deciding on.
+ */
+export function formatDueDate(ts: number): { label: string; tone: 'overdue' | 'today' | 'soon' | 'later' } {
+  const days = Math.round((startOfDay(ts) - startOfDay()) / DAY);
+  if (days < 0) return { label: days === -1 ? 'Yesterday' : `${Math.abs(days)}d overdue`, tone: 'overdue' };
+  if (days === 0) return { label: 'Today', tone: 'today' };
+  if (days === 1) return { label: 'Tomorrow', tone: 'soon' };
+  if (days < 7) return { label: `In ${days} days`, tone: 'soon' };
+  return { label: formatDateLabel(ts), tone: 'later' };
+}
+
 /** Pins `n` inside the inclusive range [min, max]. */
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));

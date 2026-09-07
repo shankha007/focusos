@@ -1,4 +1,11 @@
-import type { DayStat, Distraction, DistractionCategory, Rating, Session } from '@/types';
+import type {
+  Category,
+  DayStat,
+  Distraction,
+  DistractionCategory,
+  Rating,
+  Session,
+} from '@/types';
 import {
   DAY,
   MINUTE,
@@ -260,6 +267,67 @@ export function distractionPatterns(
       };
     })
     .sort((a, b) => b.count - a.count);
+}
+
+/* ── Category breakdown ────────────────────────────────────── */
+
+export interface CategoryStat {
+  /** Undefined for focus time that was never attached to a categorised task. */
+  categoryId: string | undefined;
+  name: string;
+  color: string;
+  focusMs: number;
+  sessions: number;
+  /** Share of the period's focus time, 0-1. */
+  share: number;
+  avgProductivity: number | null;
+}
+
+/** Colour for the bucket holding focus that belongs to no category. */
+const UNCATEGORISED_COLOR = '#9aa0b4';
+
+/**
+ * Splits focus time across the categories it was logged against, largest first.
+ *
+ * Sessions only carry a category if one was stamped at completion, and history
+ * from before that is filled in from the task where the task still exists. What
+ * is left over is real focus time with nothing to attribute it to, so it gets
+ * its own bucket rather than being dropped — a breakdown that silently omitted
+ * a third of the week would be worse than one that admits the gap.
+ */
+export function byCategory(sessions: Session[], categories: Category[]): CategoryStat[] {
+  const buckets = new Map<
+    string | undefined,
+    { focusMs: number; sessions: number; prod: number[] }
+  >();
+
+  for (const s of focusOnly(sessions)) {
+    const row = buckets.get(s.categoryId) ?? { focusMs: 0, sessions: 0, prod: [] };
+    row.focusMs += s.actualMs;
+    if (s.completed) row.sessions += 1;
+    if (s.productivityAfter) row.prod.push(s.productivityAfter);
+    buckets.set(s.categoryId, row);
+  }
+
+  const total = sum([...buckets.values()].map((b) => b.focusMs));
+
+  return [...buckets.entries()]
+    .map(([categoryId, row]) => {
+      const category = categoryId ? categories.find((c) => c.id === categoryId) : undefined;
+      return {
+        categoryId,
+        // A category deleted since the session was logged still has time against
+        // it. Calling that "Uncategorised" would be wrong — the work did have a
+        // category — so say what is actually known.
+        name: category?.name ?? (categoryId ? 'Deleted category' : 'Uncategorised'),
+        color: category?.color ?? UNCATEGORISED_COLOR,
+        focusMs: row.focusMs,
+        sessions: row.sessions,
+        share: total > 0 ? row.focusMs / total : 0,
+        avgProductivity: mean(row.prod),
+      };
+    })
+    .sort((a, b) => b.focusMs - a.focusMs);
 }
 
 /* ── Mood ↔ productivity ───────────────────────────────────── */

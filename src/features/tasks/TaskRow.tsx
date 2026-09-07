@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Check, GripVertical, Pencil, Play, Trash2 } from 'lucide-react';
+import { CalendarClock, Check, GripVertical, Pencil, Play, Trash2 } from 'lucide-react';
 import type { Category, Session, Task } from '@/types';
 import {
   Badge,
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/store/useTaskStore';
 import { estimateTaskSessions } from '@/engine/adaptive';
-import { cn, pluralize } from '@/lib/utils';
+import { cn, formatDueDate, pluralize } from '@/lib/utils';
 import { priorityColor } from '@/features/dashboard/DashboardPage';
 
 /** One draggable row in the task list — progress against its estimate, the adaptive re-estimate, and the tick / start / edit / delete controls. */
@@ -43,6 +43,8 @@ export function TaskRow({
   const estimate = useMemo(() => estimateTaskSessions(task, sessions), [task, sessions]);
   const category = categories.find((c) => c.id === task.categoryId);
   const done = task.status === 'done';
+  // A finished task's deadline is history — only open work is still due.
+  const due = task.dueDate && !done ? formatDueDate(task.dueDate) : null;
   const pct = task.estimatedSessions > 0 ? task.completedSessions / task.estimatedSessions : 0;
 
   return (
@@ -99,6 +101,22 @@ export function TaskRow({
             <span className="flex items-center gap-1 text-[11px] text-subtle">
               <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: category.color }} />
               {category.name}
+            </span>
+          )}
+
+          {due && (
+            <span
+              className={cn(
+                'flex items-center gap-1 text-[11px]',
+                due.tone === 'overdue'
+                  ? 'font-medium text-danger'
+                  : due.tone === 'today'
+                    ? 'font-medium text-warn'
+                    : 'text-subtle',
+              )}
+            >
+              <CalendarClock className="h-3 w-3" />
+              {due.label}
             </span>
           )}
 
