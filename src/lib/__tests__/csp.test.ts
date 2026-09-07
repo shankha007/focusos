@@ -15,7 +15,14 @@ import { describe, expect, it } from 'vitest';
  */
 
 // Vitest runs from the project root, so these resolve against it.
-const html = readFileSync('index.html', 'utf8');
+//
+// Line endings are normalised before anything is hashed. A Windows checkout
+// carries CRLF and a Linux one LF, which are different bytes and so a different
+// digest — hashes computed on one would silently block the script on the other.
+// The deployed build is produced on Linux, so LF is the form that is served.
+const asServed = (text: string) => text.split('\r\n').join('\n');
+
+const html = asServed(readFileSync('index.html', 'utf8'));
 const vercel = readFileSync('vercel.json', 'utf8');
 
 /** The inline scripts a browser will actually execute — JSON-LD is data, not code. */
