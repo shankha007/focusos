@@ -1,5 +1,5 @@
 import type { Session, Task } from '@/types';
-import { MINUTE, clamp, mean } from '@/lib/utils';
+import { MINUTE, clamp, mean, startOfDay } from '@/lib/utils';
 import { byHour, focusOnly } from './analytics';
 
 /**
@@ -253,6 +253,12 @@ export function estimateTaskSessions(
   };
 }
 
+/** 0 for work whose deadline has arrived or passed, 1 for everything else. */
+function dueRank(task: Task): number {
+  if (task.dueDate === undefined) return 1;
+  return startOfDay(task.dueDate) <= startOfDay() ? 0 : 1;
+}
+
 export interface PlanBlock {
   taskId: string;
   title: string;
@@ -277,9 +283,27 @@ export function buildDailyPlan(
     .filter((t) => t.status === 'todo' || t.status === 'active')
     .filter((t) => t.estimatedSessions - t.completedSessions > 0)
     .sort((a, b) => {
+      // A deadline that has arrived is a constraint; priority is a preference.
+      // Anything due today or already overdue is scheduled before work that
+      // merely matters — within that group priority still decides, so this
+      // reorders the day rather than overturning it.
+      const d = dueRank(a) - dueRank(b);
+      if (d !== 0) return d;
+
+      // Inside that group the oldest deadline leads. Priority is the user
+      // saying what matters; a date that has already passed is the world
+      // saying when it was needed, and the one broken longest is the one
+      // costing the most.
+      if (dueRank(a) === 0 && a.dueDate !== b.dueDate) {
+        return (a.dueDate ?? 0) - (b.dueDate ?? 0);
+      }
+
       const weight: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
       const p = weight[a.priority] - weight[b.priority];
       if (p !== 0) return p;
+
+      // Among equals, the nearer deadline goes first; a task with none waits.
+      if (a.dueDate !== b.dueDate) return (a.dueDate ?? Infinity) - (b.dueDate ?? Infinity);
       return a.order - b.order;
     });
 
@@ -308,13 +332,18 @@ export function buildDailyPlan(
       startHour: hour % 24,
       sessions: alloc,
       rationale:
-        blocks.length === 0
-          ? peak.value.length > 0
-            ? 'Scheduled first — it lands in your most productive window.'
-            : 'Starts the day — nothing open outranks it.'
-          : task.priority === 'urgent' || task.priority === 'high'
-            ? 'High priority, so it goes early while attention is fresh.'
-            : 'Slotted after the heavier work.',
+        // A deadline is the most specific reason there is, so it is said first.
+        dueRank(task) === 0
+          ? task.dueDate !== undefined && startOfDay(task.dueDate) < startOfDay()
+            ? 'Overdue — scheduled before anything that is merely important.'
+            : 'Due today, so it comes before work with no deadline on it.'
+          : blocks.length === 0
+            ? peak.value.length > 0
+              ? 'Scheduled first — it lands in your most productive window.'
+              : 'Starts the day — nothing open outranks it.'
+            : task.priority === 'urgent' || task.priority === 'high'
+              ? 'High priority, so it goes early while attention is fresh.'
+              : 'Slotted after the heavier work.',
     });
     budget -= alloc;
     hour += Math.max(1, Math.round(alloc * 0.6));

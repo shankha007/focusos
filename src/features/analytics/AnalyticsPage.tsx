@@ -25,6 +25,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/primitives';
 import { Heatmap } from './Heatmap';
+import { CategoryBreakdown } from './CategoryBreakdown';
 import { DistractionReport } from './DistractionReport';
 import { MoodInsights } from './MoodInsights';
 import { useStatsStore } from '@/store/useStatsStore';
@@ -119,6 +120,7 @@ export function AnalyticsPage() {
   const allSessions = useStatsStore((s) => s.sessions);
   const allDistractions = useStatsStore((s) => s.distractions);
   const distractionCategories = useTaskStore((s) => s.distractionCategories);
+  const categories = useTaskStore((s) => s.categories);
   const [period, setPeriod] = useState<Period>('week');
 
   const from = useMemo(() => {
@@ -371,6 +373,8 @@ export function AnalyticsPage() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <CategoryBreakdown sessions={sessions} categories={categories} />
+
         <DistractionReport distractions={distractions} categories={distractionCategories} />
 
         <Card>

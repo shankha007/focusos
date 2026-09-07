@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/store/useTaskStore';
-import { cn, clamp } from '@/lib/utils';
+import { cn, clamp, dateKey } from '@/lib/utils';
 import { priorityColor } from '@/features/dashboard/DashboardPage';
 
 const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'urgent'];
@@ -41,6 +41,7 @@ export function TaskDialog({
   const [categoryId, setCategoryId] = useState<string>('none');
   const [estimate, setEstimate] = useState(1);
   const [tagInput, setTagInput] = useState('');
+  const [dueDate, setDueDate] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +51,7 @@ export function TaskDialog({
     setCategoryId(task?.categoryId ?? 'none');
     setEstimate(task?.estimatedSessions ?? 1);
     setTagInput(task?.tags.join(', ') ?? '');
+    setDueDate(task?.dueDate ? dateKey(task.dueDate) : '');
   }, [open, task]);
 
   /** Validates and writes the form — updating the task being edited, or creating a new one — then closes. A blank title is rejected silently. */
@@ -67,6 +69,10 @@ export function TaskDialog({
       categoryId: categoryId === 'none' ? undefined : categoryId,
       estimatedSessions: estimate,
       tags,
+      // Stored at local midday rather than midnight: what is picked here is a
+      // calendar day, and midnight sits close enough to the boundary that a
+      // timezone shift can read it as the day before.
+      dueDate: dueDate ? new Date(`${dueDate}T12:00:00`).getTime() : undefined,
     };
 
     if (task) await update(task.id, payload);
@@ -178,6 +184,31 @@ export function TaskDialog({
                 </Button>
               </div>
             </fieldset>
+          </div>
+
+          <div>
+            <label htmlFor="task-due" className="mb-1.5 block text-[13px] font-medium">
+              Due date
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="task-due"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="[color-scheme:light] dark:[color-scheme:dark]"
+              />
+              {dueDate && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDueDate('')}
+                  aria-label="Clear due date"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
 
           <div>
