@@ -142,7 +142,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                   <Item
                     icon={RotateCcw}
                     label="Reset timer"
-                    onSelect={() => run(() => useTimerStore.getState().reset())}
+                    onSelect={() => run(() => useTimerStore.getState().requestReset())}
                   />
                   <Item
                     icon={CheckSquare}

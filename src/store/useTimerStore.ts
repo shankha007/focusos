@@ -9,6 +9,7 @@ import {
   progress as progressOf,
   remainingMs,
   reset as resetState,
+  resetLosesWork,
   resume as resumeState,
   start as startState,
   type TimerState,
@@ -87,6 +88,13 @@ interface TimerStoreState {
    * decision. Shown after the review dialog, never at the same time.
    */
   pendingParked: Distraction[];
+  /**
+   * True while the user is being asked whether to discard a session that has
+   * real work in it. Held here rather than in a screen because reset is
+   * reachable from Deep Focus and from the command palette, and only one of
+   * them used to ask.
+   */
+  pendingReset: boolean;
   /** Bumped on every rAF tick so subscribed components re-render. */
   tick: number;
   /** False until `hydrate` has read localStorage. Nothing may persist before then. */
@@ -100,6 +108,12 @@ interface TimerStoreState {
   resume: () => void;
   toggle: () => void;
   reset: () => void;
+  /** Asks to reset, raising a confirmation first when that would discard real work. */
+  requestReset: () => void;
+  /** Goes through with a reset the user was asked about. */
+  confirmReset: () => void;
+  /** Backs out of one. */
+  cancelReset: () => void;
   skip: () => Promise<void>;
   complete: (opts?: { early?: boolean }) => Promise<void>;
   logDistraction: (categoryId: string, note?: string, park?: boolean) => Promise<void>;
@@ -190,6 +204,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   distractionCount: 0,
   pendingReview: null,
   pendingParked: [],
+  pendingReset: false,
   tick: 0,
   hydrated: false,
 
@@ -301,6 +316,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       // recorded against a session they said nothing about.
       moodBefore: null,
       energyBefore: null,
+      pendingReset: false,
     });
     // The session is never written, so anything logged against it would be
     // stranded — counted in the day's totals with no session to explain it.
@@ -310,6 +326,30 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     if (sessionId) void discardOrphanDistractions(sessionId);
     ambient.stop();
     persist(get());
+  },
+
+  /**
+   * The reset every screen should call. Resetting throws the interval away
+   * without writing it to history, so past a minute of real work it asks first.
+   *
+   * Deep Focus used to own this guard privately, which left the command
+   * palette's "Reset timer" discarding forty minutes of focus on a single
+   * keystroke — the same action, guarded on one screen and not the other.
+   */
+  requestReset: () => {
+    if (resetLosesWork(get().timer, MINUTE)) set({ pendingReset: true });
+    else get().reset();
+  },
+
+  /** Goes through with a reset the user was asked about. */
+  confirmReset: () => {
+    set({ pendingReset: false });
+    get().reset();
+  },
+
+  /** Backs out of one. */
+  cancelReset: () => {
+    set({ pendingReset: false });
   },
 
   /** Ends the current interval without recording it as completed. */

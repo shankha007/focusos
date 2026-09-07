@@ -25,7 +25,7 @@ import { useTaskStore } from '@/store/useTaskStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useStartSession } from '@/hooks/useStartSession';
 import { useShell } from '@/app/shell';
-import { computeFocusScore, computeStreak, focusOnly } from '@/engine/analytics';
+import { computeFocusScore, computeStreak, focusOnly, focusTimeMs } from '@/engine/analytics';
 import { formatDuration, pluralize, startOfDay } from '@/lib/utils';
 
 /** The landing screen: today's focus score and headline stats, the timer, the suggested plan, the daily reflection, and recent activity. */
@@ -48,7 +48,8 @@ export function DashboardPage() {
       sessions: todaySessions,
       distractions: todayDistractions,
       completed: completedFocus.length,
-      focusMs: completedFocus.reduce((a, s) => a + s.actualMs, 0),
+      // Every screen reads focus time the same way now — see focusTimeMs.
+      focusMs: focusTimeMs(todaySessions),
       score: computeFocusScore(todaySessions, todayDistractions, settings.dailyGoalSessions),
     };
   }, [sessions, distractions, settings.dailyGoalSessions]);
