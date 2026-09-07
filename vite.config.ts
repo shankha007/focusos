@@ -45,10 +45,39 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-        // The share-card image is only ever fetched by crawlers and link-preview
-        // bots, never by the running app — precaching it would spend 147 KB of
-        // every visitor's offline storage on something they never see.
-        globIgnores: ["**/og-image.png"],
+        globIgnores: [
+          // The share-card image is only ever fetched by crawlers and
+          // link-preview bots, never by the running app — precaching it would
+          // spend 147 KB of every visitor's offline storage on something they
+          // never see.
+          "**/og-image.png",
+          // jsPDF and its autoTable plugin are ~410 KB behind one button on one
+          // screen. Every other chunk here is something the app will render for
+          // a user who simply opens it; these two are not, and precaching them
+          // charges every visitor for a report most will never export. They are
+          // runtime-cached below instead, so the first export downloads them and
+          // every export after that — online or off — is served from the cache.
+          "**/assets/jspdf*.js",
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }: { url: URL }) =>
+              /^\/assets\/jspdf.*\.js$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "focusos-pdf",
+              expiration: { maxEntries: 4 },
+              cacheableResponse: { statuses: [0, 200] },
+              // The dev preview answers asset requests with `Vary: Origin`, and
+              // a stored entry carrying that header will not match a later
+              // request whose Origin is computed differently — the cache fills
+              // up and is then never read, which is the worst of both. These
+              // filenames are content-hashed, so the URL alone identifies the
+              // bytes and varying on anything else is meaningless.
+              matchOptions: { ignoreVary: true },
+            },
+          },
+        ],
         navigateFallback: "index.html",
       },
     }),
@@ -56,6 +85,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // jsPDF's optional dependencies, which only its `doc.html()` and SVG
+      // paths use. The report is built from autoTable alone, so these were
+      // ~370 KB of build output that no visitor could ever execute — and the
+      // service worker precached all of it. See the stub for the details.
+      canvg: path.resolve(__dirname, "./src/lib/pdfOptionalDependency.ts"),
+      dompurify: path.resolve(__dirname, "./src/lib/pdfOptionalDependency.ts"),
+      html2canvas: path.resolve(__dirname, "./src/lib/pdfOptionalDependency.ts"),
     },
   },
   build: {
