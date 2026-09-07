@@ -22,6 +22,7 @@ import { xpForSession } from '@/engine/achievements';
 import { ambient } from '@/lib/audio';
 import { MINUTE, uid } from '@/lib/utils';
 import { notify } from '@/lib/notifications';
+import { toast } from 'sonner';
 import { useHydrationStore } from './useHydrationStore';
 
 const PERSIST_KEY = 'focusos:timer';
@@ -111,7 +112,20 @@ interface TimerStoreState {
   progress: () => number;
 }
 
-/** Mirrors the running session into localStorage, so closing the tab mid-session doesn't lose it. */
+/** Set once the browser has refused to store the session, so the warning is shown once rather than on every tick. */
+let storageWarned = false;
+
+/**
+ * Mirrors the running session into localStorage, so closing the tab mid-session
+ * doesn't lose it.
+ *
+ * Storage is not guaranteed to accept the write: Safari's private browsing and a
+ * full quota both throw. This runs from `start`, `pause`, `resume`, `reset`,
+ * `complete`, `setTask`, `setMood` and `logDistraction`, so an unhandled throw
+ * did not merely skip the save — it propagated out of the action and the timer
+ * stopped working at all. Losing the save is a real cost but a survivable one;
+ * losing the timer is not.
+ */
 function persist(state: TimerStoreState) {
   const payload: PersistedTimer = {
     timer: state.timer,
@@ -122,7 +136,47 @@ function persist(state: TimerStoreState) {
     energyBefore: state.energyBefore,
     distractionCount: state.distractionCount,
   };
-  localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
+
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
+  } catch (error) {
+    // Silence would be worse than the failure: the user is relying on a
+    // promise the app can no longer keep, and would only find out by losing a
+    // session to a refresh. Say it once, when it first happens.
+    if (!storageWarned) {
+      storageWarned = true;
+      console.warn('FocusOS could not save the running session', error);
+      toast.warning('This session cannot be saved', {
+        description:
+          "Your browser is blocking storage, so a refresh will lose the running timer. Private browsing is the usual cause — the session itself keeps running.",
+        duration: 8000,
+      });
+    }
+  }
+}
+
+/** Reads the persisted session, or null when there is none — or when the browser will not hand it over. */
+function readPersisted(): PersistedTimer | null {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    return raw ? (JSON.parse(raw) as PersistedTimer) : null;
+  } catch {
+    // Unreadable or unparseable is the same answer: there is no session to restore.
+    return null;
+  }
+}
+
+/**
+ * Forgets any persisted session. Used by the two paths that wipe state out from
+ * under the timer — a restore and a full reset — where a leftover record would
+ * rehydrate a session whose history no longer exists.
+ */
+export function clearPersistedTimer(): void {
+  try {
+    localStorage.removeItem(PERSIST_KEY);
+  } catch {
+    // Nothing was stored if storage is unavailable, so there is nothing to clear.
+  }
 }
 
 /** The running timer and everything attached to the session in flight: the task, the pre-session mood, distractions logged so far, and the prompts queued for when it ends. */
@@ -146,37 +200,33 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
    */
   hydrate: () => {
     const settings = useSettingsStore.getState().settings;
-    const raw = localStorage.getItem(PERSIST_KEY);
+    const saved = readPersisted();
 
-    if (!raw) {
+    if (!saved?.timer) {
       set({ timer: createTimerState('focus', settings.focusMs), hydrated: true });
       return;
     }
 
-    try {
-      const saved = JSON.parse(raw) as PersistedTimer;
-      set({
-        timer: saved.timer,
-        taskId: saved.taskId,
-        taskTitle: saved.taskTitle,
-        sessionId: saved.sessionId,
-        moodBefore: saved.moodBefore,
-        energyBefore: saved.energyBefore,
-        distractionCount: saved.distractionCount ?? 0,
-        hydrated: true,
-      });
-      // If it ran to completion while the tab was closed, close it out now —
-      // but only claim the user finished it if we can plausibly say they were
-      // there. Nothing is recorded between the tab closing and this running, so
-      // past the grace window the honest reading is that the session was left,
-      // not seen through. Crediting it regardless made walking away the cheapest
-      // way to earn XP, a task's session count and a streak day.
-      if (saved.timer.status === 'running' && remainingMs(saved.timer) <= 0) {
-        const overrun = elapsedMs(saved.timer) - saved.timer.durationMs;
-        void get().complete({ early: overrun > ABANDON_GRACE_MS });
-      }
-    } catch {
-      set({ timer: createTimerState('focus', settings.focusMs), hydrated: true });
+    set({
+      timer: saved.timer,
+      taskId: saved.taskId,
+      taskTitle: saved.taskTitle,
+      sessionId: saved.sessionId,
+      moodBefore: saved.moodBefore,
+      energyBefore: saved.energyBefore,
+      distractionCount: saved.distractionCount ?? 0,
+      hydrated: true,
+    });
+
+    // If it ran to completion while the tab was closed, close it out now —
+    // but only claim the user finished it if we can plausibly say they were
+    // there. Nothing is recorded between the tab closing and this running, so
+    // past the grace window the honest reading is that the session was left,
+    // not seen through. Crediting it regardless made walking away the cheapest
+    // way to earn XP, a task's session count and a streak day.
+    if (saved.timer.status === 'running' && remainingMs(saved.timer) <= 0) {
+      const overrun = elapsedMs(saved.timer) - saved.timer.durationMs;
+      void get().complete({ early: overrun > ABANDON_GRACE_MS });
     }
   },
 

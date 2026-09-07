@@ -22,7 +22,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
 import { usePresetStore } from '@/store/usePresetStore';
-import { useTimerStore } from '@/store/useTimerStore';
+import { clearPersistedTimer, useTimerStore } from '@/store/useTimerStore';
 import { cn, pluralize } from '@/lib/utils';
 
 /** Anything larger is not a backup this app wrote; refuse before parsing. */
@@ -89,7 +89,7 @@ export function RestoreDialog({
       // replace, so clear it rather than let it finish into a stale row.
       if (mode === 'replace') {
         useTimerStore.getState().reset();
-        localStorage.removeItem('focusos:timer');
+        clearPersistedTimer();
       }
 
       // Every store reads from Dexie at boot; pull them all forward.
