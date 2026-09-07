@@ -1,4 +1,4 @@
-import { db, DEFAULT_SETTINGS } from '@/db/schema';
+import { backfillSessionCategories, db, DEFAULT_SETTINGS } from '@/db/schema';
 import { BACKUP_VERSION } from '@/db/repositories';
 import type {
   Achievement,
@@ -448,6 +448,13 @@ export async function restoreBackup(
     if (settingsRestored) {
       await db.settings.put(backup.settings!);
     }
+
+    // A file written before sessions carried a category brings in rows the
+    // schema migration has already been and gone for, so they would stay
+    // unattributed for good. Runs last, once tasks and sessions have both
+    // landed, and inside the same transaction — a restore either arrives whole
+    // or not at all.
+    await backfillSessionCategories(db.sessions, db.tasks);
   });
 
   const written = Object.fromEntries(

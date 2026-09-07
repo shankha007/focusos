@@ -45,10 +45,65 @@ export class FocusDB extends Dexie {
     this.version(3).stores({
       hydration: "date",
     });
+    // No schema change — a data migration. `categoryId` was declared on Session
+    // and indexed from version 1 but never written, so every session logged
+    // before that was fixed is unattributed. Dexie runs this once, on the way up
+    // from an older version; a database created fresh at 4 has nothing to fill.
+    this.version(4).upgrade((tx) =>
+      backfillSessionCategories(
+        tx.table<Session, string>("sessions"),
+        tx.table<Task, string>("tasks"),
+      ),
+    );
   }
 }
 
 export const db = new FocusDB();
+
+/**
+ * Attributes historical focus sessions to a category, by looking up the task
+ * each one was logged against.
+ *
+ * Sessions only started carrying `categoryId` once the timer store began
+ * stamping it, which leaves every earlier session unattributed — enough to keep
+ * per-category reporting empty and to hold `estimateTaskSessions` on the user's
+ * own estimate, since it matches history on this field.
+ *
+ * Two kinds of session are deliberately left alone rather than guessed at: one
+ * whose task has since been deleted, and one whose task never had a category.
+ * Neither has an answer to recover, and inventing one is the mistake this whole
+ * change exists to undo.
+ *
+ * A session that already carries a category is never rewritten. The task may
+ * have been moved since, and history records what was true when it was logged.
+ *
+ * Idempotent, and safe to run against tables inside an open transaction —
+ * which is how both callers use it. Returns the number of sessions filled in.
+ */
+export async function backfillSessionCategories(
+  sessions: Table<Session, string>,
+  tasks: Table<Task, string>,
+): Promise<number> {
+  const pending = (await sessions.toArray()).filter(
+    (s): s is Session & { taskId: string } =>
+      s.type === "focus" && Boolean(s.taskId) && s.categoryId === undefined,
+  );
+  if (pending.length === 0) return 0;
+
+  const owners = await tasks.bulkGet([...new Set(pending.map((s) => s.taskId))]);
+  const categoryOf = new Map(
+    owners.filter((t): t is Task => Boolean(t?.categoryId)).map((t) => [t.id, t.categoryId!]),
+  );
+
+  const filled = pending.flatMap((session) => {
+    const categoryId = categoryOf.get(session.taskId);
+    return categoryId ? [{ ...session, categoryId }] : [];
+  });
+  if (filled.length === 0) return 0;
+
+  await sessions.bulkPut(filled);
+  return filled.length;
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   id: "settings",
