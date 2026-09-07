@@ -30,9 +30,9 @@ export function useStartSession(onOpenFocus?: () => void) {
     [askMoodBefore, onOpenFocus],
   );
 
-  /** Records the check-in answers and starts the session that was waiting on them. */
+  /** Records the check-in answers and starts the session that was waiting on them. Nulls mean the prompt was skipped, and are stored as such. */
   const confirmMood = useCallback(
-    (mood: Rating, energy: Rating) => {
+    (mood: Rating | null, energy: Rating | null) => {
       const store = useTimerStore.getState();
       store.setMood(mood, energy);
       void store.startSession('focus');
