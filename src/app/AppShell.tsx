@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import type { ShellContext } from './shell';
 import {
   BarChart3,
   CheckSquare,
@@ -21,6 +22,15 @@ import { useHotkeys } from '@/hooks/useHotkeys';
 import { cn, formatClock } from '@/lib/utils';
 import { remainingMs } from '@/engine/timerEngine';
 import { labelForType } from '@/engine/timerEngine';
+
+/** Spinner shown in the content area while a page chunk is fetched. */
+function PageFallback() {
+  return (
+    <div className="grid h-[60vh] place-items-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-subtle/25 border-t-accent" />
+    </div>
+  );
+}
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -177,7 +187,14 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto pb-20 lg:pb-0">
-          <Outlet />
+          {/* Suspending here rather than above the shell keeps the sidebar and
+              the running-timer readout on screen while a page chunk arrives. */}
+          <Suspense fallback={<PageFallback />}>
+            {/* Pages reach Deep Focus through the outlet rather than a prop:
+                the state lives in Workspace, on the far side of a lazy
+                boundary, so there is no prop to thread through. */}
+            <Outlet context={{ openDeepFocus: onOpenFocus } satisfies ShellContext} />
+          </Suspense>
         </main>
 
         {/* Mobile bottom nav */}

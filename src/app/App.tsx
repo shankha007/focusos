@@ -1,15 +1,25 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import { Toaster } from 'sonner';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { TooltipProvider } from '@/components/ui/primitives';
-import { AppShell } from './AppShell';
 import { LandingPage } from '@/features/landing/LandingPage';
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
-import { TasksPage } from '@/features/tasks/TasksPage';
-import { DeepFocusMode } from '@/features/focus/DeepFocusMode';
 
-// Charts and the achievement grid are heavy and not on the startup path.
+/**
+ * Only the marketing page is part of the initial bundle.
+ *
+ * `/` is the front door: it is what gets indexed, linked and shared, and its
+ * visitor has not decided to use the app yet. Everything behind it — the shell,
+ * the pages, Dexie, the stores, the audio engine, drag-and-drop — is fetched
+ * when someone actually goes in. `Workspace` is the layout route they all sit
+ * under, so one lazy boundary covers the whole application.
+ */
+const Workspace = lazy(() => import('./Workspace'));
+
+const DashboardPage = lazy(() =>
+  import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+);
+const TasksPage = lazy(() =>
+  import('@/features/tasks/TasksPage').then((m) => ({ default: m.TasksPage })),
+);
 const AnalyticsPage = lazy(() =>
   import('@/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -19,194 +29,40 @@ const AchievementsPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 );
-import { SessionReviewDialog } from '@/features/focus/SessionReviewDialog';
-import { ParkedThoughtsDialog } from '@/features/focus/ParkedThoughtsDialog';
-import { useSettingsStore } from '@/store/useSettingsStore';
-import { useTaskStore } from '@/store/useTaskStore';
-import { useStatsStore } from '@/store/useStatsStore';
-import { useTimerStore } from '@/store/useTimerStore';
-import { usePresetStore } from '@/store/usePresetStore';
-import { useTimerTick } from '@/hooks/useTimerTick';
-import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
 
-/** Holds a loading screen until the database is open and every store is populated. Rendering the app against empty stores would flash zeroed stats and, worse, let the timer persist a blank state over a session still in progress. */
-function Boot({ children }: { children: React.ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const boot = async () => {
-      await useSettingsStore.getState().load();
-      await Promise.all([
-        useTaskStore.getState().load(),
-        useStatsStore.getState().refresh(),
-        usePresetStore.getState().load(),
-      ]);
-      // Hydrate last so it can read the loaded settings for durations.
-      useTimerStore.getState().hydrate();
-      if (!cancelled) setReady(true);
-    };
-
-    // Opening IndexedDB is not guaranteed: private browsing, a full disk, or a
-    // database a previous version left in a state Dexie won't migrate all
-    // reject here. The rejection used to go nowhere, which left the app on its
-    // loading spinner for good — a blank wall with no way forward and nothing
-    // in the console for the user to report.
-    boot().catch((error: unknown) => {
-      console.error('FocusOS could not open your workspace', error);
-      if (!cancelled) setFailed(true);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (failed) {
-    return (
-      <div className="grid h-full place-items-center bg-bg px-6">
-        <div className="max-w-sm text-center">
-          <h1 className="text-[15px] font-semibold text-fg">Your workspace didn&rsquo;t open</h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            FocusOS stores everything in this browser&rsquo;s database, and it could not be reached.
-            Private browsing and a full disk are the usual causes. Reloading often works; if it does
-            not, try this site in a normal window.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-xl border border-border bg-elevated px-3 py-1.5 text-[13px] font-medium text-fg transition-colors hover:border-accent/40"
-          >
-            Reload
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!ready) {
-    return (
-      <div className="grid h-full place-items-center bg-bg">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-subtle/25 border-t-accent" />
-          <p className="text-[13px] text-subtle">Loading your workspace…</p>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
-
-/** Spinner shown while a lazily-loaded page is being fetched. */
-function RouteFallback() {
+/** Full-page spinner, shown only while the application chunk itself is on the way. */
+function WorkspaceFallback() {
   return (
-    <div className="grid h-[60vh] place-items-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-subtle/25 border-t-accent" />
+    <div className="grid h-full place-items-center bg-bg">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-subtle/25 border-t-accent" />
     </div>
   );
 }
 
-/** The running application: routes, the clocks that drive the timer, and the dialogs that can appear over any page. */
-function Runtime() {
-  useTimerTick();
-  useAchievementWatcher();
-  const deepFocus = useTimerStore((s) => s.timer.status === 'running' || s.timer.status === 'paused');
-  const sessionType = useTimerStore((s) => s.timer.type);
-  const [showDeepFocus, setShowDeepFocus] = useState(false);
-
-  // The marketing page is the front door, and a visitor who lands on it should
-  // see it — not a full-screen timer belonging to a session running in the
-  // background. The same goes for the end-of-session prompts: they are about
-  // work the landing page knows nothing about, and answering them there makes
-  // no sense. All three wait until the user is back inside the app.
-  const onLandingPage = useLocation().pathname === '/';
-
-  // Deep Focus opens automatically when a focus session starts, but the user
-  // can close it and keep working — so track it separately from timer status.
-  // Breaks never force it open: they auto-start by default, and a full-screen
-  // takeover would land on whatever page the user was reading. If they were
-  // already in Deep Focus it simply stays open across the transition.
-  useEffect(() => {
-    if (deepFocus && sessionType === 'focus') setShowDeepFocus(true);
-  }, [deepFocus, sessionType]);
-
-  return (
-    <>
-      <Routes>
-        {/* The marketing page renders outside AppShell — no sidebar, no timer
-            chrome. It is the front door for new visitors; the installed PWA
-            starts at /dashboard instead (see start_url in vite.config.ts). */}
-        <Route path="/" element={<LandingPage />} />
-
-        <Route element={<AppShell onOpenFocus={() => setShowDeepFocus(true)} />}>
-          <Route
-            path="/dashboard"
-            element={<DashboardPage onOpenFocus={() => setShowDeepFocus(true)} />}
-          />
-          <Route path="/tasks" element={<TasksPage onOpenFocus={() => setShowDeepFocus(true)} />} />
-          <Route
-            path="/analytics"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <AnalyticsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/achievements"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <AchievementsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <SettingsPage />
-              </Suspense>
-            }
-          />
-          {/* An unrecognised path belongs in the app, not back out on the
-              marketing page — someone reaching it already has a session. */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Route>
-      </Routes>
-
-      <AnimatePresence>
-        {showDeepFocus && !onLandingPage && (
-          <DeepFocusMode onClose={() => setShowDeepFocus(false)} />
-        )}
-      </AnimatePresence>
-
-      {!onLandingPage && (
-        <>
-          <SessionReviewDialog />
-          <ParkedThoughtsDialog />
-        </>
-      )}
-    </>
-  );
-}
-
-/** Application root — providers, boot sequence, router, and the toast host. */
+/** Application root — providers, router, and the split between the front door and the app. */
 export function App() {
   return (
     <TooltipProvider delayDuration={400}>
-      <Boot>
-        <BrowserRouter>
-          <Runtime />
-        </BrowserRouter>
-      </Boot>
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          className:
-            'rounded-xl border border-border bg-surface text-fg shadow-lift text-[13px]',
-        }}
-      />
+      <BrowserRouter>
+        <Suspense fallback={<WorkspaceFallback />}>
+          <Routes>
+            {/* No sidebar, no timer chrome, and no database. The installed PWA
+                starts at /dashboard instead (see start_url in vite.config.ts). */}
+            <Route path="/" element={<LandingPage />} />
+
+            <Route element={<Workspace />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/achievements" element={<AchievementsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              {/* An unrecognised path belongs in the app, not back out on the
+                  marketing page — someone reaching it already has a session. */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
     </TooltipProvider>
   );
 }
