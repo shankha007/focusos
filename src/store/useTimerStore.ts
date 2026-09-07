@@ -20,11 +20,19 @@ import { useStatsStore } from './useStatsStore';
 import { applyPresetForCategory } from './usePresetStore';
 import { xpForSession } from '@/engine/achievements';
 import { ambient } from '@/lib/audio';
-import { uid } from '@/lib/utils';
+import { MINUTE, uid } from '@/lib/utils';
 import { notify } from '@/lib/notifications';
 import { useHydrationStore } from './useHydrationStore';
 
 const PERSIST_KEY = 'focusos:timer';
+
+/**
+ * How far past its scheduled end a rehydrated session may be and still count as
+ * finished. Wide enough for the ordinary cases — a refresh, a laptop lid closed
+ * on the last minute, a tab reopened straight away — and narrow enough that a
+ * session found hours later is not credited to someone who had walked off.
+ */
+const ABANDON_GRACE_MS = 2 * MINUTE;
 
 /**
  * Sessions currently being finalised, keyed by their start timestamp. Guards
@@ -85,7 +93,7 @@ interface TimerStoreState {
 
   hydrate: () => void;
   setTask: (taskId: string | null, title: string | null) => void;
-  setMood: (mood: Rating, energy: Rating) => void;
+  setMood: (mood: Rating | null, energy: Rating | null) => void;
   startSession: (type?: SessionType) => Promise<void>;
   pause: () => void;
   resume: () => void;
@@ -157,9 +165,15 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
         distractionCount: saved.distractionCount ?? 0,
         hydrated: true,
       });
-      // If it ran to completion while the tab was closed, close it out now.
+      // If it ran to completion while the tab was closed, close it out now —
+      // but only claim the user finished it if we can plausibly say they were
+      // there. Nothing is recorded between the tab closing and this running, so
+      // past the grace window the honest reading is that the session was left,
+      // not seen through. Crediting it regardless made walking away the cheapest
+      // way to earn XP, a task's session count and a streak day.
       if (saved.timer.status === 'running' && remainingMs(saved.timer) <= 0) {
-        void get().complete();
+        const overrun = elapsedMs(saved.timer) - saved.timer.durationMs;
+        void get().complete({ early: overrun > ABANDON_GRACE_MS });
       }
     } catch {
       set({ timer: createTimerState('focus', settings.focusMs), hydrated: true });
@@ -172,7 +186,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     persist(get());
   },
 
-  /** Records how the user felt going in, asked before a focus session starts. */
+  /** Records how the user felt going in, asked before a focus session starts. Null clears the check-in, which is what a skipped prompt reports — the session then carries no mood rather than an invented one. */
   setMood: (mood, energy) => {
     set({ moodBefore: mood, energyBefore: energy });
     persist(get());
@@ -231,6 +245,12 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       timer: resetState(timer, durationForType(timer.type, settings)),
       sessionId: null,
       distractionCount: 0,
+      // The check-in belonged to the session being thrown away. Left in place it
+      // would be attached to whatever starts next — including a start that never
+      // asked, which is how a mood the user reported an hour ago ends up
+      // recorded against a session they said nothing about.
+      moodBefore: null,
+      energyBefore: null,
     });
     // The session is never written, so anything logged against it would be
     // stranded — counted in the day's totals with no session to explain it.
@@ -276,15 +296,30 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     // as such double-counts the task's time in every report.
     const isFocus = timer.type === 'focus';
 
+    // A session cannot end after its own clock ran out. Normally `now` is within
+    // a tick of that, but a session closed out on rehydration is finalised
+    // whenever the tab reopened — which is how a 25-minute session logged an end
+    // time three days after it started, visible in every CSV export.
+    const overrun = Math.max(0, actual - timer.durationMs);
+
+    // Categories drive per-category reporting and the historical half of
+    // `estimateTaskSessions`, which matches sessions on this field. It has to be
+    // stamped here, at the one moment the task is known: history is immutable
+    // afterwards, so a session written without it can never be attributed.
+    const categoryId = isFocus && state.taskId
+      ? useTaskStore.getState().tasks.find((t) => t.id === state.taskId)?.categoryId
+      : undefined;
+
     const session: Session = {
       id: state.sessionId ?? `ses_${uid()}`,
       taskId: isFocus ? (state.taskId ?? undefined) : undefined,
       taskTitle: isFocus ? (state.taskTitle ?? undefined) : undefined,
+      categoryId,
       type: timer.type,
       plannedMs: timer.durationMs,
       actualMs: Math.min(actual, timer.durationMs),
       startedAt: timer.startedAt,
-      endedAt: now,
+      endedAt: now - overrun,
       completed,
       moodBefore: state.moodBefore ?? undefined,
       energyBefore: state.energyBefore ?? undefined,
