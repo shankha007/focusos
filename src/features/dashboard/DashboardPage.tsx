@@ -24,17 +24,19 @@ import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useStartSession } from '@/hooks/useStartSession';
+import { useShell } from '@/app/shell';
 import { computeFocusScore, computeStreak, focusOnly } from '@/engine/analytics';
 import { formatDuration, pluralize, startOfDay } from '@/lib/utils';
 
 /** The landing screen: today's focus score and headline stats, the timer, the suggested plan, the daily reflection, and recent activity. */
-export function DashboardPage({ onOpenFocus }: { onOpenFocus: () => void }) {
+export function DashboardPage() {
+  const { openDeepFocus } = useShell();
   const sessions = useStatsStore((s) => s.sessions);
   const distractions = useStatsStore((s) => s.distractions);
   const tasks = useTaskStore((s) => s.tasks);
   const settings = useSettingsStore((s) => s.settings);
   const { begin, moodOpen, setMoodOpen, confirmMood, pendingTaskTitle } =
-    useStartSession(onOpenFocus);
+    useStartSession(openDeepFocus);
 
   const today = useMemo(() => {
     const from = startOfDay();
@@ -116,7 +118,7 @@ export function DashboardPage({ onOpenFocus }: { onOpenFocus: () => void }) {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <CurrentSessionCard onOpenFocus={onOpenFocus} onStart={begin} />
+          <CurrentSessionCard onOpenFocus={openDeepFocus} onStart={begin} />
           <WaterBreakCard />
           <DailyPlanCard onStart={begin} />
           <ReflectionCard />

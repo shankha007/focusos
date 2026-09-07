@@ -29,14 +29,43 @@ interface SettingsState {
   applyTheme: () => void;
 }
 
+/**
+ * Where the appearance is mirrored for the inline script in index.html.
+ *
+ * The preferences themselves live in IndexedDB, which cannot be read before the
+ * first paint and is not opened at all on the landing page. Without this the
+ * document would render under the theme hard-coded in index.html until the
+ * database answered — a dark flash for anyone on a light theme, and the wrong
+ * theme entirely for the whole of the landing page.
+ */
+const APPEARANCE_KEY = 'focusos:appearance';
+
 /** Writes theme/motion/contrast to the document root, where the CSS reads them. */
 function paint(settings: Settings): ThemeName {
   const theme = resolveTheme(settings.theme);
+  const mode = isDarkTheme(theme) ? 'dark' : 'light';
+  const motion = settings.reducedMotion ? 'reduced' : 'full';
+  const contrast = settings.highContrast ? 'high' : 'normal';
+
   const root = document.documentElement;
   root.dataset.theme = theme;
-  root.dataset.mode = isDarkTheme(theme) ? 'dark' : 'light';
-  root.dataset.motion = settings.reducedMotion ? 'reduced' : 'full';
-  root.dataset.contrast = settings.highContrast ? 'high' : 'normal';
+  root.dataset.mode = mode;
+  root.dataset.motion = motion;
+  root.dataset.contrast = contrast;
+
+  // The stored preference travels alongside the resolved theme: 'system' has to
+  // be re-resolved against the OS at load, since it may have changed while the
+  // tab was closed. Keep the resolution here in step with the copy in
+  // index.html.
+  try {
+    localStorage.setItem(
+      APPEARANCE_KEY,
+      JSON.stringify({ pref: settings.theme, theme, mode, motion, contrast }),
+    );
+  } catch {
+    // Storage can be unavailable or full. The app still paints correctly; only
+    // the head start on the next load is lost.
+  }
 
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {

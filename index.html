@@ -6,6 +6,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0b0f" />
 
+    <script>
+      // The user's appearance lives in IndexedDB, which cannot be read before
+      // the first paint — and the landing page never opens it at all. The
+      // settings store mirrors the resolved theme into localStorage on every
+      // paint; this reads it back and stamps the document before anything is
+      // drawn, so a light-theme user does not get a dark flash on the way in.
+      // Keep the 'system' resolution in step with systemTheme() in
+      // src/store/useSettingsStore.ts.
+      (function () {
+        try {
+          var saved = localStorage.getItem("focusos:appearance");
+          if (!saved) return;
+          var a = JSON.parse(saved);
+          var theme = a.theme;
+          var mode = a.mode;
+          if (a.pref === "system") {
+            var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            theme = dark ? "midnight" : "light";
+            mode = dark ? "dark" : "light";
+          }
+          var root = document.documentElement;
+          if (theme) root.dataset.theme = theme;
+          if (mode) root.dataset.mode = mode;
+          if (a.motion) root.dataset.motion = a.motion;
+          if (a.contrast) root.dataset.contrast = a.contrast;
+        } catch (e) {
+          // A malformed or unreadable value just means the markup's default stands.
+        }
+      })();
+    </script>
+
     <title>FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion</title>
     <meta
       name="description"

@@ -61,9 +61,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Only libraries that are genuinely on the first-paint path belong
+        // here. Naming a package as a manual chunk makes it a static import of
+        // the entry, which Vite then emits a <link rel="modulepreload"> for —
+        // so listing "recharts" here quietly undid the lazy import of the
+        // analytics page and downloaded 103 KB of charting on the landing
+        // page. Left alone, Rollup puts it in the async chunk that actually
+        // uses it.
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
-          charts: ["recharts"],
           motion: ["framer-motion"],
         },
       },

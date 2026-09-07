@@ -36,6 +36,7 @@ import { MoodCheckDialog } from '@/features/focus/MoodCheckDialog';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useStartSession } from '@/hooks/useStartSession';
+import { useShell } from '@/app/shell';
 import type { Task } from '@/types';
 import { pluralize } from '@/lib/utils';
 
@@ -79,7 +80,8 @@ export function applyToFullOrder(fullIds: string[], rearrangedVisible: string[])
 }
 
 /** The task board: filter by state and category, reorder by dragging, and start a focus session on any row. */
-export function TasksPage({ onOpenFocus }: { onOpenFocus: () => void }) {
+export function TasksPage() {
+  const { openDeepFocus } = useShell();
   const tasks = useTaskStore((s) => s.tasks);
   const categories = useTaskStore((s) => s.categories);
   const reorder = useTaskStore((s) => s.reorder);
@@ -92,7 +94,7 @@ export function TasksPage({ onOpenFocus }: { onOpenFocus: () => void }) {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const { begin, moodOpen, setMoodOpen, confirmMood, pendingTaskTitle } =
-    useStartSession(onOpenFocus);
+    useStartSession(openDeepFocus);
 
   // Support ⌘K → "New task", which lands here with ?new=1.
   useEffect(() => {
