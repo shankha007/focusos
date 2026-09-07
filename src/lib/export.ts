@@ -25,7 +25,10 @@ function csvCell(value: unknown): string {
   // mangle negatives.
   if (typeof value === 'number') return String(value);
 
-  const s = value === null || value === undefined ? '' : String(value);
+  // Anything that is not already text has no meaningful cell representation —
+  // `String({})` writes "[object Object]" into the spreadsheet, which reads as
+  // data the user never entered. An empty cell is the honest rendering.
+  const s = typeof value === 'string' ? value : typeof value === 'boolean' ? String(value) : '';
   // Spreadsheets evaluate any cell that opens with one of these, so a task
   // titled `=HYPERLINK(...)` would run on open. A leading apostrophe pins the
   // cell to text without changing what the reader sees.

@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # First, because it is the fastest way to fail and the cheapest to fix.
+      # Warnings are reported but do not fail the build — see the note on the
+      # React Compiler rules in eslint.config.js.
+      - name: Lint
+        run: npm run lint
+
       - name: Type-check
         run: npm run typecheck
 

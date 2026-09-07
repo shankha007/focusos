@@ -25,7 +25,6 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
 import { ambient } from '@/lib/audio';
-import type { ThemePreference } from '@/types';
 import { THEME_OPTIONS } from '@/features/settings/themes';
 import { toast } from 'sonner';
 
@@ -212,7 +211,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                     label={t.label}
                     hint={t.description}
                     active={settings.theme === t.value}
-                    onSelect={() => run(() => void updateSettings({ theme: t.value as ThemePreference }))}
+                    onSelect={() => run(() => void updateSettings({ theme: t.value }))}
                   />
                 ))}
               </Group>
