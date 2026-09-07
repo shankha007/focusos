@@ -7,7 +7,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" leaves the new worker waiting instead of calling skipWaiting
+      // the moment it installs. That is what makes it possible to finish a
+      // focus session on the build you started it on: src/lib/pwa.ts reports
+      // the waiting update and useAppUpdate decides when to take it.
+      registerType: "prompt",
       // src/lib/pwa.ts imports the virtual module and registers the worker
       // itself. The script this plugin would otherwise inject is a bare
       // `navigator.serviceWorker.register` with no update handling, and having

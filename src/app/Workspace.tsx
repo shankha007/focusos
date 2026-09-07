@@ -12,6 +12,7 @@ import { useTimerStore } from '@/store/useTimerStore';
 import { usePresetStore } from '@/store/usePresetStore';
 import { useTimerTick } from '@/hooks/useTimerTick';
 import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 
 /**
  * Everything behind the marketing page: the database, every store, the timer
@@ -96,6 +97,7 @@ function Boot({ children }: { children: React.ReactNode }) {
 function Chrome() {
   useTimerTick();
   useAchievementWatcher();
+  useAppUpdate();
   const reducedMotion = useSettingsStore((s) => s.reducedMotion);
   const deepFocus = useTimerStore((s) => s.timer.status === 'running' || s.timer.status === 'paused');
   const sessionType = useTimerStore((s) => s.timer.type);
