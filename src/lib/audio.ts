@@ -25,9 +25,43 @@ export const SOUNDS: SoundMeta[] = [
   { id: 'wind', label: 'Wind', description: 'Open, sweeping gusts', icon: 'Wind' },
 ];
 
+type NoiseType = 'white' | 'pink' | 'brown';
+
+/** Seconds of noise held per flavour. Long enough that the loop point isn't audible. */
+const NOISE_SECONDS = 2;
+
+/**
+ * One buffer per flavour, per context.
+ *
+ * Generating noise is not cheap: two seconds at 44.1 kHz is 88,200 samples,
+ * 345 KB, and about a millisecond of the main thread. That was being paid on
+ * every raindrop and every crackle of the fire — sounds that last 40 to 80 ms —
+ * so rain alone churned roughly 1.5 MB a second to play the same texture over
+ * and over, on the one screen meant to feel calm.
+ *
+ * A buffer is immutable once filled, and any number of sources can read from
+ * the same one, so there is no reason to hold more than three.
+ */
+const noiseBuffers = new WeakMap<AudioContext, Map<NoiseType, AudioBuffer>>();
+
+/** The shared buffer for one flavour of noise, generated on first use. */
+function noiseBuffer(ctx: AudioContext, type: NoiseType): AudioBuffer {
+  let byType = noiseBuffers.get(ctx);
+  if (!byType) {
+    byType = new Map();
+    noiseBuffers.set(ctx, byType);
+  }
+  let buffer = byType.get(type);
+  if (!buffer) {
+    buffer = makeNoiseBuffer(ctx, type);
+    byType.set(type, buffer);
+  }
+  return buffer;
+}
+
 /** Two seconds of noise, looped — long enough that the period isn't audible. */
-function makeNoiseBuffer(ctx: AudioContext, type: 'white' | 'pink' | 'brown'): AudioBuffer {
-  const length = ctx.sampleRate * 2;
+function makeNoiseBuffer(ctx: AudioContext, type: NoiseType): AudioBuffer {
+  const length = ctx.sampleRate * NOISE_SECONDS;
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
   const data = buffer.getChannelData(0);
 
@@ -177,15 +211,26 @@ export class AmbientEngine {
 
 type Builder = (ctx: AudioContext, dest: AudioNode) => Layer[];
 
-/** A looping buffer source playing the requested flavour of noise. */
-function noiseSource(
-  ctx: AudioContext,
-  type: 'white' | 'pink' | 'brown',
-): AudioBufferSourceNode {
+/** A looping buffer source playing the requested flavour of noise, from the shared buffer. */
+function noiseSource(ctx: AudioContext, type: NoiseType): AudioBufferSourceNode {
   const src = ctx.createBufferSource();
-  src.buffer = makeNoiseBuffer(ctx, type);
+  src.buffer = noiseBuffer(ctx, type);
   src.loop = true;
   return src;
+}
+
+/**
+ * Somewhere random inside the shared buffer.
+ *
+ * Every voice used to get freshly generated noise, so no two were ever alike.
+ * Now that they read from one buffer, starting them all at zero would play the
+ * same 80 ms of noise for every raindrop — a repeating tick rather than rain —
+ * and would lock layers of the same flavour into phase with each other. Reading
+ * from a different offset each time restores the variety the generation used to
+ * provide, for the price of one random number.
+ */
+function randomOffset(): number {
+  return Math.random() * NOISE_SECONDS;
 }
 
 /** One steady voice of a soundscape: noise shaped by a filter, at a fixed gain, optionally breathing under a slow LFO. */
@@ -213,7 +258,7 @@ function simpleLayer(
   gain.gain.value = opts.gain;
 
   src.connect(filter).connect(gain).connect(dest);
-  src.start();
+  src.start(0, randomOffset());
 
   const nodes: AudioNode[] = [src, filter, gain];
   let lfo: OscillatorNode | null = null;
@@ -303,7 +348,7 @@ const BUILDERS: Record<SoundId, Builder> = {
         g.gain.setValueAtTime(0.05 + Math.random() * 0.05, at);
         g.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
         src.connect(bp).connect(g).connect(d);
-        src.start(at);
+        src.start(at, randomOffset());
         src.stop(at + 0.08);
       },
     }),
@@ -385,7 +430,7 @@ const BUILDERS: Record<SoundId, Builder> = {
         g.gain.setValueAtTime(0.06 + Math.random() * 0.09, at);
         g.gain.exponentialRampToValueAtTime(0.0001, at + 0.04 + Math.random() * 0.05);
         src.connect(bp).connect(g).connect(d);
-        src.start(at);
+        src.start(at, randomOffset());
         src.stop(at + 0.12);
       },
     }),

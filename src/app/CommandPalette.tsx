@@ -43,6 +43,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
   const timer = useTimerStore((s) => s.timer);
   const tasks = useTaskStore((s) => s.tasks);
   const settings = useSettingsStore((s) => s.settings);
+  const systemReducedMotion = useSettingsStore((s) => s.systemReducedMotion);
   const updateSettings = useSettingsStore((s) => s.update);
   const presets = usePresetStore((s) => s.presets);
   const applyPreset = usePresetStore((s) => s.apply);
@@ -192,11 +193,18 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                       })
                     }
                   />
-                  <Item
-                    icon={Moon}
-                    label={settings.reducedMotion ? 'Enable animations' : 'Reduce motion'}
-                    onSelect={() => run(() => void updateSettings({ reducedMotion: !settings.reducedMotion }))}
-                  />
+                  {/* Offering "Enable animations" while the OS is asking for
+                      less motion would be a command that does nothing. Settings
+                      explains why it is missing. */}
+                  {!systemReducedMotion && (
+                    <Item
+                      icon={Moon}
+                      label={settings.reducedMotion ? 'Enable animations' : 'Reduce motion'}
+                      onSelect={() =>
+                        run(() => void updateSettings({ reducedMotion: !settings.reducedMotion }))
+                      }
+                    />
+                  )}
                   <Item icon={Plus} label="New task" onSelect={() => run(() => navigate('/tasks?new=1'))} />
                 </Group>
               </Results>

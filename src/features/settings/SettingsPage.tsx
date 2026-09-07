@@ -38,6 +38,7 @@ import { THEME_OPTIONS } from './themes';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
+import { clearPersistedTimer } from '@/store/useTimerStore';
 import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
 import { clearAllData } from '@/db/repositories';
 import { exportJson } from '@/lib/export';
@@ -49,6 +50,7 @@ export function SettingsPage() {
   const settings = useSettingsStore((s) => s.settings);
   const update = useSettingsStore((s) => s.update);
   const presets = usePresetStore((s) => s.presets);
+  const systemReducedMotion = useSettingsStore((st) => st.systemReducedMotion);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
 
@@ -314,10 +316,18 @@ export function SettingsPage() {
           <div className="space-y-1">
             <SettingRow
               label="Reduce motion"
-              description="Removes ambient animation and transitions. Your OS setting is respected automatically too."
+              description={
+                systemReducedMotion
+                  ? 'Your system is already set to reduce motion, so ambient animation is off. This switch cannot turn it back on.'
+                  : 'Removes ambient animation and transitions. Your system setting turns this on automatically.'
+              }
             >
               <Switch
-                checked={settings.reducedMotion}
+                checked={settings.reducedMotion || systemReducedMotion}
+                // The OS asking for less motion is not something an in-app
+                // switch should be able to overrule, so the control reads as on
+                // and locked rather than quietly doing nothing.
+                disabled={systemReducedMotion}
                 onCheckedChange={(v) => void update({ reducedMotion: v })}
               />
             </SettingRow>
@@ -514,7 +524,7 @@ function ResetDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: 
     await clearAllData();
     await Promise.all([useTaskStore.getState().load(), useStatsStore.getState().refresh()]);
     await useSettingsStore.getState().update({ xp: 0 });
-    localStorage.removeItem('focusos:timer');
+    clearPersistedTimer();
     setConfirmText('');
     onOpenChange(false);
     toast.success('All data cleared.');

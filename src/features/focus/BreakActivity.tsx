@@ -49,7 +49,7 @@ export function BreakActivity({
 
 /** Paced 4-7-8 breathing. The circle's scale is the instruction. */
 function BreathingGuide() {
-  const reducedMotion = useSettingsStore((s) => s.settings.reducedMotion);
+  const reducedMotion = useSettingsStore((s) => s.reducedMotion);
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {

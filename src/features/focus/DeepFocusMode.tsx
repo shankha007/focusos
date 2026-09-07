@@ -36,7 +36,7 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
   const reset = useTimerStore((s) => s.reset);
   const skip = useTimerStore((s) => s.skip);
 
-  const reducedMotion = useSettingsStore((s) => s.settings.reducedMotion);
+  const reducedMotion = useSettingsStore((s) => s.reducedMotion);
   const pip = usePictureInPicture();
 
   const [showDistraction, setShowDistraction] = useState(false);
