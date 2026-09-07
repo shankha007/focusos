@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Minimize2,
@@ -12,7 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogTitle, Tooltip } from '@/components/ui/primitives';
+import { Tooltip } from '@/components/ui/primitives';
 import { TimerRing } from '@/components/TimerRing';
 import { DistractionLogger } from './DistractionLogger';
 import { BreakActivity } from './BreakActivity';
@@ -23,7 +23,7 @@ import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { usePictureInPicture } from '@/hooks/usePictureInPicture';
-import { MINUTE, cn, formatClock, formatTime } from '@/lib/utils';
+import { cn, formatClock, formatTime } from '@/lib/utils';
 import { labelForType, progress as progressOf, projectedEndAt, remainingMs } from '@/engine/timerEngine';
 
 /** The full-screen session view: nothing but the ring, the time, and the controls. Everything here is reachable from the keyboard — space to start or pause, N to skip, D to log a distraction, S for sound, P to float the timer, Esc to leave. */
@@ -33,7 +33,9 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
   const taskTitle = useTimerStore((s) => s.taskTitle);
   const distractionCount = useTimerStore((s) => s.distractionCount);
   const toggle = useTimerStore((s) => s.toggle);
-  const reset = useTimerStore((s) => s.reset);
+  // The guard that used to live here now sits in the store, so the command
+  // palette's reset asks the same question this one does.
+  const requestReset = useTimerStore((s) => s.requestReset);
   const skip = useTimerStore((s) => s.skip);
 
   const reducedMotion = useSettingsStore((s) => s.reducedMotion);
@@ -41,7 +43,6 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
 
   const [showDistraction, setShowDistraction] = useState(false);
   const [showSound, setShowSound] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const running = timer.status === 'running';
@@ -53,21 +54,6 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
   const remaining = remainingMs(timer);
   const pct = progressOf(timer);
   const endsAt = projectedEndAt(timer);
-
-  /**
-   * Reset throws the interval away without writing anything to history, so once
-   * there is real work in it there is nothing to recover. Under a minute is a
-   * false start and clears without ceremony; past that, one keystroke should
-   * not be able to erase the last forty minutes.
-   */
-  const elapsed = timer.durationMs - remaining;
-  const resetLosesWork = inSession && elapsed > MINUTE;
-
-  /** Clears the interval, asking first if that would discard real work. */
-  const requestReset = useCallback(() => {
-    if (resetLosesWork) setConfirmReset(true);
-    else reset();
-  }, [resetLosesWork, reset]);
 
   useHotkeys(
     useMemo(
@@ -369,30 +355,6 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
 
       <DistractionLogger open={showDistraction} onOpenChange={setShowDistraction} />
 
-      <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
-        <DialogContent className="max-w-sm">
-          <DialogTitle>Discard this session?</DialogTitle>
-          <DialogDescription>
-            {formatClock(elapsed)} of {labelForType(timer.type).toLowerCase()} will be thrown away
-            without being logged. Skip instead if you want it counted.
-          </DialogDescription>
-
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirmReset(false)}>
-              Keep going
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setConfirmReset(false);
-                reset();
-              }}
-            >
-              Discard
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 }

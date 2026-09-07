@@ -286,7 +286,7 @@ export function AnalyticsPage() {
       {/* Focus timeline */}
       <Card className="mt-4">
         <CardTitle>Focus over time</CardTitle>
-        <CardDescription>Completed focus per day.</CardDescription>
+        <CardDescription>Time spent focusing each day, finished or not.</CardDescription>
         <div className="mt-4 h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>

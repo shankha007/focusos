@@ -1,6 +1,6 @@
 import type { Distraction, DistractionCategory, Rating, Session, Task } from '@/types';
 import { MINUTE, formatDuration, mean, pluralize } from '@/lib/utils';
-import { distractionPatterns, focusOnly } from './analytics';
+import { distractionPatterns, focusOnly, focusTimeMs } from './analytics';
 import { fmtHour } from './adaptive';
 
 export interface Reflection {
@@ -28,7 +28,7 @@ export function generateReflection(
 ): Reflection {
   const focus = focusOnly(sessions);
   const completed = focus.filter((s) => s.completed);
-  const totalMs = completed.reduce((a, s) => a + s.actualMs, 0);
+  const totalMs = focusTimeMs(sessions);
 
   if (completed.length === 0) {
     return {
@@ -110,7 +110,7 @@ export function generateReflection(
 
   const parts: string[] = [];
   parts.push(
-    `You completed ${completed.length} of ${focus.length} ${pluralize(focus.length, 'session')} you started, totalling ${formatDuration(totalMs)} of focus.`,
+    `You completed ${completed.length} of ${focus.length} ${pluralize(focus.length, 'session')} you started, and focused for ${formatDuration(totalMs)} in total.`,
   );
   if (goalPct >= 1) {
     parts.push(`That clears your goal of ${dailyGoalSessions} sessions.`);

@@ -57,6 +57,19 @@ export function resume(state: TimerState, now = Date.now()): TimerState {
   };
 }
 
+/**
+ * Whether resetting now would throw away work worth keeping.
+ *
+ * Reset never writes the interval to history, so once there is real time in it
+ * there is nothing to recover. Under a minute is a false start and clears
+ * without ceremony; past that, one click should not be able to erase the last
+ * forty minutes.
+ */
+export function resetLosesWork(state: TimerState, minimumMs: number, now = Date.now()): boolean {
+  if (state.status !== 'running' && state.status !== 'paused') return false;
+  return elapsedMs(state, now) > minimumMs;
+}
+
 /** Returns the timer to idle, optionally with a new duration. Used when the user stops a session or switches session type. */
 export function reset(state: TimerState, durationMs = state.durationMs): TimerState {
   return {

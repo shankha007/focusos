@@ -21,6 +21,24 @@ import {
 /** Drops breaks — most stats are about focus time only. */
 export const focusOnly = (sessions: Session[]) => sessions.filter((s) => s.type === 'focus');
 
+/**
+ * Total time actually spent focusing, across every focus session in `sessions`.
+ *
+ * The one definition of "focus time" in the app. There used to be two: the
+ * dashboard summed only completed sessions while analytics summed them all, so
+ * abandoning a twenty-minute session made the two screens disagree about the
+ * same day — and the chart captioned "Completed focus per day" was plotting
+ * both.
+ *
+ * Abandoned time counts. `actualMs` is already exclusive of paused stretches
+ * and capped at the planned length, so it is time the user genuinely spent
+ * focusing; that they went on to skip the session does not unspend it. Whether
+ * they saw it through is what the separate session count is for.
+ */
+export function focusTimeMs(sessions: Session[]): number {
+  return sum(focusOnly(sessions).map((s) => s.actualMs));
+}
+
 /* ── Daily rollups ─────────────────────────────────────────── */
 
 /** Buckets sessions and distractions into one row per calendar day, keyed by local date. Only days with activity appear; use `dayRange` to fill the gaps. */
@@ -394,7 +412,7 @@ export function summarize(sessions: Session[], distractions: Distraction[]): Per
   const days = [...stats.values()];
 
   return {
-    focusMs: sum(focus.map((s) => s.actualMs)),
+    focusMs: focusTimeMs(sessions),
     sessions: completed.length,
     completionRate: focus.length > 0 ? completed.length / focus.length : 0,
     distractions: distractions.length,
