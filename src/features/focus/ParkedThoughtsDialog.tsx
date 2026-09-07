@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Bookmark } from 'lucide-react';
-import type { Priority } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -62,7 +61,7 @@ export function ParkedThoughtsDialog() {
         if (!keep.has(item.id) || !item.note) continue;
         const task = await createTask({
           title: item.note,
-          priority: 'medium' as Priority,
+          priority: 'medium',
           estimatedSessions: 1,
           notes: 'Parked during a focus session.',
         });

@@ -43,7 +43,6 @@ import { clearAllData } from '@/db/repositories';
 import { exportJson } from '@/lib/export';
 import { requestNotificationPermission, notificationPermission } from '@/lib/notifications';
 import { MINUTE, cn, clamp } from '@/lib/utils';
-import type { ThemePreference } from '@/types';
 
 /** Every preference in one page: timer cadence and presets, appearance, sound, notifications, check-in prompts, adaptive suggestions, and the backup / restore / reset controls. */
 export function SettingsPage() {
@@ -170,7 +169,7 @@ export function SettingsPage() {
               return (
                 <button
                   key={theme.value}
-                  onClick={() => void update({ theme: theme.value as ThemePreference })}
+                  onClick={() => void update({ theme: theme.value })}
                   className={cn(
                     'group relative overflow-hidden rounded-xl border p-3 text-left transition-all',
                     active

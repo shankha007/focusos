@@ -100,14 +100,18 @@ export function TaskDialog({
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-[13px] font-medium">Priority</label>
+          {/* A bare <label> names nothing: these four are a group of toggles,
+              not a single control, so the group needs the name and each button
+              has to say whether it is the one currently chosen. */}
+          <fieldset>
+            <legend className="mb-1.5 block text-[13px] font-medium">Priority</legend>
             <div className="grid grid-cols-4 gap-1.5">
               {PRIORITIES.map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setPriority(p)}
+                  aria-pressed={priority === p}
                   className={cn(
                     'flex items-center justify-center gap-1.5 rounded-xl border py-2 text-[12px] font-medium capitalize transition-all',
                     priority === p
@@ -123,13 +127,17 @@ export function TaskDialog({
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-[13px] font-medium">Category</label>
+              {/* Radix renders the trigger as a button, which no <label> can be
+                  associated with. Naming it by id is what carries the label. */}
+              <span id="task-category-label" className="mb-1.5 block text-[13px] font-medium">
+                Category
+              </span>
               <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
+                <SelectTrigger aria-labelledby="task-category-label">
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
@@ -143,8 +151,11 @@ export function TaskDialog({
               </Select>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-[13px] font-medium">Est. sessions</label>
+            {/* Two buttons around a number is a group, not a labelled input.
+                The count is announced on change so pressing the steppers is
+                not silent for anyone not watching it. */}
+            <fieldset>
+              <legend className="mb-1.5 block text-[13px] font-medium">Est. sessions</legend>
               <div className="flex h-9 items-center justify-between rounded-xl border border-border bg-bg px-1">
                 <Button
                   size="icon-sm"
@@ -154,7 +165,9 @@ export function TaskDialog({
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </Button>
-                <span className="tabular text-sm font-medium">{estimate}</span>
+                <span className="tabular text-sm font-medium" aria-live="polite">
+                  {estimate}
+                </span>
                 <Button
                   size="icon-sm"
                   variant="ghost"
@@ -164,7 +177,7 @@ export function TaskDialog({
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
-            </div>
+            </fieldset>
           </div>
 
           <div>
