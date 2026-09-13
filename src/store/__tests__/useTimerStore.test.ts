@@ -13,7 +13,7 @@ import { bootStores, makeTask, persistRunningSession, resetApp } from '@/test/he
  * returns it.
  *
  * The settle point is the session reaching the stats store, not the database.
- * `complete` writes the session row first and refreshes stats last, with the XP
+ * `complete` writes the session row first and updates the stats store last, with the XP
  * award and the task credit in between — so waiting on the row alone returns
  * while those are still in flight, and the assertions read a half-finished
  * write.

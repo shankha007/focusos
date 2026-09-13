@@ -103,6 +103,22 @@ function paint(settings: Settings, reducedMotion: boolean): ThemeName {
   return theme;
 }
 
+/** Detaches the OS appearance listeners, or null when none are attached. */
+let stopFollowing: (() => void) | null = null;
+
+/**
+ * Stops following the operating system's colour scheme and motion preference.
+ *
+ * Settings attach those listeners once, the first time they load, and keep
+ * them for the life of the page. This is the matching teardown — for anything
+ * that needs the next load to attach afresh, such as a test that swaps in its
+ * own `matchMedia`.
+ */
+export function stopFollowingSystem(): void {
+  stopFollowing?.();
+  stopFollowing = null;
+}
+
 /** Every user preference, plus the resolved theme currently painted on the document. */
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: DEFAULT_SETTINGS,
@@ -124,20 +140,35 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       reducedMotion: reduced,
     });
 
+    // `load` runs at boot and again after every restore. Each call used to add
+    // another pair of OS listeners that were never removed, so a user who had
+    // restored three backups repainted four times on every appearance change.
+    if (stopFollowing) return;
+
+    const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
     // Follow the OS when the user hasn't pinned a theme.
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const onSchemeChange = () => {
       if (get().settings.theme === 'system') {
         set({ resolvedTheme: paint(get().settings, get().reducedMotion) });
       }
-    });
+    };
 
     // And follow it for motion, which can be switched mid-session — it is an
     // accessibility control on every desktop OS, not a set-once preference.
-    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (event) => {
+    const onMotionChange = (event: MediaQueryListEvent) => {
       const nowReduced = get().settings.reducedMotion || event.matches;
       set({ systemReducedMotion: event.matches, reducedMotion: nowReduced });
       paint(get().settings, nowReduced);
-    });
+    };
+
+    scheme.addEventListener('change', onSchemeChange);
+    motion.addEventListener('change', onMotionChange);
+    stopFollowing = () => {
+      scheme.removeEventListener('change', onSchemeChange);
+      motion.removeEventListener('change', onMotionChange);
+    };
   },
 
   /** Saves changed preferences and repaints. Editing a timer duration by hand detaches the active preset label, since the settings are no longer that preset. */

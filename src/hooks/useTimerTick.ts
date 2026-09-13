@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useTimerStore } from '@/store/useTimerStore';
-import { useStatsStore } from '@/store/useStatsStore';
 import { formatClock } from '@/lib/utils';
 import { remainingMs } from '@/engine/timerEngine';
 
@@ -25,6 +24,11 @@ const BASE_TITLE = typeof document === 'undefined' ? 'FocusOS' : document.title;
  * requestAnimationFrame for smooth visuals (paused by the browser when hidden),
  * and a 1s interval as a safety net that keeps firing — throttled but alive —
  * so a session that ends in a background tab still gets closed out.
+ *
+ * This used to reload the whole session history whenever the timer went idle,
+ * too. `complete` already applies the one change it made to that history, so
+ * the reload was a second full read of every session and distraction ever
+ * logged, on every session end and every reset.
  */
 export function useTimerTick(): void {
   const status = useTimerStore((s) => s.timer.status);
@@ -63,7 +67,7 @@ export function useTimerTick(): void {
   // Mirror the countdown into the tab title so it's readable from another tab.
   useEffect(() => {
     /** Writes the current countdown into the tab title, or restores the title the page was served with when nothing is running. */
-    const update = () => {
+    const write = () => {
       const { timer } = useTimerStore.getState();
       if (timer.status === 'running' || timer.status === 'paused') {
         const label = timer.type === 'focus' ? 'Focus' : 'Break';
@@ -73,13 +77,14 @@ export function useTimerTick(): void {
         document.title = BASE_TITLE;
       }
     };
-    update();
-    const id = window.setInterval(update, 1000);
-    return () => window.clearInterval(id);
-  }, [status]);
+    write();
 
-  // Session history feeds every stat in the app; reload it when one ends.
-  useEffect(() => {
-    if (status === 'idle') void useStatsStore.getState().refresh();
+    // Only a running clock changes the title from one second to the next. A
+    // paused one shows a fixed remaining time and an idle one the served title,
+    // so writing once is all either needs. The interval used to run regardless,
+    // waking every second for as long as the tab stayed open.
+    if (status !== 'running') return;
+    const id = window.setInterval(write, 1000);
+    return () => window.clearInterval(id);
   }, [status]);
 }

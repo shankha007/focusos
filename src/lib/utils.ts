@@ -6,9 +6,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Generates a fresh unique id for a new row. */
+/**
+ * Generates a fresh unique id for a new row.
+ *
+ * `crypto.randomUUID` only exists in a secure context — HTTPS or localhost.
+ * Opening the app over plain HTTP at a local network address, which is the
+ * ordinary way to try it on a phone, left it undefined, and the first task or
+ * session created threw. `getRandomValues` is available in every context, so
+ * the fallback builds the same RFC 4122 version-4 identifier from it.
+ */
 export function uid(): string {
-  return crypto.randomUUID();
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export const MINUTE = 60_000;
