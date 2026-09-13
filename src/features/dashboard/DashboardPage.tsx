@@ -19,6 +19,8 @@ import { CurrentSessionCard } from './CurrentSessionCard';
 import { WaterBreakCard } from '@/features/focus/WaterBreakCard';
 import { DailyPlanCard } from './DailyPlanCard';
 import { ActivityFeed } from './ActivityFeed';
+import { WelcomeCard } from './WelcomeCard';
+import { shouldShowWelcome } from './onboarding';
 import { ReflectionCard } from './ReflectionCard';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';
@@ -77,6 +79,8 @@ export function DashboardPage() {
           </Button>
         }
       />
+
+      {shouldShowWelcome(settings.onboarded, sessions.length) && <WelcomeCard />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

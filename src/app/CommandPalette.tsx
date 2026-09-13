@@ -24,6 +24,8 @@ import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
+import { useStartSession } from '@/hooks/useStartSession';
+import { MoodCheckDialog } from '@/features/focus/MoodCheckDialog';
 import { ambient } from '@/lib/audio';
 import { THEME_OPTIONS } from '@/features/settings/themes';
 import { toast } from 'sonner';
@@ -48,6 +50,13 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
   const presets = usePresetStore((s) => s.presets);
   const applyPreset = usePresetStore((s) => s.apply);
 
+  // Both ways of starting from here used to call startSession directly, so the
+  // pre-session check-in was asked on the dashboard and the task board but
+  // never from ⌘K — and those sessions carried no mood at all. They now go
+  // through the same entry point as every other start.
+  const { begin, moodOpen, setMoodOpen, confirmMood, pendingTaskTitle } =
+    useStartSession(onOpenFocus);
+
   useEffect(() => {
     if (!open) {
       setSearch('');
@@ -66,6 +75,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
   const activePreset = presets.find((p) => matchesSettings(p, settings)) ?? null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent hideClose className="top-[18%] max-w-xl translate-y-0 p-0">
         <DialogTitle className="sr-only">Command palette</DialogTitle>
@@ -121,9 +131,12 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                       onSelect={() =>
                         run(() => {
                           const store = useTimerStore.getState();
-                          if (timer.status === 'paused') store.resume();
-                          else void store.startSession('focus');
-                          onOpenFocus();
+                          if (timer.status === 'paused') {
+                            store.resume();
+                            onOpenFocus();
+                            return;
+                          }
+                          begin(store.taskId, store.taskTitle);
                         })
                       }
                     />
@@ -268,13 +281,7 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
                     icon={CheckSquare}
                     label={task.title}
                     hint={`${task.completedSessions}/${task.estimatedSessions} sessions`}
-                    onSelect={() =>
-                      run(() => {
-                        useTimerStore.getState().setTask(task.id, task.title);
-                        void useTimerStore.getState().startSession('focus');
-                        onOpenFocus();
-                      })
-                    }
+                    onSelect={() => run(() => begin(task.id, task.title))}
                   />
                 ))}
               </Group>
@@ -283,6 +290,15 @@ export function CommandPalette({ open, onOpenChange, onOpenFocus }: CommandPalet
         </Command>
       </DialogContent>
     </Dialog>
+
+    {/* Outside the palette's own dialog, which has closed by the time this opens. */}
+    <MoodCheckDialog
+      open={moodOpen}
+      onOpenChange={setMoodOpen}
+      onConfirm={confirmMood}
+      taskTitle={pendingTaskTitle}
+    />
+    </>
   );
 }
 

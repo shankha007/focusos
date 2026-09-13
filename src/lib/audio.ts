@@ -101,6 +101,9 @@ const DEFAULT_VOLUME = 0.4;
 /** Loud enough to notice at full volume, without the end of a session arriving as a jolt. */
 const CHIME_PEAK_MAX = 0.3;
 
+/** The tick sits well under the chime — a clock in the room, not a metronome. */
+const TICK_LEVEL = 0.25;
+
 /**
  * How loud the completion chime should peak for a given volume setting.
  *
@@ -186,6 +189,53 @@ export class AmbientEngine {
     if (this.warnedUnavailable) return;
     this.warnedUnavailable = true;
     console.warn('FocusOS could not play sound — usually the browser waiting for a click first', error);
+  }
+
+  /**
+   * Creates and resumes the audio context from inside a user gesture.
+   *
+   * Browsers only let audio start in response to a click or a key press. A
+   * sound played on a timer — the ticking clock — has no gesture of its own, so
+   * starting a session unlocks the context for it ahead of time.
+   */
+  async prime(): Promise<void> {
+    try {
+      const ctx = this.ensureContext();
+      if (ctx.state === 'suspended') await ctx.resume();
+    } catch (error) {
+      this.noteUnavailable(error);
+    }
+  }
+
+  /**
+   * One tick of the optional ticking clock: a short, dry click, well under the
+   * chime and following the same volume setting.
+   *
+   * A context that is not running is left alone rather than resumed. Ticks come
+   * from an interval, not a gesture, so a resume would be refused every second;
+   * the context is unlocked when the session starts instead (see `prime`).
+   */
+  tick(volume = this.volume): void {
+    const peak = chimePeak(volume) * TICK_LEVEL;
+    if (peak <= 0) return;
+
+    try {
+      const ctx = this.ensureContext();
+      if (ctx.state !== 'running') return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = 1400;
+      const start = ctx.currentTime;
+      gain.gain.setValueAtTime(peak, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.03);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.04);
+    } catch (error) {
+      this.noteUnavailable(error);
+    }
   }
 
   /** Changes the master volume with a short ramp, so the level never steps audibly. */

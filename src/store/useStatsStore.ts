@@ -14,6 +14,8 @@ interface StatsState {
   addDistraction: (distraction: Distraction) => void;
   /** Drops every distraction logged against a session that was never written. */
   removeDistractionsForSession: (sessionId: string) => void;
+  /** Drops a deleted session, and the distractions that belonged to it. */
+  removeSession: (sessionId: string) => void;
 }
 
 /** Orders like IndexedDB does: by the indexed field, then by primary key, compared by code unit. */
@@ -81,5 +83,12 @@ export const useStatsStore = create<StatsState>((set) => ({
       // compare by identity do not re-render for a change that did not happen.
       return kept.length === state.distractions.length ? state : { distractions: kept };
     });
+  },
+
+  removeSession: (sessionId) => {
+    set((state) => ({
+      sessions: state.sessions.filter((s) => s.id !== sessionId),
+      distractions: state.distractions.filter((d) => d.sessionId !== sessionId),
+    }));
   },
 }));
