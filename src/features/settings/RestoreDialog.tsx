@@ -25,8 +25,13 @@ import { usePresetStore } from '@/store/usePresetStore';
 import { clearPersistedTimer, useTimerStore } from '@/store/useTimerStore';
 import { cn, pluralize } from '@/lib/utils';
 
-/** Anything larger is not a backup this app wrote; refuse before parsing. */
-const MAX_BYTES = 100 * 1024 * 1024;
+/**
+ * Anything larger is not a backup this app wrote; refuse before parsing. Years
+ * of heavy daily use export to a few megabytes, and the file is parsed in one
+ * go on the main thread, so a generous-but-real ceiling keeps a crafted file
+ * from freezing the tab.
+ */
+const MAX_BYTES = 25 * 1024 * 1024;
 
 /** Restores a backup file in three steps: pick it, review what parsed out of it, then confirm. Nothing is written to the database until the last one, and a replace additionally has to be typed out. */
 export function RestoreDialog({
