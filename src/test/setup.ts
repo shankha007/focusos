@@ -1,3 +1,6 @@
+// Runs under Node, but lives in the app's tsconfig, which deliberately leaves
+// Node's types out so app code cannot reach for them.
+/// <reference types="node" />
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";

@@ -1,3 +1,6 @@
+// Runs under Node, but lives in the app's tsconfig, which deliberately leaves
+// Node's types out so app code cannot reach for them.
+/// <reference types="node" />
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

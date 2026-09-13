@@ -104,29 +104,38 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
       // jsPDF's optional dependencies, which only its `doc.html()` and SVG
       // paths use. The report is built from autoTable alone, so these were
       // ~370 KB of build output that no visitor could ever execute — and the
       // service worker precached all of it. See the stub for the details.
-      canvg: path.resolve(__dirname, "./src/lib/pdfOptionalDependency.ts"),
-      dompurify: path.resolve(__dirname, "./src/lib/pdfOptionalDependency.ts"),
-      html2canvas: path.resolve(__dirname, "./src/lib/pdfOptionalDependency.ts"),
+      canvg: path.resolve(import.meta.dirname, "./src/lib/pdfOptionalDependency.ts"),
+      dompurify: path.resolve(import.meta.dirname, "./src/lib/pdfOptionalDependency.ts"),
+      html2canvas: path.resolve(import.meta.dirname, "./src/lib/pdfOptionalDependency.ts"),
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         // Only libraries that are genuinely on the first-paint path belong
-        // here. Naming a package as a manual chunk makes it a static import of
+        // here. Naming a package as a chunk group makes it a static import of
         // the entry, which Vite then emits a <link rel="modulepreload"> for —
         // so listing "recharts" here quietly undid the lazy import of the
         // analytics page and downloaded 103 KB of charting on the landing
-        // page. Left alone, Rollup puts it in the async chunk that actually
+        // page. Left alone, Rolldown puts it in the async chunk that actually
         // uses it.
-        manualChunks: {
-          react: ["react", "react-dom", "react-router-dom"],
-          motion: ["framer-motion"],
+        //
+        // Rolldown dropped Rollup's object form of `manualChunks`; these
+        // groups are its equivalent. The `[\\/]` separators keep the patterns
+        // matching on Windows checkouts as well as the Linux build.
+        codeSplitting: {
+          groups: [
+            {
+              name: "react",
+              test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
+            },
+            { name: "motion", test: /node_modules[\\/](framer-motion|motion-dom|motion-utils)[\\/]/ },
+          ],
         },
       },
     },
