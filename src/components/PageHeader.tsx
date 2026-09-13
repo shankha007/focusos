@@ -8,13 +8,16 @@ export function PageHeader({
   subtitle?: string;
   action?: React.ReactNode;
 }) {
+  // The action drops below the title when the two do not fit side by side, and
+  // may never be wider than the header. Without both, Analytics' four export
+  // buttons ran 180px past the edge of a phone and dragged the page sideways.
   return (
-    <div className="mb-6 flex items-start justify-between gap-4">
-      <div>
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+      <div className="min-w-0">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
         {subtitle && <p className="mt-1 text-[13px] text-muted">{subtitle}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="max-w-full shrink-0">{action}</div>}
     </div>
   );
 }
