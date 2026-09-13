@@ -30,6 +30,24 @@ export function generateReflection(
   const completed = focus.filter((s) => s.completed);
   const totalMs = focusTimeMs(sessions);
 
+  // Sessions were started but none ran to the end. This day used to fall into
+  // the "nothing logged" branch below, which contradicted the focus time the
+  // dashboard shows beside it and skipped the one advice that fits it best.
+  if (completed.length === 0 && focus.length > 0) {
+    const avgPlanned = mean(focus.map((s) => s.plannedMs))!;
+    return {
+      headline: 'No session finished yet today',
+      summary: `You started ${focus.length} ${pluralize(focus.length, 'session')} and focused for ${formatDuration(totalMs)}, but none ran to the end.`,
+      accomplishments: [],
+      bestWindow: null,
+      distractionNote: null,
+      recommendations: [
+        `Try dropping to ${Math.max(15, Math.round(avgPlanned / MINUTE) - 10)} minutes — a shorter session you finish beats a long one you don't.`,
+      ],
+      tone: 'building',
+    };
+  }
+
   if (completed.length === 0) {
     return {
       headline: 'No sessions logged yet today',
