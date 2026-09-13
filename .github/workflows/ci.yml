@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Production dependencies only: a dev-tool advisory is worth knowing
+      # about, but it never reaches a visitor. Three shipped to production
+      # unremarked before this step existed, one of them critical.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       # First, because it is the fastest way to fail and the cheapest to fix.
       # Warnings are reported but do not fail the build — see the note on the
       # React Compiler rules in eslint.config.js.
@@ -42,3 +48,9 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      # What a visitor downloads, measured from the build that just ran. Vite's
+      # own chunk-size warning was printed on every build for months without
+      # anyone acting on it; a warning is not a gate.
+      - name: Bundle budget
+        run: npm run check:bundle

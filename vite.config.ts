@@ -31,20 +31,32 @@ export default defineConfig({
         // already been sold on it, so the installed entry point skips straight
         // to the workspace.
         start_url: "/dashboard",
+        // Pinned to what browsers have been deriving it from. With no `id`, an
+        // installed app is identified by its start_url; declaring anything else
+        // here would make every existing install look like a different app.
+        id: "/dashboard",
         scope: "/",
+        categories: ["productivity", "utilities"],
+        // Long-press / right-click menu on the installed icon. Both land on
+        // routes the app already handles — /tasks?new=1 opens the new-task dialog.
+        shortcuts: [
+          { name: "New task", short_name: "New task", url: "/tasks?new=1" },
+          { name: "Analytics", short_name: "Analytics", url: "/analytics" },
+        ],
         icons: [
-          {
-            src: "icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any maskable",
-          },
-          {
-            src: "icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable",
-          },
+          // The same artwork serves both purposes, and that is measured rather
+          // than assumed. A maskable icon is cropped to whatever shape the
+          // platform uses, so its foreground must stay inside a centred circle
+          // of radius 40%; this ring reaches 31.6%, and the gradient runs
+          // full-bleed to every corner. A padded copy was tried and was worse —
+          // a smaller ring behind a visible seam where the padding met the
+          // gradient. Declared as separate entries so that swapping in artwork
+          // that does not fit the safe zone means changing one line, not
+          // untangling a combined "any maskable".
+          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
       workbox: {
@@ -55,6 +67,10 @@ export default defineConfig({
           // spend 147 KB of every visitor's offline storage on something they
           // never see.
           "**/og-image.png",
+          // Install-time artwork for iOS. The OS reads it once when the app is
+          // added to a home screen; the running app never draws it, so it has
+          // no business in every visitor's offline storage.
+          "**/apple-touch-icon.png",
           // jsPDF and its autoTable plugin are ~410 KB behind one button on one
           // screen. Every other chunk here is something the app will render for
           // a user who simply opens it; these two are not, and precaching them
