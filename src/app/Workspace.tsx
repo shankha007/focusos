@@ -6,6 +6,7 @@ import { DeepFocusMode } from '@/features/focus/DeepFocusMode';
 import { SessionReviewDialog } from '@/features/focus/SessionReviewDialog';
 import { ParkedThoughtsDialog } from '@/features/focus/ParkedThoughtsDialog';
 import { ResetConfirmDialog } from '@/features/focus/ResetConfirmDialog';
+import { RouteAnnouncer } from './RouteAnnouncer';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
@@ -132,6 +133,7 @@ function Chrome() {
       <SessionReviewDialog />
       <ParkedThoughtsDialog />
       <ResetConfirmDialog />
+      <RouteAnnouncer />
 
       <Toaster
         position="bottom-right"
