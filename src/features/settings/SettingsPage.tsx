@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createContext, useContext, useId, useState } from 'react';
 import { toast } from 'sonner';
 import {
   Bell,
@@ -36,11 +36,8 @@ import { CategoryPresetMap, PresetManager } from './PresetManager';
 import { RestoreDialog } from './RestoreDialog';
 import { THEME_OPTIONS } from './themes';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { useTaskStore } from '@/store/useTaskStore';
-import { useStatsStore } from '@/store/useStatsStore';
-import { clearPersistedTimer } from '@/store/useTimerStore';
 import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
-import { clearAllData } from '@/db/repositories';
+import { resetAllData } from '@/store/resetAllData';
 import { exportJson } from '@/lib/export';
 import { requestNotificationPermission, notificationPermission } from '@/lib/notifications';
 import { MINUTE, cn, clamp } from '@/lib/utils';
@@ -128,7 +125,7 @@ export function SettingsPage() {
               label="Auto-start breaks"
               description="Roll into a break the moment focus ends."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.autoStartBreaks}
                 onCheckedChange={(v) => void update({ autoStartBreaks: v })}
               />
@@ -138,7 +135,7 @@ export function SettingsPage() {
               label="Auto-start focus"
               description="Jump straight back in after a break. Off by default — breaks should end deliberately."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.autoStartFocus}
                 onCheckedChange={(v) => void update({ autoStartFocus: v })}
               />
@@ -209,7 +206,7 @@ export function SettingsPage() {
           <SoundPicker />
           <div className="mt-4 space-y-1">
             <SettingRow label="Completion chime" description="A soft tone when a session ends.">
-              <Switch
+              <RowSwitch
                 checked={settings.chimeEnabled}
                 onCheckedChange={(v) => void update({ chimeEnabled: v })}
               />
@@ -218,7 +215,7 @@ export function SettingsPage() {
               label="Ticking clock"
               description="A quiet tick every second during focus. Steadying for some people, distracting for most — which is why it is off."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.tickingEnabled}
                 onCheckedChange={(v) => void update({ tickingEnabled: v })}
               />
@@ -237,7 +234,7 @@ export function SettingsPage() {
               label="Ask mood before sessions"
               description="Two taps. Unlocks the mood-vs-productivity analysis."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.askMoodBefore}
                 onCheckedChange={(v) => void update({ askMoodBefore: v })}
               />
@@ -246,7 +243,7 @@ export function SettingsPage() {
               label="Ask productivity after sessions"
               description="Feeds your focus score, reflections, and session-length recommendations."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.askProductivityAfter}
                 onCheckedChange={(v) => void update({ askProductivityAfter: v })}
               />
@@ -255,7 +252,7 @@ export function SettingsPage() {
               label="Adaptive recommendations"
               description="Learn optimal session lengths and peak hours from your history."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.adaptiveEnabled}
                 onCheckedChange={(v) => void update({ adaptiveEnabled: v })}
               />
@@ -274,7 +271,7 @@ export function SettingsPage() {
               label="Water break reminder"
               description="Shows a one-tap water tracker during short and long breaks."
             >
-              <Switch
+              <RowSwitch
                 checked={settings.hydrationEnabled}
                 onCheckedChange={(v) => void update({ hydrationEnabled: v })}
               />
@@ -303,7 +300,7 @@ export function SettingsPage() {
                 : 'Fires when focus or a break completes.'
             }
           >
-            <Switch
+            <RowSwitch
               checked={settings.notificationsEnabled}
               disabled={notificationPermission() === 'denied'}
               onCheckedChange={async (v) => {
@@ -331,7 +328,7 @@ export function SettingsPage() {
                   : 'Removes ambient animation and transitions. Your system setting turns this on automatically.'
               }
             >
-              <Switch
+              <RowSwitch
                 checked={settings.reducedMotion || systemReducedMotion}
                 // The OS asking for less motion is not something an in-app
                 // switch should be able to overrule, so the control reads as on
@@ -346,7 +343,7 @@ export function SettingsPage() {
             >
               <span className="flex items-center gap-2">
                 <Contrast className="h-3.5 w-3.5 text-subtle" />
-                <Switch
+                <RowSwitch
                   checked={settings.highContrast}
                   onCheckedChange={(v) => void update({ highContrast: v })}
                 />
@@ -435,7 +432,20 @@ function Section({
   );
 }
 
-/** One setting: label and explanation on the left, its control on the right. */
+/** What a control inside a SettingRow needs to name itself after the row it sits in. */
+const SettingRowContext = createContext<{
+  label: string;
+  labelId: string;
+  descriptionId?: string;
+} | null>(null);
+
+/**
+ * One setting: label and explanation on the left, its control on the right.
+ *
+ * The label used to be a bare paragraph with nothing tying it to the control,
+ * so every switch on this page reached a screen reader as an anonymous "switch,
+ * on". The row now hands its label and description ids to the control inside it.
+ */
 function SettingRow({
   label,
   description,
@@ -445,15 +455,33 @@ function SettingRow({
   description?: string;
   children: React.ReactNode;
 }) {
+  const id = useId();
+  const labelId = `${id}-label`;
+  const descriptionId = description ? `${id}-description` : undefined;
+
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5">
-      <div className="min-w-0">
-        <p className="text-[13px] font-medium">{label}</p>
-        {description && <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{description}</p>}
+    <SettingRowContext.Provider value={{ label, labelId, descriptionId }}>
+      <div className="flex items-center justify-between gap-4 py-2.5">
+        <div className="min-w-0">
+          <p id={labelId} className="text-[13px] font-medium">
+            {label}
+          </p>
+          {description && (
+            <p id={descriptionId} className="mt-0.5 text-[12px] leading-relaxed text-muted">
+              {description}
+            </p>
+          )}
+        </div>
+        <div className="shrink-0">{children}</div>
       </div>
-      <div className="shrink-0">{children}</div>
-    </div>
+    </SettingRowContext.Provider>
   );
+}
+
+/** A switch named and described by the SettingRow around it. */
+function RowSwitch(props: React.ComponentProps<typeof Switch>) {
+  const row = useContext(SettingRowContext);
+  return <Switch aria-labelledby={row?.labelId} aria-describedby={row?.descriptionId} {...props} />;
 }
 
 /** A slider for a duration, stored in milliseconds but edited in whole minutes. */
@@ -489,7 +517,7 @@ function MinuteField({
   );
 }
 
-/** A small −/+ control for a count, clamped to the given range. */
+/** A small −/+ control for a count, clamped to the given range. Its buttons say which setting they change — three of these share a page, and "Increase" alone does not say which. */
 function NumberStepper({
   value,
   min,
@@ -501,13 +529,20 @@ function NumberStepper({
   max: number;
   onChange: (v: number) => void;
 }) {
+  const row = useContext(SettingRowContext);
+  const subject = row ? ` ${row.label.toLowerCase()}` : '';
+
   return (
-    <div className="flex h-9 w-[104px] items-center justify-between rounded-xl border border-border bg-bg px-1">
+    <div
+      role="group"
+      aria-labelledby={row?.labelId}
+      className="flex h-9 w-[104px] items-center justify-between rounded-xl border border-border bg-bg px-1"
+    >
       <Button
         size="icon-sm"
         variant="ghost"
         onClick={() => onChange(clamp(value - 1, min, max))}
-        aria-label="Decrease"
+        aria-label={`Decrease${subject}`}
       >
         −
       </Button>
@@ -516,7 +551,7 @@ function NumberStepper({
         size="icon-sm"
         variant="ghost"
         onClick={() => onChange(clamp(value + 1, min, max))}
-        aria-label="Increase"
+        aria-label={`Increase${subject}`}
       >
         +
       </Button>
@@ -528,12 +563,9 @@ function NumberStepper({
 function ResetDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [confirmText, setConfirmText] = useState('');
 
-  /** Clears the data, reloads the stores, and drops any timer left in localStorage. */
+  /** Erases everything, including whatever is on the clock — see resetAllData. */
   const reset = async () => {
-    await clearAllData();
-    await Promise.all([useTaskStore.getState().load(), useStatsStore.getState().refresh()]);
-    await useSettingsStore.getState().update({ xp: 0 });
-    clearPersistedTimer();
+    await resetAllData();
     setConfirmText('');
     onOpenChange(false);
     toast.success('All data cleared.');

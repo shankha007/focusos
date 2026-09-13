@@ -212,7 +212,7 @@ export function AnalyticsPage() {
         title="Analytics"
         subtitle="Everything here is computed locally from your own session history."
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="secondary" size="sm" onClick={() => exportSessionsCsv(sessions)}>
               <Sheet className="h-3.5 w-3.5" />
               Sessions CSV

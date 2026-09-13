@@ -82,6 +82,20 @@ if (!globalThis.crypto?.randomUUID) {
   vi.stubGlobal("crypto", webcrypto);
 }
 
+// Radix measures sliders and select triggers with ResizeObserver as they mount,
+// and jsdom has no layout to observe. An observer that never reports is what a
+// browser would do for an element whose size never changes.
+if (!("ResizeObserver" in globalThis)) {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+}
+
 afterEach(() => {
   cleanup();
 });

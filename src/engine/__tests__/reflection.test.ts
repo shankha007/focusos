@@ -73,6 +73,22 @@ describe('generateReflection', () => {
     expect(r.recommendations.join(' ')).toMatch(/shorter session|Try dropping/i);
   });
 
+  it('owns up to a day where every session was abandoned', () => {
+    const sessions = [
+      session({ completed: false, actualMs: 12 * MINUTE }),
+      session({ completed: false, actualMs: 8 * MINUTE }),
+    ];
+    const r = generateReflection(sessions, [], CATEGORIES, [], 4);
+
+    // This day used to be reported as "No sessions logged yet today", beside a
+    // focus-time card showing the twenty minutes those sessions logged.
+    expect(r.headline).not.toMatch(/No sessions logged/);
+    expect(r.summary).toContain('started 2 sessions');
+    expect(r.summary).toContain('20m');
+    // And it is exactly the day the shorter-session advice is for.
+    expect(r.recommendations.join(' ')).toMatch(/Try dropping/);
+  });
+
   it('uses what the user wrote as accomplishments', () => {
     const r = generateReflection(
       [session({ accomplishment: 'Finished the migration script' })],

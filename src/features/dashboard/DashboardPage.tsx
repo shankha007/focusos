@@ -22,6 +22,7 @@ import { ActivityFeed } from './ActivityFeed';
 import { WelcomeCard } from './WelcomeCard';
 import { shouldShowWelcome } from './onboarding';
 import { ReflectionCard } from './ReflectionCard';
+import { todaySubtitle } from './todaySummary';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -67,11 +68,7 @@ export function DashboardPage() {
     <PageContainer>
       <PageHeader
         title={`${greeting}.`}
-        subtitle={
-          today.completed > 0
-            ? `${today.completed} ${pluralize(today.completed, 'session')} done today — ${formatDuration(today.focusMs)} of focus.`
-            : 'Nothing logged yet today. One session is enough to start.'
-        }
+        subtitle={todaySubtitle(today.completed, today.focusMs)}
         action={
           <Button onClick={() => begin(nextTask?.id ?? null, nextTask?.title ?? null)}>
             <Play className="h-4 w-4" />
