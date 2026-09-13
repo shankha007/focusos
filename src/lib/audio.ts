@@ -92,6 +92,29 @@ function makeNoiseBuffer(ctx: AudioContext, type: NoiseType): AudioBuffer {
   return buffer;
 }
 
+/** The chime's peak gain at the default volume — the level it has always played at. */
+const CHIME_PEAK = 0.18;
+
+/** The volume setting's shipped default, which the chime is calibrated against. */
+const DEFAULT_VOLUME = 0.4;
+
+/** Loud enough to notice at full volume, without the end of a session arriving as a jolt. */
+const CHIME_PEAK_MAX = 0.3;
+
+/**
+ * How loud the completion chime should peak for a given volume setting.
+ *
+ * The chime used to play at a fixed gain, so turning ambience down to a whisper
+ * still ended every session with a full-level tone — in headphones, mid deep
+ * focus, which is exactly where it lands hardest. It now follows the volume
+ * setting, scaled so that the default sounds exactly as it always has, and
+ * capped so the top of the slider cannot turn it into an alarm.
+ */
+export function chimePeak(volume: number): number {
+  const level = Math.min(1, Math.max(0, volume));
+  return Math.min(CHIME_PEAK_MAX, CHIME_PEAK * (level / DEFAULT_VOLUME));
+}
+
 /** One voice of a soundscape: the nodes it created, and the call that silences and disconnects them. */
 interface Layer {
   nodes: AudioNode[];
@@ -104,7 +127,8 @@ export class AmbientEngine {
   private master: GainNode | null = null;
   private layers: Layer[] = [];
   private current: SoundId | null = null;
-  private volume = 0.4;
+  private volume = DEFAULT_VOLUME;
+  private warnedUnavailable = false;
 
   /** Lazily creates the AudioContext on first use — building one before a user gesture would start it suspended. */
   private ensureContext(): AudioContext {
@@ -127,21 +151,41 @@ export class AmbientEngine {
 
   /** Switches to soundscape `id`, replacing anything already playing and fading in. */
   async play(id: SoundId, volume = this.volume): Promise<void> {
-    const ctx = this.ensureContext();
-    if (ctx.state === 'suspended') await ctx.resume();
+    try {
+      const ctx = this.ensureContext();
+      if (ctx.state === 'suspended') await ctx.resume();
 
-    this.stopLayers();
-    this.current = id;
-    this.volume = volume;
+      this.stopLayers();
+      this.current = id;
+      this.volume = volume;
 
-    const build = BUILDERS[id];
-    this.layers = build(ctx, this.master!);
+      const build = BUILDERS[id];
+      this.layers = build(ctx, this.master!);
 
-    // Fade in rather than snapping on — an abrupt start is jarring mid-focus.
-    const now = ctx.currentTime;
-    this.master!.gain.cancelScheduledValues(now);
-    this.master!.gain.setValueAtTime(this.master!.gain.value, now);
-    this.master!.gain.linearRampToValueAtTime(volume, now + 1.2);
+      // Fade in rather than snapping on — an abrupt start is jarring mid-focus.
+      const now = ctx.currentTime;
+      this.master!.gain.cancelScheduledValues(now);
+      this.master!.gain.setValueAtTime(this.master!.gain.value, now);
+      this.master!.gain.linearRampToValueAtTime(volume, now + 1.2);
+    } catch (error) {
+      this.noteUnavailable(error);
+    }
+  }
+
+  /**
+   * Records that sound could not be made, once.
+   *
+   * Every caller fires `play` and `chime` with `void`, so a rejection went
+   * nowhere — an unhandled rejection in the console, and no clue why a session
+   * ended silently. A context created without a user gesture starts suspended
+   * and browsers enforcing autoplay rules refuse to resume it; a browser with no
+   * Web Audio at all throws on construction. Neither is worth interrupting
+   * anyone over, so both resolve quietly after one note.
+   */
+  private noteUnavailable(error: unknown): void {
+    if (this.warnedUnavailable) return;
+    this.warnedUnavailable = true;
+    console.warn('FocusOS could not play sound — usually the browser waiting for a click first', error);
   }
 
   /** Changes the master volume with a short ramp, so the level never steps audibly. */
@@ -176,25 +220,41 @@ export class AmbientEngine {
     this.layers = [];
   }
 
-  /** A short, soft chime for session transitions. */
-  async chime(kind: 'complete' | 'start' = 'complete'): Promise<void> {
-    const ctx = this.ensureContext();
-    if (ctx.state === 'suspended') await ctx.resume();
+  /**
+   * A short, soft chime for session transitions, at a level that follows the
+   * volume setting — see `chimePeak`.
+   *
+   * It connects straight to the destination rather than through the master
+   * gain, deliberately. The master is what ambience fades on, and `stop` ramps
+   * it to zero at the very moment a session completes — routed through it, the
+   * completion chime would be silenced by the completion.
+   */
+  async chime(kind: 'complete' | 'start' = 'complete', volume = this.volume): Promise<void> {
+    const peak = chimePeak(volume);
+    // Silent is silent: do not build a graph, or even a context, for nothing.
+    if (peak <= 0) return;
 
-    const notes = kind === 'complete' ? [523.25, 659.25, 783.99] : [783.99, 523.25];
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const start = ctx.currentTime + i * 0.14;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.18, start + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 1.2);
-    });
+    try {
+      const ctx = this.ensureContext();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      const notes = kind === 'complete' ? [523.25, 659.25, 783.99] : [783.99, 523.25];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = ctx.currentTime + i * 0.14;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(peak, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 1.2);
+      });
+    } catch (error) {
+      this.noteUnavailable(error);
+    }
   }
 
   /** Releases the AudioContext entirely. Call when the engine will not be used again. */

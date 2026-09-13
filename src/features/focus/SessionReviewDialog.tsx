@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { RatingPicker } from './RatingPicker';
 import { useTimerStore } from '@/store/useTimerStore';
-import { useStatsStore } from '@/store/useStatsStore';
 import { formatDuration } from '@/lib/utils';
 
 /** Post-session debrief. Kept to two fields — anything longer gets skipped. */
@@ -35,7 +34,6 @@ export function SessionReviewDialog() {
   /** Files the rating and note against the finished session. An unanswered rating is stored as the neutral middle. */
   const save = async () => {
     await submitReview(productivity ?? 3, accomplishment);
-    await useStatsStore.getState().refresh();
   };
 
   return (

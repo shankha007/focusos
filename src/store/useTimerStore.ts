@@ -47,6 +47,9 @@ const completing = new Set<number>();
 async function discardOrphanDistractions(sessionId: string): Promise<void> {
   if (await sessionsRepo.get(sessionId)) return;
   await distractionsRepo.removeForSession(sessionId);
+  // This used to be picked up by a full history reload whenever the timer went
+  // idle. That reload is gone, so the in-memory copy is updated here directly.
+  useStatsStore.getState().removeDistractionsForSession(sessionId);
 }
 
 /**
@@ -443,7 +446,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     const upcomingDuration = durationForType(upcoming, settings);
 
     if (timer.type === 'focus') ambient.stop();
-    if (settings.chimeEnabled && completed) void ambient.chime('complete');
+    if (settings.chimeEnabled && completed) void ambient.chime('complete', settings.soundVolume);
 
     if (completed && settings.notificationsEnabled) {
       // The break notification is the one moment the user is guaranteed to be
@@ -485,7 +488,10 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       pendingParked: parked,
     });
     persist(get());
-    await useStatsStore.getState().refresh();
+    // Apply the one change this made to the in-memory history, rather than
+    // re-reading every session and distraction ever logged to find it.
+    if (meaningful || completed) useStatsStore.getState().upsertSession(session);
+    else if (state.sessionId) useStatsStore.getState().removeDistractionsForSession(state.sessionId);
     completing.delete(timer.startedAt);
 
     const shouldAutoStart =
@@ -510,7 +516,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   logDistraction: async (categoryId, note, park = false) => {
     const state = get();
     if (!state.sessionId) return;
-    await distractionsRepo.add({
+    const row = await distractionsRepo.add({
       sessionId: state.sessionId,
       categoryId,
       note,
@@ -520,6 +526,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       // otherwise, and an empty task would just be noise at session end.
       parked: park && Boolean(note) ? true : undefined,
     });
+    useStatsStore.getState().addDistraction(row);
     set({ distractionCount: state.distractionCount + 1 });
     persist(get());
   },
@@ -528,10 +535,12 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   submitReview: async (productivity, accomplishment) => {
     const review = get().pendingReview;
     if (!review) return;
-    await sessionsRepo.update(review.id, {
+    const patch = {
       productivityAfter: productivity,
       accomplishment: accomplishment.trim() || undefined,
-    });
+    };
+    await sessionsRepo.update(review.id, patch);
+    useStatsStore.getState().upsertSession({ ...review, ...patch });
     set({ pendingReview: null });
     get().resumeAfterPrompts();
   },

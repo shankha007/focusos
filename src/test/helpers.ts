@@ -2,7 +2,7 @@ import { db } from "@/db/schema";
 import type { Session, Task } from "@/types";
 import { useHydrationStore } from "@/store/useHydrationStore";
 import { usePresetStore } from "@/store/usePresetStore";
-import { useSettingsStore } from "@/store/useSettingsStore";
+import { stopFollowingSystem, useSettingsStore } from "@/store/useSettingsStore";
 import { useStatsStore } from "@/store/useStatsStore";
 import { useTaskStore } from "@/store/useTaskStore";
 import { useTimerStore } from "@/store/useTimerStore";
@@ -32,6 +32,10 @@ export async function resetApp(): Promise<void> {
   // under them turns the next test's output into a wall of DatabaseClosedError
   // that has nothing to do with what it was checking. Let them drain first.
   await drainPendingWork();
+
+  // Settings attach their OS listeners once per page. A test that re-mocks
+  // matchMedia needs the next load to attach to its mock, not keep the last one.
+  stopFollowingSystem();
 
   localStorage.clear();
   if (db.isOpen()) db.close();
