@@ -8,7 +8,9 @@ import type {
   HydrationLog,
   Session,
   Settings,
+  SoundId,
   Task,
+  ThemePreference,
   TimerPreset,
 } from '@/types';
 
@@ -69,9 +71,16 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** The value if it is a string, else undefined. */
+/**
+ * Longest string a backup field may carry. Far past anything typed into a
+ * title or note, but it stops a crafted file from stuffing megabytes into a
+ * single cell that every list and chart then has to render.
+ */
+const MAX_TEXT = 20_000;
+
+/** The value if it is a string of a sane length, else undefined. */
 function str(v: unknown): string | undefined {
-  return typeof v === 'string' ? v : undefined;
+  return typeof v === 'string' && v.length <= MAX_TEXT ? v : undefined;
 }
 
 /** The value if it is a finite number — NaN and Infinity are rejected. */
@@ -98,7 +107,7 @@ function rating(v: unknown): 1 | 2 | 3 | 4 | 5 | undefined {
 
 /** The string members of an array, dropping anything else; [] for a non-array. */
 function strings(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  return Array.isArray(v) ? v.filter((x): x is string => str(x) !== undefined) : [];
 }
 
 /* ── Row validators ────────────────────────────────────────── */
@@ -106,6 +115,28 @@ function strings(v: unknown): string[] {
 const STATUSES = ['todo', 'active', 'done', 'archived'] as const;
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 const SESSION_TYPES = ['focus', 'short-break', 'long-break'] as const;
+const THEMES: readonly ThemePreference[] = [
+  'system',
+  'light',
+  'dark',
+  'minimal',
+  'midnight',
+  'amoled',
+  'forest',
+  'ocean',
+  'sunset',
+  'lavender',
+];
+const SOUNDS: readonly SoundId[] = [
+  'rain',
+  'forest',
+  'ocean',
+  'cafe',
+  'white',
+  'brown',
+  'fireplace',
+  'wind',
+];
 
 /** Validates one row into a Task, or null if it has no id or title. Every other field falls back to the default a freshly created task would have. */
 function toTask(raw: unknown): Task | null {
@@ -251,32 +282,48 @@ function toHydration(raw: unknown): HydrationLog | null {
 }
 
 /**
- * Settings are merged over the current defaults rather than validated field by
- * field: an unknown key is harmless, and a missing one has a sane default. Only
- * the values that could break the app if malformed are checked.
+ * Settings are rebuilt key by key from the shipped defaults, like every other
+ * row: a known key keeps the file's value only when it has the right type (and,
+ * for union-typed fields, is one of the allowed members), a malformed or
+ * missing one falls back to the default, and a key this build does not know is
+ * dropped rather than written into the database.
  */
 function toSettings(raw: unknown): Settings | null {
   if (!isObject(raw)) return null;
-  const merged = { ...DEFAULT_SETTINGS, ...raw, id: 'settings' as const };
+  const d = DEFAULT_SETTINGS;
   /** Keeps a duration only if it is a positive number, else the shipped default. */
   const positive = (v: unknown, fallback: number) => {
     const n = num(v);
     return n !== undefined && n > 0 ? n : fallback;
   };
   return {
-    ...merged,
-    focusMs: positive(merged.focusMs, DEFAULT_SETTINGS.focusMs),
-    shortBreakMs: positive(merged.shortBreakMs, DEFAULT_SETTINGS.shortBreakMs),
-    longBreakMs: positive(merged.longBreakMs, DEFAULT_SETTINGS.longBreakMs),
-    sessionsUntilLongBreak: positive(
-      merged.sessionsUntilLongBreak,
-      DEFAULT_SETTINGS.sessionsUntilLongBreak,
-    ),
-    dailyGoalSessions: positive(merged.dailyGoalSessions, DEFAULT_SETTINGS.dailyGoalSessions),
-    dailyGlassGoal: positive(merged.dailyGlassGoal, DEFAULT_SETTINGS.dailyGlassGoal),
-    soundVolume: Math.min(1, Math.max(0, num(merged.soundVolume) ?? DEFAULT_SETTINGS.soundVolume)),
-    xp: Math.max(0, num(merged.xp) ?? 0),
-    createdAt: num(merged.createdAt) ?? Date.now(),
+    id: 'settings',
+    focusMs: positive(raw.focusMs, d.focusMs),
+    shortBreakMs: positive(raw.shortBreakMs, d.shortBreakMs),
+    longBreakMs: positive(raw.longBreakMs, d.longBreakMs),
+    sessionsUntilLongBreak: positive(raw.sessionsUntilLongBreak, d.sessionsUntilLongBreak),
+    // Null is meaningful here — cadence edited by hand, detached from any preset.
+    activePresetId: raw.activePresetId === null ? null : (str(raw.activePresetId) ?? d.activePresetId),
+    autoStartBreaks: bool(raw.autoStartBreaks) ?? d.autoStartBreaks,
+    autoStartFocus: bool(raw.autoStartFocus) ?? d.autoStartFocus,
+    dailyGoalSessions: positive(raw.dailyGoalSessions, d.dailyGoalSessions),
+    theme: oneOf(raw.theme, THEMES) ?? d.theme,
+    reducedMotion: bool(raw.reducedMotion) ?? d.reducedMotion,
+    highContrast: bool(raw.highContrast) ?? d.highContrast,
+    notificationsEnabled: bool(raw.notificationsEnabled) ?? d.notificationsEnabled,
+    soundEnabled: bool(raw.soundEnabled) ?? d.soundEnabled,
+    activeSound: raw.activeSound === null ? null : (oneOf(raw.activeSound, SOUNDS) ?? d.activeSound),
+    soundVolume: Math.min(1, Math.max(0, num(raw.soundVolume) ?? d.soundVolume)),
+    tickingEnabled: bool(raw.tickingEnabled) ?? d.tickingEnabled,
+    chimeEnabled: bool(raw.chimeEnabled) ?? d.chimeEnabled,
+    askMoodBefore: bool(raw.askMoodBefore) ?? d.askMoodBefore,
+    askProductivityAfter: bool(raw.askProductivityAfter) ?? d.askProductivityAfter,
+    adaptiveEnabled: bool(raw.adaptiveEnabled) ?? d.adaptiveEnabled,
+    hydrationEnabled: bool(raw.hydrationEnabled) ?? d.hydrationEnabled,
+    dailyGlassGoal: positive(raw.dailyGlassGoal, d.dailyGlassGoal),
+    onboarded: bool(raw.onboarded) ?? d.onboarded,
+    xp: Math.max(0, num(raw.xp) ?? 0),
+    createdAt: num(raw.createdAt) ?? Date.now(),
   };
 }
 

@@ -217,4 +217,54 @@ describe('parseBackup — dropping bad rows without failing the file', () => {
     expect(parsed.settings?.soundVolume).toBe(1);
     expect(parsed.settings?.xp).toBe(0);
   });
+
+  it('drops settings keys this build does not know', () => {
+    // Written as raw JSON: in an object literal `__proto__` sets the prototype
+    // rather than a key, but JSON.parse makes it an ordinary own property.
+    const parsed = parseBackup(
+      '{"version":2,"settings":[{"id":"settings","injected":"<script>","__proto__":{"polluted":true}}]}',
+    );
+    expect(parsed.settings).not.toHaveProperty('injected');
+    expect(Object.keys(parsed.settings ?? {}).sort()).toEqual(
+      Object.keys(parseBackup(file({ settings: [{}] })).settings ?? {}).sort(),
+    );
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('replaces settings values outside their allowed set', () => {
+    const parsed = parseBackup(
+      file({
+        settings: [
+          { theme: 'x" onload="alert(1)', activeSound: '../evil', soundEnabled: 'yes', highContrast: 1 },
+        ],
+      }),
+    );
+    expect(parsed.settings?.theme).toBe('system');
+    expect(parsed.settings?.activeSound).toBeNull();
+    expect(parsed.settings?.soundEnabled).toBe(false);
+    expect(parsed.settings?.highContrast).toBe(false);
+  });
+
+  it('keeps valid settings values, including a deliberate null', () => {
+    const parsed = parseBackup(
+      file({
+        settings: [{ theme: 'forest', activeSound: 'rain', activePresetId: null, onboarded: true }],
+      }),
+    );
+    expect(parsed.settings?.theme).toBe('forest');
+    expect(parsed.settings?.activeSound).toBe('rain');
+    expect(parsed.settings?.activePresetId).toBeNull();
+    expect(parsed.settings?.onboarded).toBe(true);
+  });
+
+  it('refuses oversized text instead of storing it', () => {
+    const huge = 'a'.repeat(20_001);
+    const parsed = parseBackup(
+      file({ tasks: [validTask, { ...validTask, id: 'task_2', title: huge }, { ...validTask, id: 'task_3', notes: huge, tags: [huge, 'ok'] }] }),
+    );
+    expect(parsed.rows.tasks.map((t) => t.id)).toEqual(['task_1', 'task_3']);
+    expect(parsed.skipped.tasks).toBe(1);
+    expect(parsed.rows.tasks[1].notes).toBeUndefined();
+    expect(parsed.rows.tasks[1].tags).toEqual(['ok']);
+  });
 });
