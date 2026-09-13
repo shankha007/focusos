@@ -116,11 +116,20 @@ export default tseslint.config(
   },
 
   /* ── Config files ──────────────────────────────────────────── */
+  // Two objects rather than one on purpose. `disableTypeChecked` carries its own
+  // `languageOptions`, so spreading it into an object that also sets Node
+  // globals silently replaced them — harmless while every file here was
+  // TypeScript, where no-undef is off, and wrong the moment a plain script
+  // referenced `process`. Flat config merges globals across objects, so keeping
+  // them apart is what makes both apply.
   {
-    files: ["*.config.{js,ts}", "postcss.config.js", "tailwind.config.js"],
+    files: ["*.config.{js,ts}", "postcss.config.js", "tailwind.config.js", "scripts/**/*.{js,mjs}"],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ["*.config.{js,ts}", "postcss.config.js", "tailwind.config.js", "scripts/**/*.{js,mjs}"],
     languageOptions: {
       globals: { ...globals.node },
     },
-    ...tseslint.configs.disableTypeChecked,
   },
 );
