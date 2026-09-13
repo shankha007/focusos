@@ -25,6 +25,7 @@ import { useHotkeys } from '@/hooks/useHotkeys';
 import { usePictureInPicture } from '@/hooks/usePictureInPicture';
 import { cn, formatClock, formatTime } from '@/lib/utils';
 import { labelForType, progress as progressOf, projectedEndAt, remainingMs } from '@/engine/timerEngine';
+import { countdownAnnouncement } from './milestones';
 
 /** The full-screen session view: nothing but the ring, the time, and the controls. Everything here is reachable from the keyboard — space to start or pause, N to skip, D to log a distraction, S for sound, P to float the timer, Esc to leave. */
 export function DeepFocusMode({ onClose }: { onClose: () => void }) {
@@ -238,13 +239,9 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
           </div>
         </TimerRing>
 
-        {/* Screen-reader announcement, throttled to meaningful moments only */}
-        <p className="sr-only" aria-live="polite">
-          {timer.status === 'paused'
-            ? 'Timer paused'
-            : running
-              ? `${labelForType(timer.type)} in progress`
-              : 'Timer stopped'}
+        {/* Silent every second, spoken at the milestones — see countdownAnnouncement. */}
+        <p className="sr-only" aria-live="polite" aria-atomic="true">
+          {countdownAnnouncement(timer)}
         </p>
 
         {/* Controls */}

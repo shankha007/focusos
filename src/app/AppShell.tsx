@@ -70,6 +70,21 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
 
   return (
     <div className="flex h-full bg-bg">
+      {/* The first thing a keyboard reaches. Without it every page began with the
+          logo, five navigation links and the command button before any content.
+          Focus is moved in code rather than by following href="#main", which
+          would add a fragment to the router's URL for no reason. */}
+      <a
+        href="#main"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById('main')?.focus();
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-xl focus:bg-accent focus:px-3 focus:py-2 focus:text-[13px] focus:font-medium focus:text-accent-fg"
+      >
+        Skip to content
+      </a>
+
       {/* Desktop sidebar */}
       <aside className="hidden w-[228px] shrink-0 flex-col border-r border-border bg-surface/50 px-3 py-4 lg:flex">
         {/* The logo is the way back out to the landing page — the usual
@@ -82,7 +97,9 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
           <Logo size={38} active={running} />
         </button>
 
-        <nav className="flex flex-col gap-0.5">
+        {/* Named, because there are two navigation landmarks in this file. Only
+            one is ever rendered at a given breakpoint, so they share a name. */}
+        <nav aria-label="Primary" className="flex flex-col gap-0.5">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to}>
               {({ isActive }) => (
@@ -186,7 +203,7 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto pb-20 lg:pb-0">
+        <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto pb-20 outline-none lg:pb-0">
           {/* Suspending here rather than above the shell keeps the sidebar and
               the running-timer readout on screen while a page chunk arrives. */}
           <Suspense fallback={<PageFallback />}>
@@ -198,7 +215,10 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden">
+        <nav
+          aria-label="Primary"
+          className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden"
+        >
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className="flex-1">
               {({ isActive }) => (
