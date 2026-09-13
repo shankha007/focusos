@@ -214,6 +214,15 @@ export function SettingsPage() {
                 onCheckedChange={(v) => void update({ chimeEnabled: v })}
               />
             </SettingRow>
+            <SettingRow
+              label="Ticking clock"
+              description="A quiet tick every second during focus. Steadying for some people, distracting for most — which is why it is off."
+            >
+              <Switch
+                checked={settings.tickingEnabled}
+                onCheckedChange={(v) => void update({ tickingEnabled: v })}
+              />
+            </SettingRow>
           </div>
         </Section>
 

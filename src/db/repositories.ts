@@ -106,6 +106,30 @@ export const tasksRepo = {
       updatedAt: Date.now(),
     });
   },
+
+  /**
+   * Takes back one session's credit, for a session deleted from history — the
+   * inverse of `incrementSessions`, down to moving a task with nothing left
+   * credited back from 'active' to 'todo'.
+   */
+  async decrementSessions(id: string): Promise<void> {
+    const task = await db.tasks.get(id);
+    if (!task) return;
+    const completedSessions = Math.max(0, task.completedSessions - 1);
+    await db.tasks.update(id, {
+      completedSessions,
+      status: completedSessions === 0 && task.status === "active" ? "todo" : task.status,
+      updatedAt: Date.now(),
+    });
+  },
+
+  /** Archives every finished task at once, returning how many were archived. */
+  async archiveDone(): Promise<number> {
+    return db.tasks
+      .where("status")
+      .equals("done")
+      .modify({ status: "archived", updatedAt: Date.now() });
+  },
 };
 
 /* ── Sessions ──────────────────────────────────────────────── */
@@ -158,6 +182,18 @@ export const sessionsRepo = {
   /** Applies a partial edit, used when a rating or note is added after the fact. */
   async update(id: string, patch: Partial<Session>): Promise<void> {
     await db.sessions.update(id, patch);
+  },
+
+  /**
+   * Deletes a session and every distraction logged against it, in one
+   * transaction — a distraction left behind would still count toward the day
+   * while pointing at a session that no longer exists.
+   */
+  async remove(id: string): Promise<void> {
+    await db.transaction("rw", db.sessions, db.distractions, async () => {
+      await db.sessions.delete(id);
+      await db.distractions.where("sessionId").equals(id).delete();
+    });
   },
 };
 

@@ -38,7 +38,7 @@ import {
   toDayStats,
 } from '@/engine/analytics';
 import { fmtHour } from '@/engine/adaptive';
-import { exportJson, exportPdf, exportSessionsCsv } from '@/lib/export';
+import { exportDistractionsCsv, exportJson, exportPdf, exportSessionsCsv } from '@/lib/export';
 import {
   Clock,
   Target,
@@ -215,7 +215,15 @@ export function AnalyticsPage() {
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => exportSessionsCsv(sessions)}>
               <Sheet className="h-3.5 w-3.5" />
-              CSV
+              Sessions CSV
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => exportDistractionsCsv(distractions, distractionCategories, allSessions)}
+            >
+              <Sheet className="h-3.5 w-3.5" />
+              Distractions CSV
             </Button>
             <Button variant="secondary" size="sm" onClick={() => void exportJson()}>
               <FileJson className="h-3.5 w-3.5" />

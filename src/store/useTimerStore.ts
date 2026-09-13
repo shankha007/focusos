@@ -120,7 +120,7 @@ interface TimerStoreState {
   skip: () => Promise<void>;
   complete: (opts?: { early?: boolean }) => Promise<void>;
   logDistraction: (categoryId: string, note?: string, park?: boolean) => Promise<void>;
-  submitReview: (productivity: Rating, accomplishment: string) => Promise<void>;
+  submitReview: (productivity: Rating | null, accomplishment: string) => Promise<void>;
   dismissReview: () => void;
   clearParked: () => void;
   resumeAfterPrompts: () => void;
@@ -283,6 +283,10 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     if (settings.soundEnabled && settings.activeSound && nextType === 'focus') {
       void ambient.play(settings.activeSound, settings.soundVolume);
     }
+
+    // The ticking clock plays from an interval, which is not a user gesture and
+    // so cannot unlock audio on its own. Starting a session is one.
+    if (settings.tickingEnabled && nextType === 'focus') void ambient.prime();
   },
 
   /** Pauses the countdown. Paused time is excluded from the session's recorded focus. */
@@ -536,7 +540,8 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     const review = get().pendingReview;
     if (!review) return;
     const patch = {
-      productivityAfter: productivity,
+      // Null means the question went unanswered, and is stored as no answer.
+      productivityAfter: productivity ?? undefined,
       accomplishment: accomplishment.trim() || undefined,
     };
     await sessionsRepo.update(review.id, patch);

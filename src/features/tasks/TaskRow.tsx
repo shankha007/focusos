@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CalendarClock, Check, GripVertical, Pencil, Play, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Check, GripVertical, Pencil, Play, Trash2 } from 'lucide-react';
 import type { Category, Session, Task } from '@/types';
 import {
   Badge,
@@ -33,6 +33,7 @@ export function TaskRow({
 }) {
   const toggleDone = useTaskStore((s) => s.toggleDone);
   const remove = useTaskStore((s) => s.remove);
+  const update = useTaskStore((s) => s.update);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -42,7 +43,9 @@ export function TaskRow({
 
   const estimate = useMemo(() => estimateTaskSessions(task, sessions), [task, sessions]);
   const category = categories.find((c) => c.id === task.categoryId);
-  const done = task.status === 'done';
+  const archived = task.status === 'archived';
+  // An archived task was finished before it was put away, and reads as finished.
+  const done = task.status === 'done' || archived;
   // A finished task's deadline is history — only open work is still due.
   const due = task.dueDate && !done ? formatDueDate(task.dueDate) : null;
   const pct = task.estimatedSessions > 0 ? task.completedSessions / task.estimatedSessions : 0;
@@ -72,8 +75,15 @@ export function TaskRow({
           'grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md border transition-all',
           done ? 'border-accent bg-accent text-accent-fg' : 'border-subtle/50 hover:border-accent',
         )}
-        aria-label={done ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
+        aria-label={
+          archived
+            ? `${task.title} is archived`
+            : done
+              ? `Mark ${task.title} as not done`
+              : `Mark ${task.title} as done`
+        }
         aria-pressed={done}
+        disabled={archived}
       >
         {done && <Check className="h-3 w-3" />}
       </button>
@@ -142,6 +152,32 @@ export function TaskRow({
           <Tooltip content="Start a focus session">
             <Button size="icon-sm" variant="ghost" onClick={onStart} aria-label={`Focus on ${task.title}`}>
               <Play className="h-3.5 w-3.5" />
+            </Button>
+          </Tooltip>
+        )}
+        {/* The status existed and was filtered for, but nothing could ever set it,
+            so finished tasks piled up in the Done tab forever. */}
+        {task.status === 'done' && (
+          <Tooltip content="Archive: keep it, out of the way">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => void update(task.id, { status: 'archived' })}
+              aria-label={`Archive ${task.title}`}
+            >
+              <Archive className="h-3.5 w-3.5" />
+            </Button>
+          </Tooltip>
+        )}
+        {archived && (
+          <Tooltip content="Restore to finished tasks">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => void update(task.id, { status: 'done' })}
+              aria-label={`Restore ${task.title}`}
+            >
+              <ArchiveRestore className="h-3.5 w-3.5" />
             </Button>
           </Tooltip>
         )}

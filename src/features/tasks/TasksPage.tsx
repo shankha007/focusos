@@ -15,12 +15,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckSquare, ListFilter, Plus } from 'lucide-react';
+import { Archive, CheckSquare, ListFilter, Plus, Search, Tag } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   EmptyState,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +32,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/primitives';
 import { TaskRow } from './TaskRow';
+import { allTags, filterTasks, type StatusFilter } from './filterTasks';
 import { TaskDialog } from './TaskDialog';
 import { MoodCheckDialog } from '@/features/focus/MoodCheckDialog';
 import { useTaskStore } from '@/store/useTaskStore';
@@ -40,7 +42,7 @@ import { useShell } from '@/app/shell';
 import type { Task } from '@/types';
 import { pluralize } from '@/lib/utils';
 
-type Filter = 'open' | 'done' | 'all';
+type Filter = StatusFilter;
 
 /**
  * The visible ids with `movedId` lifted out and dropped where `targetId` sits,
@@ -92,6 +94,9 @@ export function TasksPage() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [filter, setFilter] = useState<Filter>('open');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const archiveAllDone = useTaskStore((s) => s.archiveAllDone);
 
   const { begin, moodOpen, setMoodOpen, confirmMood, pendingTaskTitle } =
     useStartSession(openDeepFocus);
@@ -110,13 +115,19 @@ export function TasksPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const visible = useMemo(() => {
-    let list = tasks.filter((t) => t.status !== 'archived');
-    if (filter === 'open') list = list.filter((t) => t.status !== 'done');
-    if (filter === 'done') list = list.filter((t) => t.status === 'done');
-    if (categoryFilter !== 'all') list = list.filter((t) => t.categoryId === categoryFilter);
-    return list;
-  }, [tasks, filter, categoryFilter]);
+  const tags = useMemo(() => allTags(tasks), [tasks]);
+  // A selected tag can disappear with the last task that used it; fall back
+  // rather than leave the board filtered by something no longer offered.
+  const activeTag = tags.includes(tagFilter) ? tagFilter : 'all';
+
+  const visible = useMemo(
+    () => filterTasks(tasks, { status: filter, categoryId: categoryFilter, tag: activeTag, query }),
+    [tasks, filter, categoryFilter, activeTag, query],
+  );
+
+  /** Whether a search or filter, rather than the tab, is why the list is short. */
+  const narrowed = query.trim() !== '' || activeTag !== 'all' || categoryFilter !== 'all';
+  const doneCount = tasks.filter((t) => t.status === 'done').length;
 
   const openCount = tasks.filter((t) => t.status === 'todo' || t.status === 'active').length;
 
@@ -156,11 +167,27 @@ export function TasksPage() {
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-[220px]">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-subtle"
+          />
+          <Input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search tasks"
+            aria-label="Search tasks"
+            className="pl-8"
+          />
+        </div>
+
         <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
           <TabsList>
             <TabsTrigger value="open">Open</TabsTrigger>
             <TabsTrigger value="done">Done</TabsTrigger>
             <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -184,20 +211,60 @@ export function TasksPage() {
             </Select>
           </div>
         )}
+
+        {tags.length > 0 && (
+          <div className="w-[160px]">
+            <Select value={activeTag} onValueChange={setTagFilter}>
+              <SelectTrigger aria-label="Filter by tag">
+                <span className="flex items-center gap-2">
+                  <Tag className="h-3.5 w-3.5 text-subtle" />
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All tags</SelectItem>
+                {tags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {filter === 'done' && doneCount > 0 && (
+          <Button variant="ghost" size="sm" className="ml-auto" onClick={() => void archiveAllDone()}>
+            <Archive className="h-3.5 w-3.5" />
+            Archive all {doneCount}
+          </Button>
+        )}
       </div>
 
       <Card className="overflow-hidden p-0">
         {visible.length === 0 ? (
           <EmptyState
             icon={CheckSquare}
-            title={filter === 'done' ? 'Nothing completed yet' : 'No tasks here'}
+            title={
+              narrowed
+                ? 'No matching tasks'
+                : filter === 'done'
+                  ? 'Nothing completed yet'
+                  : filter === 'archived'
+                    ? 'Nothing archived'
+                    : 'No tasks here'
+            }
             description={
-              filter === 'done'
-                ? 'Finished tasks will collect here.'
-                : 'Add what you are working on so focus sessions attach to real work and estimates get smarter.'
+              narrowed
+                ? 'Try a different search, or clear the filters.'
+                : filter === 'done'
+                  ? 'Finished tasks will collect here.'
+                  : filter === 'archived'
+                    ? 'Archive finished tasks to keep them out of the way without deleting them.'
+                    : 'Add what you are working on so focus sessions attach to real work and estimates get smarter.'
             }
             action={
-              filter !== 'done' && (
+              !narrowed && filter !== 'done' && filter !== 'archived' && (
                 <Button
                   size="sm"
                   variant="secondary"

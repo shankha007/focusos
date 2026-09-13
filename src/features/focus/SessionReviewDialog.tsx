@@ -31,10 +31,20 @@ export function SessionReviewDialog() {
 
   if (!pending) return null;
 
-  /** Files the rating and note against the finished session. An unanswered rating is stored as the neutral middle. */
+  /**
+   * Files what was actually given. A note with no rating is saved as a note.
+   *
+   * An unanswered rating used to be stored as 3, invented to fill the gap, and
+   * every chart then read it back as the user saying the session felt "Okay" —
+   * the same fabrication the pre-session check-in had, on the other side of the
+   * session.
+   */
   const save = async () => {
-    await submitReview(productivity ?? 3, accomplishment);
+    await submitReview(productivity, accomplishment);
   };
+
+  // With neither a rating nor a note there is nothing to save; that is a skip.
+  const nothingGiven = productivity === null && !accomplishment.trim();
 
   return (
     <Dialog open onOpenChange={(open) => !open && dismissReview()}>
@@ -82,7 +92,9 @@ export function SessionReviewDialog() {
           <Button variant="ghost" onClick={dismissReview}>
             Skip
           </Button>
-          <Button onClick={() => void save()}>Save</Button>
+          <Button onClick={() => void save()} disabled={nothingGiven}>
+            Save
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

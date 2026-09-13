@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useTimerStore } from '@/store/useTimerStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { ambient } from '@/lib/audio';
 import { formatClock } from '@/lib/utils';
 import { remainingMs } from '@/engine/timerEngine';
 
@@ -32,6 +34,9 @@ const BASE_TITLE = typeof document === 'undefined' ? 'FocusOS' : document.title;
  */
 export function useTimerTick(): void {
   const status = useTimerStore((s) => s.timer.status);
+  const sessionType = useTimerStore((s) => s.timer.type);
+  const ticking = useSettingsStore((s) => s.settings.tickingEnabled);
+  const volume = useSettingsStore((s) => s.settings.soundVolume);
 
   useEffect(() => {
     if (status !== 'running') return;
@@ -87,4 +92,14 @@ export function useTimerTick(): void {
     const id = window.setInterval(write, 1000);
     return () => window.clearInterval(id);
   }, [status]);
+
+  // The optional ticking clock, during focus only. `tickingEnabled` was stored
+  // from the start with nothing behind it. Kept apart from the tick loop above,
+  // whose interval is the safety net that closes out a session in a background
+  // tab and should not grow side effects.
+  useEffect(() => {
+    if (!ticking || status !== 'running' || sessionType !== 'focus') return;
+    const id = window.setInterval(() => ambient.tick(volume), 1000);
+    return () => window.clearInterval(id);
+  }, [ticking, status, sessionType, volume]);
 }

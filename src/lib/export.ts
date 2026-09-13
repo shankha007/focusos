@@ -75,6 +75,62 @@ export function exportSessionsCsv(sessions: Session[]): void {
   download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `focusos-sessions-${dateKey()}.csv`);
 }
 
+/**
+ * Distractions as a spreadsheet-ready CSV, one row per interruption, oldest
+ * first.
+ *
+ * Distraction tracking is what sets this app apart, and it was the one dataset
+ * that could not reach a spreadsheet: the sessions export left it out, and the
+ * JSON backup carries it only in a form meant for restoring. Notes are
+ * free text typed mid-session, so every cell goes through the same
+ * formula-injection guard as the sessions export.
+ */
+export function distractionsCsv(
+  distractions: Distraction[],
+  categories: DistractionCategory[],
+  sessions: Session[],
+): string {
+  const headers = [
+    'date',
+    'time',
+    'category',
+    'note',
+    'task',
+    'percent_into_session',
+    'parked',
+    'kept_as_task',
+  ];
+
+  const sessionById = new Map(sessions.map((s) => [s.id, s]));
+
+  const rows = [...distractions]
+    .sort((a, b) => a.at - b.at)
+    .map((d) => [
+      dateKey(d.at),
+      formatTime(d.at),
+      categories.find((c) => c.id === d.categoryId)?.label ?? 'Other',
+      d.note ?? '',
+      (d.sessionId ? sessionById.get(d.sessionId)?.taskTitle : undefined) ?? '',
+      typeof d.sessionProgress === 'number' ? Math.round(d.sessionProgress * 100) : '',
+      d.parked ? 'yes' : 'no',
+      d.parkedTaskId ? 'yes' : 'no',
+    ]);
+
+  return [headers, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
+}
+
+/** Downloads the given distractions as a CSV. */
+export function exportDistractionsCsv(
+  distractions: Distraction[],
+  categories: DistractionCategory[],
+  sessions: Session[],
+): void {
+  download(
+    new Blob([distractionsCsv(distractions, categories, sessions)], { type: 'text/csv;charset=utf-8' }),
+    `focusos-distractions-${dateKey()}.csv`,
+  );
+}
+
 /** Downloads a complete backup of every table as JSON — the file `parseBackup` reads back in. */
 export async function exportJson(): Promise<void> {
   const data = await exportAll();

@@ -22,6 +22,8 @@ interface TaskStoreState {
   toggleDone: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   reorder: (orderedIds: string[]) => Promise<void>;
+  /** Archives every finished task, reloading once rather than once per task. */
+  archiveAllDone: () => Promise<void>;
   addCategory: (name: string, color: string) => Promise<void>;
   setCategoryPreset: (id: string, presetId: string | undefined) => Promise<void>;
   removeCategory: (id: string) => Promise<void>;
@@ -68,6 +70,11 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
   /** Deletes a task. */
   remove: async (id) => {
     await tasksRepo.remove(id);
+    set({ tasks: await tasksRepo.all() });
+  },
+
+  archiveAllDone: async () => {
+    await tasksRepo.archiveDone();
     set({ tasks: await tasksRepo.all() });
   },
 
