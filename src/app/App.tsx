@@ -1,7 +1,8 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { TooltipProvider } from '@/components/ui/primitives';
 import { LandingPage } from '@/features/landing/LandingPage';
+import { ErrorBoundary } from './ErrorBoundary';
 
 /**
  * Only the marketing page is part of the initial bundle.
@@ -39,29 +40,37 @@ function WorkspaceFallback() {
   );
 }
 
+/** Catches render errors anywhere under the router, and tries again on the next navigation. */
+function RoutedErrorBoundary({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
+}
+
 /** Application root — providers, router, and the split between the front door and the app. */
 export function App() {
   return (
     <TooltipProvider delayDuration={400}>
       <BrowserRouter>
-        <Suspense fallback={<WorkspaceFallback />}>
-          <Routes>
-            {/* No sidebar, no timer chrome, and no database. The installed PWA
-                starts at /dashboard instead (see start_url in vite.config.ts). */}
-            <Route path="/" element={<LandingPage />} />
+        <RoutedErrorBoundary>
+          <Suspense fallback={<WorkspaceFallback />}>
+            <Routes>
+              {/* No sidebar, no timer chrome, and no database. The installed PWA
+                  starts at /dashboard instead (see start_url in vite.config.ts). */}
+              <Route path="/" element={<LandingPage />} />
 
-            <Route element={<Workspace />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/achievements" element={<AchievementsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              {/* An unrecognised path belongs in the app, not back out on the
-                  marketing page — someone reaching it already has a session. */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Route>
-          </Routes>
-        </Suspense>
+              <Route element={<Workspace />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/achievements" element={<AchievementsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                {/* An unrecognised path belongs in the app, not back out on the
+                    marketing page — someone reaching it already has a session. */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </RoutedErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   );

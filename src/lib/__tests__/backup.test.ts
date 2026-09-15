@@ -268,3 +268,57 @@ describe('parseBackup — dropping bad rows without failing the file', () => {
     expect(parsed.rows.tasks[1].tags).toEqual(['ok']);
   });
 });
+
+describe('parseBackup — holding numbers to what the app can render', () => {
+  it('replaces settings outside the ranges the Settings page offers', () => {
+    // 2^32 glasses made the water card throw "Invalid array length" and blank
+    // the app at every break; 1e308 minutes turned the clock into exponents.
+    const parsed = parseBackup(
+      file({
+        settings: [
+          {
+            dailyGlassGoal: 4_294_967_296,
+            dailyGoalSessions: 1e308,
+            focusMs: 1e308,
+            shortBreakMs: 10,
+            longBreakMs: 600 * MINUTE,
+            sessionsUntilLongBreak: 0.5,
+          },
+        ],
+      }),
+    );
+    expect(parsed.settings).toMatchObject({
+      dailyGlassGoal: 8,
+      dailyGoalSessions: 8,
+      focusMs: 25 * MINUTE,
+      shortBreakMs: 5 * MINUTE,
+      longBreakMs: 15 * MINUTE,
+      sessionsUntilLongBreak: 4,
+    });
+  });
+
+  it('keeps settings at the edges of their ranges', () => {
+    const parsed = parseBackup(
+      file({ settings: [{ focusMs: 120 * MINUTE, dailyGlassGoal: 16, sessionsUntilLongBreak: 2 }] }),
+    );
+    expect(parsed.settings).toMatchObject({
+      focusMs: 120 * MINUTE,
+      dailyGlassGoal: 16,
+      sessionsUntilLongBreak: 2,
+    });
+  });
+
+  it('holds presets to the same limits, since applying one copies them onto settings', () => {
+    const parsed = parseBackup(
+      file({
+        timerPresets: [
+          { id: 'p1', name: 'Huge', focusMs: 1e308 },
+          { id: 'p2', name: 'Odd cadence', focusMs: 50 * MINUTE, sessionsUntilLongBreak: 1e9, shortBreakMs: -1 },
+        ],
+      }),
+    );
+    expect(parsed.rows.timerPresets.map((p) => p.id)).toEqual(['p2']);
+    expect(parsed.skipped.timerPresets).toBe(1);
+    expect(parsed.rows.timerPresets[0]).toMatchObject({ sessionsUntilLongBreak: 4, shortBreakMs: 5 * MINUTE });
+  });
+});

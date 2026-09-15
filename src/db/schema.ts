@@ -134,6 +134,48 @@ export const DEFAULT_SETTINGS: Settings = {
   createdAt: Date.now(),
 };
 
+/**
+ * The range each numeric setting may hold — the same range its control on the
+ * Settings page offers. Durations are in milliseconds, like the settings
+ * themselves.
+ *
+ * Anything read from outside the app (a backup file, or a row a restore wrote
+ * before these were enforced) is held to them. Past them the app does not
+ * merely look odd: a glass goal of 2^32 makes the water card build an array
+ * the engine refuses, and the page goes blank at every break.
+ */
+export const SETTING_LIMITS = {
+  focusMs: { min: 5 * MINUTE, max: 120 * MINUTE },
+  shortBreakMs: { min: 1 * MINUTE, max: 30 * MINUTE },
+  longBreakMs: { min: 5 * MINUTE, max: 60 * MINUTE },
+  sessionsUntilLongBreak: { min: 2, max: 8 },
+  dailyGoalSessions: { min: 1, max: 20 },
+  dailyGlassGoal: { min: 1, max: 16 },
+} as const;
+
+export type LimitedSetting = keyof typeof SETTING_LIMITS;
+
+/**
+ * The value if it is a whole number inside the setting's range, else the
+ * fallback. Out-of-range values are replaced rather than clamped: a goal of
+ * 4 billion glasses says nothing true about what the user wanted.
+ */
+export function withinLimit(key: LimitedSetting, value: unknown, fallback: number): number {
+  const { min, max } = SETTING_LIMITS[key];
+  return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max
+    ? value
+    : fallback;
+}
+
+/** Brings every limited setting back inside its range, defaulting any that are not. */
+export function enforceSettingLimits(settings: Settings): Settings {
+  const next = { ...settings };
+  for (const key of Object.keys(SETTING_LIMITS) as LimitedSetting[]) {
+    next[key] = withinLimit(key, settings[key], DEFAULT_SETTINGS[key]);
+  }
+  return next;
+}
+
 const BUILT_IN_CATEGORIES: Omit<Category, "createdAt">[] = [
   { id: "cat-deep", name: "Deep Work", color: "#7886ff" },
   { id: "cat-writing", name: "Writing", color: "#40ceb2" },
@@ -233,6 +275,19 @@ export async function initDb(): Promise<Settings> {
     );
     if (missing.length > 0) {
       await db.settings.update("settings", Object.fromEntries(missing));
+    }
+
+    // A restore from before SETTING_LIMITS existed could store values that
+    // crash the app. Repair them here, so the fix reaches data already on disk.
+    const bounded = enforceSettingLimits(existing);
+    const repaired = (Object.keys(SETTING_LIMITS) as LimitedSetting[]).filter(
+      (key) => bounded[key] !== existing[key],
+    );
+    if (repaired.length > 0) {
+      await db.settings.update(
+        "settings",
+        Object.fromEntries(repaired.map((key) => [key, bounded[key]])),
+      );
     }
   }
 

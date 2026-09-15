@@ -78,6 +78,17 @@ const REGISTRY: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap,
 };
 
+/**
+ * Whether `name` is one of the registered icons.
+ *
+ * An own-property check, not a lookup: names come from stored data, and a
+ * restored backup can carry anything. `REGISTRY['constructor']` is Object
+ * itself, which React happily calls as a component and then crashes on.
+ */
+function isIconName(name: unknown): name is string {
+  return typeof name === 'string' && Object.prototype.hasOwnProperty.call(REGISTRY, name);
+}
+
 /** Renders an icon chosen by name at runtime, falling back to a plain circle when the name isn't in the registry — as happens with data written by a newer build. */
 export function DynamicIcon({
   name,
@@ -88,6 +99,6 @@ export function DynamicIcon({
   className?: string;
   fallback?: React.ComponentType<{ className?: string }>;
 }) {
-  const Cmp = REGISTRY[name] ?? Fallback;
+  const Cmp = isIconName(name) ? REGISTRY[name] : Fallback;
   return <Cmp className={className} />;
 }
