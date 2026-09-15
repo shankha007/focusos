@@ -100,6 +100,18 @@ function oneOf<T extends string>(v: unknown, allowed: readonly T[]): T | undefin
     : undefined;
 }
 
+/**
+ * The value if it is a six-digit hex colour, else undefined.
+ *
+ * Colours go straight into inline styles, and the distraction logger appends a
+ * two-digit alpha to them — which only yields valid CSS for `#rrggbb`. Every
+ * colour the app itself writes has that form, so nothing else is a colour it
+ * wrote.
+ */
+function hexColor(v: unknown): string | undefined {
+  return typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : undefined;
+}
+
 /** Ratings are 1–5; anything else is dropped rather than clamped into a lie. */
 function rating(v: unknown): 1 | 2 | 3 | 4 | 5 | undefined {
   return v === 1 || v === 2 || v === 3 || v === 4 || v === 5 ? v : undefined;
@@ -219,7 +231,7 @@ function toCategory(raw: unknown): Category | null {
   return {
     id,
     name,
-    color: str(raw.color) ?? '#7886ff',
+    color: hexColor(raw.color) ?? '#7886ff',
     icon: str(raw.icon),
     presetId: str(raw.presetId),
     createdAt: num(raw.createdAt) ?? Date.now(),
@@ -236,7 +248,7 @@ function toDistractionCategory(raw: unknown): DistractionCategory | null {
     id,
     label,
     icon: str(raw.icon) ?? 'Circle',
-    color: str(raw.color) ?? '#9aa0b4',
+    color: hexColor(raw.color) ?? '#9aa0b4',
     builtIn: bool(raw.builtIn) ?? false,
   };
 }

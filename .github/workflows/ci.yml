@@ -11,16 +11,28 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# The job only reads the repository. Without this the token gets the
+# repository's default permissions, which can include write access — more than
+# a compromised dependency running in `npm ci` should be handed.
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to commit SHAs rather than tags: a tag can be moved to different
+      # code after the fact, a SHA cannot. The comment names the release so a
+      # bump is a readable diff.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Nothing after checkout pushes, so the token need not stay in .git/config.
+          persist-credentials: false
 
       # Matches the engines.node range in package.json, which Vercel also uses,
       # so CI and the deploy build agree.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm

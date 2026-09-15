@@ -68,6 +68,24 @@ describe('Content-Security-Policy', () => {
     expect(scriptSrc).not.toContain('unsafe-eval');
   });
 
+  /**
+   * style-src keeps 'unsafe-inline', and that is deliberate rather than
+   * overlooked. Radix Dialog and Select lock page scroll by injecting a
+   * <style> element holding the measured scrollbar width in pixels — content
+   * that differs per device, so no hash can name it, and a static host cannot
+   * mint the per-request nonce that would. Dropping it breaks every dialog.
+   *
+   * What it would protect against is CSS injection, which needs an HTML
+   * injection first; script-src is what stands in front of that. So the style
+   * allowance is confined to styles: it must never spread to script-src, and
+   * default-src must not carry it for directives that fall back to it.
+   */
+  it('confines unsafe-inline to style-src', () => {
+    const directives = (csp ?? '').split(';').map((d) => d.trim());
+    const withInline = directives.filter((d) => d.includes("'unsafe-inline'"));
+    expect(withInline.map((d) => d.split(/\s+/)[0])).toEqual(['style-src']);
+  });
+
   it('keeps the directives that matter for an app holding everything locally', () => {
     // The realistic threat is not defacement, it is a script exfiltrating a
     // user's entire logged history. connect-src is what stops that.

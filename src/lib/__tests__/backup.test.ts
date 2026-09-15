@@ -269,6 +269,38 @@ describe('parseBackup — dropping bad rows without failing the file', () => {
   });
 });
 
+describe('parseBackup — colours', () => {
+  it('keeps six-digit hex colours', () => {
+    const parsed = parseBackup(
+      file({
+        categories: [{ id: 'c1', name: 'Deep', color: '#40CEB2' }],
+        distractionCategories: [{ id: 'd1', label: 'Phone', color: '#ff6b8a' }],
+      }),
+    );
+    expect(parsed.rows.categories[0].color).toBe('#40CEB2');
+    expect(parsed.rows.distractionCategories[0].color).toBe('#ff6b8a');
+  });
+
+  it.each([
+    'url(/sw.js)',
+    'red; background-image: url(https://evil.example/x)',
+    'expression(alert(1))',
+    '#abc',
+    '#7886ff80',
+    'rgb(1,2,3)',
+    'x'.repeat(5000),
+  ])('replaces a colour the app never writes: %s', (color) => {
+    const parsed = parseBackup(
+      file({
+        categories: [{ id: 'c1', name: 'Deep', color }],
+        distractionCategories: [{ id: 'd1', label: 'Phone', color }],
+      }),
+    );
+    expect(parsed.rows.categories[0].color).toBe('#7886ff');
+    expect(parsed.rows.distractionCategories[0].color).toBe('#9aa0b4');
+  });
+});
+
 describe('parseBackup — holding numbers to what the app can render', () => {
   it('replaces settings outside the ranges the Settings page offers', () => {
     // 2^32 glasses made the water card throw "Invalid array length" and blank
