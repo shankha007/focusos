@@ -1,4 +1,10 @@
-import { backfillSessionCategories, db, DEFAULT_SETTINGS, withinLimit } from '@/db/schema';
+import {
+  backfillSessionCategories,
+  db,
+  DEFAULT_SETTINGS,
+  MAX_GLASSES_PER_DAY,
+  withinLimit,
+} from '@/db/schema';
 import { BACKUP_VERSION } from '@/db/repositories';
 import type {
   Achievement,
@@ -289,9 +295,13 @@ function toHydration(raw: unknown): HydrationLog | null {
   const date = str(raw.date);
   // The date is the primary key — a row without one has no day to belong to.
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const glasses = Math.max(0, Math.round(num(raw.glasses) ?? 0));
+  // Past the cap the whole row is dropped rather than clamped: a billion glasses
+  // is not a day to keep, and pinning it to 50 would invent one.
+  if (glasses > MAX_GLASSES_PER_DAY) return null;
   return {
     date,
-    glasses: Math.max(0, Math.round(num(raw.glasses) ?? 0)),
+    glasses,
     lastAt: num(raw.lastAt) ?? 0,
   };
 }

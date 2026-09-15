@@ -6,6 +6,7 @@ import { useHydrationStore } from '@/store/useHydrationStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTimerStore } from '@/store/useTimerStore';
 import { cn, dateKey, relativeTime } from '@/lib/utils';
+import { MAX_GLASSES_PER_DAY } from '@/db/schema';
 
 /**
  * The water reminder shown during short and long breaks. A break is the one
@@ -40,6 +41,7 @@ export function WaterBreakCard({ className }: { className?: string }) {
 
   const met = glasses >= goal;
   const extra = Math.max(0, glasses - goal);
+  const full = glasses >= MAX_GLASSES_PER_DAY;
 
   return (
     <Card className={cn('w-full', className)}>
@@ -78,7 +80,12 @@ export function WaterBreakCard({ className }: { className?: string }) {
           </p>
 
           <div className="mt-3 flex items-center gap-1.5">
-            <Button size="sm" variant={met ? 'secondary' : 'default'} onClick={() => void logGlass()}>
+            <Button
+              size="sm"
+              variant={met ? 'secondary' : 'default'}
+              disabled={full}
+              onClick={() => void logGlass()}
+            >
               <Droplet className="h-3.5 w-3.5" />
               {met ? 'One more' : 'I had a glass'}
             </Button>

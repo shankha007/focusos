@@ -1,4 +1,4 @@
-import { db } from "./schema";
+import { db, MAX_GLASSES_PER_DAY } from "./schema";
 import type {
   Achievement,
   Category,
@@ -430,11 +430,16 @@ export const hydrationRepo = {
    * share a transaction because the button is easy to double-tap, and two
    * overlapping increments would otherwise both read the same count and land as
    * one.
+   *
+   * At MAX_GLASSES_PER_DAY the row is returned unchanged: a backup restore
+   * refuses any day above it, so counting further would write a day the app's
+   * own export could not bring back.
    */
   async logGlass(): Promise<HydrationLog> {
     const date = dateKey();
     return db.transaction("rw", db.hydration, async () => {
       const current = await db.hydration.get(date);
+      if (current && current.glasses >= MAX_GLASSES_PER_DAY) return current;
       const row: HydrationLog = {
         date,
         glasses: (current?.glasses ?? 0) + 1,
