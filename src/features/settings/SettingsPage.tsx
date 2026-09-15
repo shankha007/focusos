@@ -41,6 +41,7 @@ import { resetAllData } from '@/store/resetAllData';
 import { exportJson } from '@/lib/export';
 import { requestNotificationPermission, notificationPermission } from '@/lib/notifications';
 import { MINUTE, cn, clamp } from '@/lib/utils';
+import { SETTING_LIMITS } from '@/db/schema';
 
 /** Every preference in one page: timer cadence and presets, appearance, sound, notifications, check-in prompts, adaptive suggestions, and the backup / restore / reset controls. */
 export function SettingsPage() {
@@ -79,22 +80,22 @@ export function SettingsPage() {
             <MinuteField
               label="Focus"
               value={settings.focusMs}
-              min={5}
-              max={120}
+              min={SETTING_LIMITS.focusMs.min / MINUTE}
+              max={SETTING_LIMITS.focusMs.max / MINUTE}
               onChange={(ms) => void update({ focusMs: ms })}
             />
             <MinuteField
               label="Short break"
               value={settings.shortBreakMs}
-              min={1}
-              max={30}
+              min={SETTING_LIMITS.shortBreakMs.min / MINUTE}
+              max={SETTING_LIMITS.shortBreakMs.max / MINUTE}
               onChange={(ms) => void update({ shortBreakMs: ms })}
             />
             <MinuteField
               label="Long break"
               value={settings.longBreakMs}
-              min={5}
-              max={60}
+              min={SETTING_LIMITS.longBreakMs.min / MINUTE}
+              max={SETTING_LIMITS.longBreakMs.max / MINUTE}
               onChange={(ms) => void update({ longBreakMs: ms })}
             />
           </div>
@@ -106,8 +107,8 @@ export function SettingsPage() {
             >
               <NumberStepper
                 value={settings.sessionsUntilLongBreak}
-                min={2}
-                max={8}
+                min={SETTING_LIMITS.sessionsUntilLongBreak.min}
+                max={SETTING_LIMITS.sessionsUntilLongBreak.max}
                 onChange={(v) => void update({ sessionsUntilLongBreak: v })}
               />
             </SettingRow>
@@ -115,8 +116,8 @@ export function SettingsPage() {
             <SettingRow label="Daily session goal" description="Drives your focus score and streak.">
               <NumberStepper
                 value={settings.dailyGoalSessions}
-                min={1}
-                max={20}
+                min={SETTING_LIMITS.dailyGoalSessions.min}
+                max={SETTING_LIMITS.dailyGoalSessions.max}
                 onChange={(v) => void update({ dailyGoalSessions: v })}
               />
             </SettingRow>
@@ -282,8 +283,8 @@ export function SettingsPage() {
             >
               <NumberStepper
                 value={settings.dailyGlassGoal}
-                min={1}
-                max={16}
+                min={SETTING_LIMITS.dailyGlassGoal.min}
+                max={SETTING_LIMITS.dailyGlassGoal.max}
                 onChange={(v) => void update({ dailyGlassGoal: v })}
               />
             </SettingRow>

@@ -1,4 +1,4 @@
-import { backfillSessionCategories, db, DEFAULT_SETTINGS } from '@/db/schema';
+import { backfillSessionCategories, db, DEFAULT_SETTINGS, withinLimit } from '@/db/schema';
 import { BACKUP_VERSION } from '@/db/repositories';
 import type {
   Achievement,
@@ -254,15 +254,18 @@ function toPreset(raw: unknown): TimerPreset | null {
   if (!isObject(raw)) return null;
   const id = str(raw.id);
   const name = str(raw.name);
-  const focusMs = num(raw.focusMs);
-  if (!id || !name || focusMs === undefined || focusMs <= 0) return null;
+  // Applying a preset copies these onto the settings, so they answer to the
+  // same limits — a preset is otherwise a way around them.
+  const focusMs = withinLimit('focusMs', raw.focusMs, NaN);
+  if (!id || !name || Number.isNaN(focusMs)) return null;
+  const d = DEFAULT_SETTINGS;
   return {
     id,
     name,
     focusMs,
-    shortBreakMs: num(raw.shortBreakMs) ?? DEFAULT_SETTINGS.shortBreakMs,
-    longBreakMs: num(raw.longBreakMs) ?? DEFAULT_SETTINGS.longBreakMs,
-    sessionsUntilLongBreak: num(raw.sessionsUntilLongBreak) ?? 4,
+    shortBreakMs: withinLimit('shortBreakMs', raw.shortBreakMs, d.shortBreakMs),
+    longBreakMs: withinLimit('longBreakMs', raw.longBreakMs, d.longBreakMs),
+    sessionsUntilLongBreak: withinLimit('sessionsUntilLongBreak', raw.sessionsUntilLongBreak, d.sessionsUntilLongBreak),
     builtIn: bool(raw.builtIn) ?? false,
     createdAt: num(raw.createdAt) ?? Date.now(),
   };
@@ -291,22 +294,18 @@ function toHydration(raw: unknown): HydrationLog | null {
 function toSettings(raw: unknown): Settings | null {
   if (!isObject(raw)) return null;
   const d = DEFAULT_SETTINGS;
-  /** Keeps a duration only if it is a positive number, else the shipped default. */
-  const positive = (v: unknown, fallback: number) => {
-    const n = num(v);
-    return n !== undefined && n > 0 ? n : fallback;
-  };
   return {
     id: 'settings',
-    focusMs: positive(raw.focusMs, d.focusMs),
-    shortBreakMs: positive(raw.shortBreakMs, d.shortBreakMs),
-    longBreakMs: positive(raw.longBreakMs, d.longBreakMs),
-    sessionsUntilLongBreak: positive(raw.sessionsUntilLongBreak, d.sessionsUntilLongBreak),
+    // Held to the same ranges the Settings page offers — see SETTING_LIMITS.
+    focusMs: withinLimit('focusMs', raw.focusMs, d.focusMs),
+    shortBreakMs: withinLimit('shortBreakMs', raw.shortBreakMs, d.shortBreakMs),
+    longBreakMs: withinLimit('longBreakMs', raw.longBreakMs, d.longBreakMs),
+    sessionsUntilLongBreak: withinLimit('sessionsUntilLongBreak', raw.sessionsUntilLongBreak, d.sessionsUntilLongBreak),
     // Null is meaningful here — cadence edited by hand, detached from any preset.
     activePresetId: raw.activePresetId === null ? null : (str(raw.activePresetId) ?? d.activePresetId),
     autoStartBreaks: bool(raw.autoStartBreaks) ?? d.autoStartBreaks,
     autoStartFocus: bool(raw.autoStartFocus) ?? d.autoStartFocus,
-    dailyGoalSessions: positive(raw.dailyGoalSessions, d.dailyGoalSessions),
+    dailyGoalSessions: withinLimit('dailyGoalSessions', raw.dailyGoalSessions, d.dailyGoalSessions),
     theme: oneOf(raw.theme, THEMES) ?? d.theme,
     reducedMotion: bool(raw.reducedMotion) ?? d.reducedMotion,
     highContrast: bool(raw.highContrast) ?? d.highContrast,
@@ -320,7 +319,7 @@ function toSettings(raw: unknown): Settings | null {
     askProductivityAfter: bool(raw.askProductivityAfter) ?? d.askProductivityAfter,
     adaptiveEnabled: bool(raw.adaptiveEnabled) ?? d.adaptiveEnabled,
     hydrationEnabled: bool(raw.hydrationEnabled) ?? d.hydrationEnabled,
-    dailyGlassGoal: positive(raw.dailyGlassGoal, d.dailyGlassGoal),
+    dailyGlassGoal: withinLimit('dailyGlassGoal', raw.dailyGlassGoal, d.dailyGlassGoal),
     onboarded: bool(raw.onboarded) ?? d.onboarded,
     xp: Math.max(0, num(raw.xp) ?? 0),
     createdAt: num(raw.createdAt) ?? Date.now(),
