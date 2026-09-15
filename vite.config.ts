@@ -99,6 +99,11 @@ export default defineConfig({
           },
         ],
         navigateFallback: "index.html",
+        // Files meant to be opened directly. Without this, anyone who has used
+        // the app and types one of these URLs gets the app shell back from the
+        // service worker instead of the file — a security researcher looking
+        // for security.txt would find a Pomodoro timer.
+        navigateFallbackDenylist: [/^\/\.well-known\//, /^\/robots\.txt$/, /^\/sitemap\.xml$/],
       },
     }),
   ],
