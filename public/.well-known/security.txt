@@ -1,0 +1,4 @@
+Contact: mailto:shankhasdas07@gmail.com
+Expires: 2027-09-16T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://focusos.pro/.well-known/security.txt
