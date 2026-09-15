@@ -199,6 +199,21 @@ describe('parseBackup — dropping bad rows without failing the file', () => {
     expect(parsed.skipped.hydration).toBe(3);
   });
 
+  it('skips a hydration day with more glasses than one day can hold', () => {
+    // A billion glasses rendered as "1000000000 / 8 +999999992" on the water card.
+    const parsed = parseBackup(
+      file({
+        hydration: [
+          { date: '2026-08-01', glasses: 1_000_000_000 },
+          { date: '2026-08-02', glasses: 51 },
+          { date: '2026-08-03', glasses: 50 },
+        ],
+      }),
+    );
+    expect(parsed.rows.hydration.map((row) => row.date)).toEqual(['2026-08-03']);
+    expect(parsed.skipped.hydration).toBe(2);
+  });
+
   it('rounds a nonsense glass count back into whole glasses', () => {
     const parsed = parseBackup(
       file({ hydration: [{ date: '2026-08-01', glasses: -4.6 }] }),

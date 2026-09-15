@@ -156,6 +156,15 @@ export const SETTING_LIMITS = {
 export type LimitedSetting = keyof typeof SETTING_LIMITS;
 
 /**
+ * Most glasses one day can hold. The tracker deliberately keeps counting past
+ * the daily goal, so this is not the goal's ceiling (16) but a sanity bound
+ * well above any real day. Logging stops here, and a backup row above it is
+ * not a day anyone lived — so the app never writes a count a restore of its
+ * own export would refuse.
+ */
+export const MAX_GLASSES_PER_DAY = 50;
+
+/**
  * The value if it is a whole number inside the setting's range, else the
  * fallback. Out-of-range values are replaced rather than clamped: a goal of
  * 4 billion glasses says nothing true about what the user wanted.
