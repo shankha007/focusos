@@ -42,6 +42,7 @@ class StubAudioContext {
       setValueAtTime: vi.fn(),
       linearRampToValueAtTime: vi.fn(),
       exponentialRampToValueAtTime: vi.fn(),
+      setTargetAtTime: vi.fn(),
       cancelScheduledValues: vi.fn(),
     };
   }
@@ -54,6 +55,7 @@ class StubAudioContext {
       stop: vi.fn(),
       gain: this.param(),
       frequency: this.param(),
+      pan: this.param(),
       Q: { value: 0 },
       type: "sine",
       buffer: null as AudioBuffer | null,
@@ -66,6 +68,7 @@ class StubAudioContext {
   createOscillator() { return this.node(); }
   createBiquadFilter() { return this.node(); }
   createBufferSource() { return this.node(); }
+  createStereoPanner() { return this.node(); }
   createBuffer(_channels: number, length: number) {
     return { getChannelData: () => new Float32Array(length) } as unknown as AudioBuffer;
   }
