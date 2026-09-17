@@ -304,6 +304,27 @@ real remaining time intact.
 
 ---
 
+## Branching
+
+Work lands on **`uat`** first, and reaches **`main`** only through a pull request — `main` is what
+[focusos.pro](https://focusos.pro) deploys. CI runs on both branches.
+
+GitHub branch protection would enforce this, but it needs GitHub Pro on a private repository, so
+two lighter guards stand in for it:
+
+- **A pre-push hook** refuses a push straight to `main`. Hooks are not installed by cloning, so turn
+  it on once per clone:
+
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+
+  To push to `main` deliberately — restoring it after a bad merge, say — prefix the push with
+  `FOCUSOS_ALLOW_MAIN_PUSH=1`.
+
+- **The [Guard main](.github/workflows/guard-main.yml) workflow** fails whenever a commit reaches
+  `main` without a merged pull request. It cannot prevent the push, only make it impossible to miss.
+
 ## Your data
 
 Everything stays in this browser. Nothing is sent anywhere, there's no account, and there's no
