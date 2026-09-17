@@ -19,6 +19,7 @@ import { BreakActivity } from './BreakActivity';
 import { WaterBreakCard } from './WaterBreakCard';
 import { AmbientOrbs } from './AmbientOrbs';
 import { SoundPicker } from './SoundPicker';
+import { SoundNudge } from './SoundNudge';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useHotkeys } from '@/hooks/useHotkeys';
@@ -173,6 +174,8 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Stands down while the sound panel is open — that is the question already being answered. */}
+          <SoundNudge active={isFocus && running && !showSound} />
           {pip.supported && (
             <Tooltip content="Picture-in-picture (P)">
               <Button
