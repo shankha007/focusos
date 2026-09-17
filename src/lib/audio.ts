@@ -15,29 +15,34 @@ export interface SoundMeta {
 }
 
 export const SOUNDS: SoundMeta[] = [
-  { id: 'rain', label: 'Rain', description: 'Steady rainfall on a window', icon: 'CloudRain' },
-  { id: 'forest', label: 'Forest', description: 'Wind through leaves, distant birds', icon: 'Trees' },
-  { id: 'ocean', label: 'Ocean', description: 'Slow waves rolling in', icon: 'Waves' },
-  { id: 'cafe', label: 'Coffee shop', description: 'Low murmur and clatter', icon: 'Coffee' },
+  { id: 'rain', label: 'Rain', description: 'Rain at the window, thunder far off', icon: 'CloudRain' },
+  { id: 'forest', label: 'Forest', description: 'Birdsong, rustling leaves, a brook', icon: 'Trees' },
+  { id: 'ocean', label: 'Ocean', description: 'Waves breaking and washing back', icon: 'Waves' },
+  { id: 'cafe', label: 'Coffee shop', description: 'Quiet chatter, cups, the espresso bar', icon: 'Coffee' },
   { id: 'white', label: 'White noise', description: 'Flat, even masking', icon: 'AudioLines' },
   { id: 'brown', label: 'Brown noise', description: 'Deep, warm low-end', icon: 'Activity' },
-  { id: 'fireplace', label: 'Fireplace', description: 'Crackling logs', icon: 'Flame' },
-  { id: 'wind', label: 'Wind', description: 'Open, sweeping gusts', icon: 'Wind' },
+  { id: 'fireplace', label: 'Fireplace', description: 'Crackling logs, the odd pop', icon: 'Flame' },
+  { id: 'wind', label: 'Wind', description: 'Shifting gusts through the trees', icon: 'Wind' },
 ];
 
 type NoiseType = 'white' | 'pink' | 'brown';
 
-/** Seconds of noise held per flavour. Long enough that the loop point isn't audible. */
-const NOISE_SECONDS = 2;
+/**
+ * Seconds of noise held per flavour. Two seconds was short enough to hear: a
+ * steady bed of filtered noise repeating every two seconds has a faint rhythm
+ * the ear finds within a minute, and it made every sound feel mechanical. Six
+ * puts the period well past that, for about a megabyte per flavour.
+ */
+export const NOISE_SECONDS = 6;
 
 /**
  * One buffer per flavour, per context.
  *
- * Generating noise is not cheap: two seconds at 44.1 kHz is 88,200 samples,
- * 345 KB, and about a millisecond of the main thread. That was being paid on
- * every raindrop and every crackle of the fire — sounds that last 40 to 80 ms —
- * so rain alone churned roughly 1.5 MB a second to play the same texture over
- * and over, on the one screen meant to feel calm.
+ * Generating noise is not cheap: six seconds at 44.1 kHz is 264,600 samples,
+ * about a megabyte, and a few milliseconds of the main thread. Paid on every
+ * raindrop and every crackle of the fire — sounds that last 40 to 80 ms — rain
+ * would churn megabytes a second to play the same texture over and over, on
+ * the one screen meant to feel calm.
  *
  * A buffer is immutable once filled, and any number of sources can read from
  * the same one, so there is no reason to hold more than three.
@@ -59,7 +64,7 @@ function noiseBuffer(ctx: AudioContext, type: NoiseType): AudioBuffer {
   return buffer;
 }
 
-/** Two seconds of noise, looped — long enough that the period isn't audible. */
+/** `NOISE_SECONDS` of noise, looped — long enough that the period isn't audible. */
 function makeNoiseBuffer(ctx: AudioContext, type: NoiseType): AudioBuffer {
   const length = ctx.sampleRate * NOISE_SECONDS;
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
@@ -319,7 +324,29 @@ export class AmbientEngine {
 
 /* ── Per-sound synthesis graphs ────────────────────────────── */
 
+/**
+ * What made the first versions sound flat was not the noise but the motion: a
+ * sine LFO swells on a fixed period, every event was one identical blip, and
+ * everything sat dead centre. Real ambience does none of that. So the graphs
+ * below are built from four pieces — steady beds that drift at random, events
+ * that arrive in clusters and phrases, a stereo position for each, and a bus
+ * per layer so a ten-second wave never outlives a switch to another sound.
+ */
+
 type Builder = (ctx: AudioContext, dest: AudioNode) => Layer[];
+
+type Range = readonly [number, number];
+
+/** The floor exponential ramps start from and fall to — they cannot reach zero. */
+const SILENT = 0.0001;
+
+function rand(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+function pick<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
 
 /** A looping buffer source playing the requested flavour of noise, from the shared buffer. */
 function noiseSource(ctx: AudioContext, type: NoiseType): AudioBufferSourceNode {
@@ -343,52 +370,97 @@ function randomOffset(): number {
   return Math.random() * NOISE_SECONDS;
 }
 
-/** One steady voice of a soundscape: noise shaped by a filter, at a fixed gain, optionally breathing under a slow LFO. */
-function simpleLayer(
+/**
+ * Routes into `dest` from a position in the stereo field. Browsers without a
+ * stereo panner (and centred sounds) connect straight through.
+ */
+function panTo(ctx: AudioContext, dest: AudioNode, pan: number): AudioNode {
+  if (pan === 0 || typeof ctx.createStereoPanner !== 'function') return dest;
+  const panner = ctx.createStereoPanner();
+  panner.pan.value = Math.max(-1, Math.min(1, pan));
+  panner.connect(dest);
+  return panner;
+}
+
+/**
+ * Glides a parameter to a fresh random value inside `range` every so often.
+ *
+ * This replaces the sine LFO. A sine swells on a period the ear locks onto
+ * within a minute; a random walk with uneven steps never settles into one, which
+ * is what keeps rain from sounding like a machine breathing.
+ */
+function wander(
+  ctx: AudioContext,
+  param: AudioParam,
+  range: Range,
+  every: Range,
+  glide: number,
+): () => void {
+  let timer = 0;
+  let stopped = false;
+  param.value = rand(...range);
+
+  const step = () => {
+    if (stopped) return;
+    param.setTargetAtTime(rand(...range), ctx.currentTime, glide / 3);
+    timer = window.setTimeout(step, rand(...every) * 1000);
+  };
+  timer = window.setTimeout(step, rand(...every) * 1000);
+
+  return () => {
+    stopped = true;
+    window.clearTimeout(timer);
+  };
+}
+
+/** One continuous voice: filtered noise, placed in the stereo field, with its level and tone either fixed or drifting. */
+function bed(
   ctx: AudioContext,
   dest: AudioNode,
   opts: {
-    noise: 'white' | 'pink' | 'brown';
+    noise: NoiseType;
     filter: BiquadFilterType;
-    frequency: number;
+    /** A fixed cutoff, or a range for it to drift within. */
+    frequency: number | Range;
     q?: number;
-    gain: number;
-    /** Slow LFO on gain, giving the sound a natural swell. */
-    lfoHz?: number;
-    lfoDepth?: number;
+    /** A fixed level, or a range for it to drift within. */
+    gain: number | Range;
+    pan?: number;
+    /** Seconds between drift targets. */
+    every?: Range;
+    /** Roughly how long each drift takes to arrive, in seconds. */
+    glide?: number;
   },
 ): Layer {
   const src = noiseSource(ctx, opts.noise);
   const filter = ctx.createBiquadFilter();
   filter.type = opts.filter;
-  filter.frequency.value = opts.frequency;
   if (opts.q !== undefined) filter.Q.value = opts.q;
-
   const gain = ctx.createGain();
-  gain.gain.value = opts.gain;
+  const out = panTo(ctx, dest, opts.pan ?? 0);
 
-  src.connect(filter).connect(gain).connect(dest);
-  src.start(0, randomOffset());
-
+  src.connect(filter).connect(gain).connect(out);
   const nodes: AudioNode[] = [src, filter, gain];
-  let lfo: OscillatorNode | null = null;
+  if (out !== dest) nodes.push(out);
 
-  if (opts.lfoHz) {
-    lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.frequency.value = opts.lfoHz;
-    lfoGain.gain.value = opts.lfoDepth ?? opts.gain * 0.5;
-    lfo.connect(lfoGain).connect(gain.gain);
-    lfo.start();
-    nodes.push(lfo, lfoGain);
-  }
+  const every = opts.every ?? [4, 10];
+  const glide = opts.glide ?? 3;
+  const stoppers: (() => void)[] = [];
+  const drive = (param: AudioParam, value: number | Range) => {
+    if (typeof value === 'number') param.value = value;
+    else stoppers.push(wander(ctx, param, value, every, glide));
+  };
+  drive(filter.frequency, opts.frequency);
+  drive(gain.gain, opts.gain);
+
+  src.start(0, randomOffset());
 
   return {
     nodes,
     stop: () => {
+      stoppers.forEach((s) => s());
       try {
         src.stop();
-        lfo?.stop();
       } catch {
         /* already stopped */
       }
@@ -397,154 +469,490 @@ function simpleLayer(
   };
 }
 
-/** Randomly timed short bursts — birdsong, crackles, cafe clatter. */
-function sparkleLayer(
+/**
+ * Something that happens now and then — a drop, a wave, a birdsong phrase.
+ *
+ * Each event is built into this layer's own bus rather than straight into the
+ * soundscape. Events schedule into the future (a wave takes ten seconds to
+ * wash out), and switching sounds must silence them at once, not let the ocean
+ * finish breaking over the fireplace.
+ */
+function events(
   ctx: AudioContext,
   dest: AudioNode,
   opts: {
-    minGap: number;
-    maxGap: number;
+    /** Seconds until the next event, asked afresh each time. */
+    gap: () => number;
     build: (ctx: AudioContext, dest: AudioNode, at: number) => void;
   },
 ): Layer {
+  const bus = ctx.createGain();
+  bus.connect(dest);
   let timer = 0;
   let stopped = false;
 
   const schedule = () => {
     if (stopped) return;
-    const gap = opts.minGap + Math.random() * (opts.maxGap - opts.minGap);
     timer = window.setTimeout(() => {
       if (stopped) return;
-      opts.build(ctx, dest, ctx.currentTime);
+      // A hair of lookahead, so a start time is never already in the past.
+      opts.build(ctx, bus, ctx.currentTime + 0.02);
       schedule();
-    }, gap * 1000);
+    }, opts.gap() * 1000);
   };
   schedule();
 
   return {
-    nodes: [],
+    nodes: [bus],
     stop: () => {
       stopped = true;
       window.clearTimeout(timer);
+      bus.disconnect();
     },
   };
 }
 
+/** A percussive shape on `param`: up to `peak` over `attack`, then away over `decay`. */
+function envelope(param: AudioParam, at: number, peak: number, attack: number, decay: number): void {
+  param.setValueAtTime(SILENT, at);
+  param.exponentialRampToValueAtTime(Math.max(peak, SILENT), at + attack);
+  param.exponentialRampToValueAtTime(SILENT, at + attack + decay);
+}
+
+/** A short burst of filtered noise. Returns the filter, for callers that sweep it. */
+function noiseHit(
+  ctx: AudioContext,
+  dest: AudioNode,
+  at: number,
+  opts: {
+    noise?: NoiseType;
+    filter?: BiquadFilterType;
+    frequency: number;
+    q?: number;
+    peak: number;
+    attack?: number;
+    decay: number;
+    pan?: number;
+  },
+): BiquadFilterNode {
+  const attack = opts.attack ?? 0.002;
+  const src = noiseSource(ctx, opts.noise ?? 'white');
+  const filter = ctx.createBiquadFilter();
+  filter.type = opts.filter ?? 'bandpass';
+  filter.frequency.setValueAtTime(opts.frequency, at);
+  if (opts.q !== undefined) filter.Q.value = opts.q;
+  const gain = ctx.createGain();
+  envelope(gain.gain, at, opts.peak, attack, opts.decay);
+
+  src.connect(filter).connect(gain).connect(panTo(ctx, dest, opts.pan ?? 0));
+  src.start(at, randomOffset());
+  src.stop(at + attack + opts.decay + 0.05);
+  return filter;
+}
+
+/** A short pitched note. Returns the oscillator, for callers that bend its pitch. */
+function tone(
+  ctx: AudioContext,
+  dest: AudioNode,
+  at: number,
+  opts: {
+    type?: OscillatorType;
+    frequency: number;
+    peak: number;
+    attack?: number;
+    decay: number;
+    pan?: number;
+  },
+): OscillatorNode {
+  const attack = opts.attack ?? 0.005;
+  const osc = ctx.createOscillator();
+  osc.type = opts.type ?? 'sine';
+  osc.frequency.setValueAtTime(opts.frequency, at);
+  const gain = ctx.createGain();
+  envelope(gain.gain, at, opts.peak, attack, opts.decay);
+
+  osc.connect(gain).connect(panTo(ctx, dest, opts.pan ?? 0));
+  osc.start(at);
+  osc.stop(at + attack + opts.decay + 0.05);
+  return osc;
+}
+
+/* ── Rain ── */
+
+/** A drop close by — on the sill, the glass — with the occasional wet plink of a drip. */
+function nearDrop(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const pan = rand(-0.8, 0.8);
+  noiseHit(ctx, dest, at, {
+    frequency: rand(900, 2600),
+    q: rand(6, 14),
+    peak: rand(0.03, 0.08),
+    decay: rand(0.03, 0.08),
+    pan,
+  });
+  if (Math.random() < 0.25) {
+    const from = rand(900, 1700);
+    const plink = tone(ctx, dest, at + 0.005, { frequency: from, peak: rand(0.006, 0.014), decay: 0.07, pan });
+    plink.frequency.exponentialRampToValueAtTime(from * rand(1.6, 2.2), at + 0.06);
+  }
+}
+
+/** Thunder a long way off: a slow, soft roll that never arrives as a clap. */
+function distantThunder(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const pan = rand(-0.6, 0.6);
+  const size = rand(0.5, 1);
+  noiseHit(ctx, dest, at, { noise: 'brown', filter: 'lowpass', frequency: 140, q: 0.5, peak: 0.3 * size, attack: 1.6, decay: rand(4, 7), pan });
+  noiseHit(ctx, dest, at + rand(0.6, 1.4), { noise: 'brown', filter: 'lowpass', frequency: 90, q: 0.5, peak: 0.22 * size, attack: 1.2, decay: rand(3, 5), pan: -pan * 0.5 });
+}
+
+/* ── Ocean ── */
+
+/**
+ * One wave, start to finish: the swell building and brightening as it rises,
+ * the break, the wash of foam, and — sometimes — shingle rattling as the water
+ * draws back. Every wave differs in size, timing and where on the beach it lands.
+ */
+function wave(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const size = rand(0.55, 1);
+  const pan = rand(-0.45, 0.45);
+  const crest = at + rand(2.2, 3.8);
+  const wash = rand(3.5, 6);
+  const end = crest + wash;
+
+  const src = noiseSource(ctx, 'pink');
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.Q.value = 0.3;
+  filter.frequency.setValueAtTime(180, at);
+  filter.frequency.exponentialRampToValueAtTime(800 + 1000 * size, crest);
+  filter.frequency.exponentialRampToValueAtTime(260, end);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(SILENT, at);
+  gain.gain.exponentialRampToValueAtTime(0.34 * size, crest);
+  gain.gain.exponentialRampToValueAtTime(SILENT, end);
+  src.connect(filter).connect(gain).connect(panTo(ctx, dest, pan));
+  src.start(at, randomOffset());
+  src.stop(end + 0.1);
+
+  // Foam hissing up the sand.
+  noiseHit(ctx, dest, crest - 0.3, { filter: 'highpass', frequency: 2400, peak: 0.06 * size, attack: 0.6, decay: wash, pan: -pan * 0.5 });
+
+  // Shingle dragged back by the undertow.
+  if (Math.random() < 0.6) {
+    const pebbles = Math.round(12 + 20 * size);
+    for (let i = 0; i < pebbles; i++) {
+      noiseHit(ctx, dest, crest + wash * rand(0.3, 0.9), {
+        frequency: rand(2500, 6500),
+        q: 4,
+        peak: rand(0.004, 0.012) * size,
+        decay: rand(0.01, 0.03),
+        pan: pan + rand(-0.35, 0.35),
+      });
+    }
+  }
+}
+
+/* ── Wind ── */
+
+/** A gust passing through nearby leaves: a scatter of rustles that sweeps across the field. */
+function leafGust(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const length = rand(1.2, 3);
+  const from = rand(-0.8, 0.8);
+  const to = -from * rand(0.3, 1);
+  const count = Math.round(rand(20, 45));
+  for (let i = 0; i < count; i++) {
+    const t = Math.random();
+    // Densest and loudest mid-gust.
+    const swell = Math.sin(Math.PI * t);
+    noiseHit(ctx, dest, at + t * length, {
+      frequency: rand(2800, 6500),
+      q: 1.5,
+      peak: rand(0.004, 0.014) * (0.3 + swell),
+      decay: rand(0.02, 0.07),
+      pan: from + (to - from) * t,
+    });
+  }
+}
+
+/* ── Forest ── */
+
+/** A small bird note with a quick flutter in its pitch, which is what stops a sine sounding like a sine. */
+function chirp(
+  ctx: AudioContext,
+  dest: AudioNode,
+  at: number,
+  opts: { from: number; to: number; length: number; peak: number; pan: number },
+): void {
+  const osc = tone(ctx, dest, at, {
+    frequency: opts.from,
+    peak: opts.peak,
+    attack: opts.length * 0.15,
+    decay: opts.length * 0.85,
+    pan: opts.pan,
+  });
+  osc.frequency.exponentialRampToValueAtTime(opts.to, at + opts.length);
+
+  const flutter = ctx.createOscillator();
+  const depth = ctx.createGain();
+  flutter.frequency.value = rand(25, 60);
+  depth.gain.value = opts.from * rand(0.01, 0.04);
+  flutter.connect(depth).connect(osc.frequency);
+  flutter.start(at);
+  flutter.stop(at + opts.length + 0.05);
+}
+
+/** Sings one phrase and returns how long it took, in seconds. */
+type Song = (ctx: AudioContext, dest: AudioNode, at: number, pan: number, level: number) => number;
+
+/** A few distinct kinds of bird, so the forest has residents rather than one chirp on repeat. */
+const BIRDSONG: Song[] = [
+  // A quick descending trill.
+  (ctx, dest, at, pan, level) => {
+    const notes = Math.round(rand(5, 10));
+    const base = rand(3200, 4600);
+    const spacing = rand(0.06, 0.09);
+    for (let i = 0; i < notes; i++) {
+      const f = base * (1 - (i / notes) * 0.25);
+      chirp(ctx, dest, at + i * spacing, { from: f * 1.15, to: f * 0.9, length: 0.05, peak: 0.028 * level, pan });
+    }
+    return notes * spacing;
+  },
+  // A clear two-note whistle, falling.
+  (ctx, dest, at, pan, level) => {
+    const f = rand(2700, 3400);
+    chirp(ctx, dest, at, { from: f, to: f * 0.97, length: 0.32, peak: 0.022 * level, pan });
+    chirp(ctx, dest, at + 0.42, { from: f * 0.84, to: f * 0.8, length: 0.36, peak: 0.02 * level, pan });
+    return 0.8;
+  },
+  // A rising, questioning phrase of three.
+  (ctx, dest, at, pan, level) => {
+    const f = rand(2200, 2900);
+    for (let i = 0; i < 3; i++) {
+      chirp(ctx, dest, at + i * 0.18, { from: f * (1 + i * 0.12), to: f * (1.25 + i * 0.12), length: 0.12, peak: 0.022 * level, pan });
+    }
+    return 0.55;
+  },
+  // A far-off woodpecker.
+  (ctx, dest, at, pan, level) => {
+    const knocks = Math.round(rand(10, 18));
+    const spacing = rand(0.05, 0.07);
+    for (let i = 0; i < knocks; i++) {
+      noiseHit(ctx, dest, at + i * spacing, {
+        frequency: rand(800, 1000),
+        q: 5,
+        peak: 0.03 * level * (1 - i / (knocks * 1.5)),
+        decay: 0.02,
+        pan,
+      });
+    }
+    return knocks * spacing;
+  },
+];
+
+/** One bird sings; now and then another, elsewhere in the trees, answers. */
+function birdPhrase(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const song = pick(BIRDSONG);
+  const pan = rand(-0.85, 0.85);
+  const level = rand(0.4, 1);
+  const length = song(ctx, dest, at, pan, level);
+  if (Math.random() < 0.4) {
+    song(ctx, dest, at + length + rand(0.6, 1.8), -pan * rand(0.5, 1), level * rand(0.4, 0.8));
+  }
+}
+
+/* ── Coffee shop ── */
+
+/** Ceramic on ceramic: a few inharmonic partials, as a cup has, each dying away at its own rate. */
+function clink(ctx: AudioContext, dest: AudioNode, at: number, level: number, pan: number): void {
+  const f = rand(1700, 2700);
+  const partials: [ratio: number, gain: number, decay: number][] = [
+    [1, 1, 0.22],
+    [2.32, 0.5, 0.14],
+    [4.25, 0.25, 0.08],
+  ];
+  for (const [ratio, gain, decay] of partials) {
+    tone(ctx, dest, at, { frequency: f * ratio, peak: 0.018 * level * gain, attack: 0.001, decay, pan });
+  }
+}
+
+/** The small sounds of a room full of people: cups set down, a spoon stirring. */
+function tableware(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const pan = rand(-0.8, 0.8);
+  const level = rand(0.4, 1);
+  if (Math.random() < 0.2) {
+    const stirs = Math.round(rand(5, 9));
+    const spacing = rand(0.11, 0.14);
+    for (let i = 0; i < stirs; i++) clink(ctx, dest, at + i * spacing, level * 0.35, pan);
+    return;
+  }
+  clink(ctx, dest, at, level, pan);
+  // Cup onto saucer: a second, softer knock right after.
+  if (Math.random() < 0.35) clink(ctx, dest, at + rand(0.06, 0.12), level * 0.6, pan);
+}
+
+/** The espresso machine behind the counter: knocking out the grounds, then the steam wand. */
+function espresso(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const pan = rand(-0.5, 0.5);
+  const spacing = rand(0.22, 0.3);
+  for (let i = 0; i < 3; i++) {
+    noiseHit(ctx, dest, at + i * spacing, { noise: 'pink', frequency: 320, q: 2, peak: 0.06, decay: 0.08, pan });
+  }
+  noiseHit(ctx, dest, at + rand(1.5, 3), { filter: 'highpass', frequency: 3800, peak: 0.03, attack: 0.4, decay: rand(4, 6), pan });
+}
+
+/* ── Fireplace ── */
+
+/** A tight cluster of crackles — fire rarely pops just once. */
+function crackles(ctx: AudioContext, dest: AudioNode, at: number, level = 1): void {
+  const pan = rand(-0.5, 0.5);
+  const count = Math.round(rand(1, 5));
+  let t = at;
+  for (let i = 0; i < count; i++) {
+    noiseHit(ctx, dest, t, {
+      frequency: rand(1500, 5500),
+      q: rand(2, 6),
+      peak: rand(0.03, 0.12) * level,
+      decay: rand(0.004, 0.03),
+      pan: pan + rand(-0.1, 0.1),
+    });
+    t += rand(0.005, 0.04);
+  }
+}
+
+/** A pocket of sap giving way: a louder pop with some body, and a spray of embers after. */
+function pop(ctx: AudioContext, dest: AudioNode, at: number): void {
+  const pan = rand(-0.4, 0.4);
+  noiseHit(ctx, dest, at, { frequency: rand(800, 1400), q: 1, peak: 0.16, decay: 0.05, pan });
+  noiseHit(ctx, dest, at, { noise: 'brown', filter: 'lowpass', frequency: 180, peak: 0.18, decay: 0.12, pan });
+  for (let i = 0; i < 10; i++) {
+    noiseHit(ctx, dest, at + rand(0.05, 0.6), {
+      frequency: rand(4000, 7500),
+      q: 3,
+      peak: rand(0.005, 0.015),
+      decay: 0.01,
+      pan: pan + rand(-0.3, 0.3),
+    });
+  }
+}
+
+/** A log settling in the grate — a soft thud, and the fire flaring after it. */
+function logShift(ctx: AudioContext, dest: AudioNode, at: number): void {
+  noiseHit(ctx, dest, at, { noise: 'brown', filter: 'lowpass', frequency: 220, peak: 0.22, attack: 0.03, decay: 0.6, pan: rand(-0.3, 0.3) });
+  for (let i = 0; i < 6; i++) crackles(ctx, dest, at + 0.3 + rand(0, 1.5), 0.8);
+}
+
+/**
+ * Plays a soundscape through a fixed trim, so it lands at the loudness the
+ * volume slider has always produced for it. Spreading a sound across the
+ * stereo field and leaving gaps between events both make it quieter overall;
+ * without this, anyone's saved volume would suddenly sound too low.
+ */
+function atLevel(level: number, build: Builder): Builder {
+  return (ctx, dest) => {
+    const trim = ctx.createGain();
+    trim.gain.value = level;
+    trim.connect(dest);
+    return [...build(ctx, trim), { nodes: [trim], stop: () => trim.disconnect() }];
+  };
+}
+
+/** Trims matched by measurement, in stereo, against the previous version of each sound at the same volume. */
 const BUILDERS: Record<SoundId, Builder> = {
-  white: (ctx, dest) => [
-    simpleLayer(ctx, dest, { noise: 'white', filter: 'lowpass', frequency: 11000, gain: 0.25 }),
-  ],
+  // Kept steady — masking is the point — but spread left and right from
+  // different offsets, which sits far more comfortably in headphones than mono.
+  white: atLevel(1.6, (ctx, dest) => [
+    bed(ctx, dest, { noise: 'white', filter: 'lowpass', frequency: 9000, gain: 0.17, pan: -0.7 }),
+    bed(ctx, dest, { noise: 'white', filter: 'lowpass', frequency: 9000, gain: 0.17, pan: 0.7 }),
+  ]),
 
-  brown: (ctx, dest) => [
-    simpleLayer(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 700, gain: 0.7 }),
-  ],
+  brown: atLevel(1.4, (ctx, dest) => [
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: [550, 750], gain: 0.5, pan: -0.6, every: [15, 30], glide: 10 }),
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: [550, 750], gain: 0.5, pan: 0.6, every: [15, 30], glide: 10 }),
+  ]),
 
-  rain: (ctx, dest) => [
-    // Hiss of the rain itself.
-    simpleLayer(ctx, dest, { noise: 'white', filter: 'bandpass', frequency: 2400, q: 0.6, gain: 0.16 }),
-    // Body — the sound of it hitting surfaces.
-    simpleLayer(ctx, dest, { noise: 'pink', filter: 'lowpass', frequency: 1000, gain: 0.3, lfoHz: 0.08, lfoDepth: 0.08 }),
-    // Occasional heavier drops.
-    sparkleLayer(ctx, dest, {
-      minGap: 0.05,
-      maxGap: 0.4,
-      build: (c, d, at) => {
-        const src = noiseSource(c, 'white');
-        const bp = c.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.value = 1200 + Math.random() * 3000;
-        bp.Q.value = 8;
-        const g = c.createGain();
-        g.gain.setValueAtTime(0.05 + Math.random() * 0.05, at);
-        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
-        src.connect(bp).connect(g).connect(d);
-        src.start(at, randomOffset());
-        src.stop(at + 0.08);
-      },
+  rain: atLevel(1.4, (ctx, dest) => [
+    // The wide hiss of rain falling everywhere, left and right drifting apart.
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [2600, 3600], q: 0.5, gain: [0.08, 0.16], pan: -0.5, every: [4, 9], glide: 5 }),
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [2600, 3600], q: 0.5, gain: [0.08, 0.16], pan: 0.5, every: [4, 9], glide: 5 }),
+    // Body — rain on roofs and pavement, easing and intensifying over minutes.
+    bed(ctx, dest, { noise: 'pink', filter: 'lowpass', frequency: [700, 1100], gain: [0.16, 0.3], every: [8, 18], glide: 8 }),
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 200, gain: 0.18 }),
+    // Fine patter all around.
+    events(ctx, dest, {
+      gap: () => rand(0.015, 0.06),
+      build: (c, d, at) =>
+        void noiseHit(c, d, at, {
+          frequency: rand(3000, 8000),
+          q: 1.5,
+          peak: rand(0.006, 0.02),
+          decay: rand(0.008, 0.025),
+          pan: rand(-0.95, 0.95),
+        }),
     }),
-  ],
+    events(ctx, dest, { gap: () => rand(0.12, 1.1), build: nearDrop }),
+    events(ctx, dest, { gap: () => rand(80, 220), build: distantThunder }),
+  ]),
 
-  ocean: (ctx, dest) => [
-    // Slow swell — the LFO does the work here.
-    simpleLayer(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 500, gain: 0.35, lfoHz: 0.09, lfoDepth: 0.3 }),
-    simpleLayer(ctx, dest, { noise: 'white', filter: 'bandpass', frequency: 900, q: 0.4, gain: 0.1, lfoHz: 0.07, lfoDepth: 0.09 }),
-  ],
+  ocean: atLevel(2.3, (ctx, dest) => [
+    // The sea further out, never quite silent between waves.
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 220, gain: [0.18, 0.3], every: [6, 12], glide: 6 }),
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: 700, q: 0.5, gain: [0.015, 0.05], pan: -0.5, every: [5, 10], glide: 5 }),
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: 700, q: 0.5, gain: [0.015, 0.05], pan: 0.5, every: [5, 10], glide: 5 }),
+    events(ctx, dest, { gap: () => rand(5.5, 10), build: wave }),
+  ]),
 
-  wind: (ctx, dest) => [
-    simpleLayer(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: 500, q: 0.8, gain: 0.3, lfoHz: 0.05, lfoDepth: 0.22 }),
-    simpleLayer(ctx, dest, { noise: 'white', filter: 'highpass', frequency: 2000, gain: 0.05, lfoHz: 0.12, lfoDepth: 0.04 }),
-  ],
+  wind: atLevel(1.6, (ctx, dest) => [
+    // Two gusting bodies, one each side, moving independently — the wind
+    // shifts direction instead of swelling in place.
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [250, 750], q: 0.9, gain: [0.06, 0.32], pan: -0.6, every: [2, 6], glide: 3 }),
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [250, 750], q: 0.9, gain: [0.06, 0.32], pan: 0.6, every: [2, 6], glide: 3 }),
+    // The low weight of moving air.
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 160, gain: [0.1, 0.24], every: [5, 12], glide: 5 }),
+    // A faint whistle round a corner, bending in pitch.
+    bed(ctx, dest, { noise: 'white', filter: 'bandpass', frequency: [650, 1300], q: 18, gain: [0, 0.05], every: [3, 8], glide: 4 }),
+    events(ctx, dest, { gap: () => rand(4, 12), build: leafGust }),
+  ]),
 
-  forest: (ctx, dest) => [
-    // Leaves.
-    simpleLayer(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: 1800, q: 0.5, gain: 0.12, lfoHz: 0.06, lfoDepth: 0.08 }),
-    simpleLayer(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 400, gain: 0.18 }),
-    // Birds — short frequency-swept chirps.
-    sparkleLayer(ctx, dest, {
-      minGap: 1.5,
-      maxGap: 6,
-      build: (c, d, at) => {
-        const osc = c.createOscillator();
-        const g = c.createGain();
-        osc.type = 'sine';
-        const base = 2200 + Math.random() * 1600;
-        osc.frequency.setValueAtTime(base, at);
-        osc.frequency.exponentialRampToValueAtTime(base * (1.2 + Math.random() * 0.5), at + 0.08);
-        osc.frequency.exponentialRampToValueAtTime(base * 0.85, at + 0.18);
-        g.gain.setValueAtTime(0, at);
-        g.gain.linearRampToValueAtTime(0.05, at + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
-        osc.connect(g).connect(d);
-        osc.start(at);
-        osc.stop(at + 0.25);
-      },
-    }),
-  ],
+  forest: atLevel(1.6, (ctx, dest) => [
+    // Leaves on either side, stirring on their own schedules.
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [1800, 2600], q: 0.5, gain: [0.025, 0.09], pan: -0.5, every: [2, 7], glide: 3 }),
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [1800, 2600], q: 0.5, gain: [0.025, 0.09], pan: 0.5, every: [2, 7], glide: 3 }),
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 300, gain: 0.12 }),
+    // A brook off to one side, babbling — its level flickers quickly.
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: [1200, 2000], q: 0.8, gain: [0.012, 0.035], pan: 0.65, every: [0.25, 0.8], glide: 0.3 }),
+    events(ctx, dest, { gap: () => rand(1.8, 7), build: birdPhrase }),
+    events(ctx, dest, { gap: () => rand(6, 15), build: leafGust }),
+  ]),
 
-  cafe: (ctx, dest) => [
-    // The murmur: low band-passed noise sits where voices do.
-    simpleLayer(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: 500, q: 0.7, gain: 0.22, lfoHz: 0.15, lfoDepth: 0.07 }),
-    simpleLayer(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 300, gain: 0.15 }),
-    // Cups, cutlery, the espresso machine.
-    sparkleLayer(ctx, dest, {
-      minGap: 0.8,
-      maxGap: 4,
-      build: (c, d, at) => {
-        const osc = c.createOscillator();
-        const g = c.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = 1800 + Math.random() * 2800;
-        g.gain.setValueAtTime(0.03 + Math.random() * 0.02, at);
-        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
-        osc.connect(g).connect(d);
-        osc.start(at);
-        osc.stop(at + 0.14);
-      },
-    }),
-  ],
+  cafe: atLevel(1.3, (ctx, dest) => [
+    // Room tone.
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 260, gain: 0.14 }),
+    // Conversation: voice-band noise at a few spots in the room, each rising
+    // and falling at the rhythm of syllables, so it reads as talk, not hiss.
+    ...(
+      [
+        [380, -0.6],
+        [620, -0.2],
+        [950, 0.25],
+        [1400, 0.6],
+      ] as const
+    ).map(([frequency, pan]) =>
+      bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency, q: 1.2, gain: [0.008, 0.07], pan, every: [0.12, 0.35], glide: 0.12 }),
+    ),
+    // The whole room getting busier and quieter.
+    bed(ctx, dest, { noise: 'pink', filter: 'bandpass', frequency: 700, q: 0.6, gain: [0.04, 0.12], every: [6, 14], glide: 6 }),
+    events(ctx, dest, { gap: () => rand(0.8, 4.5), build: tableware }),
+    events(ctx, dest, { gap: () => rand(40, 110), build: espresso }),
+  ]),
 
-  fireplace: (ctx, dest) => [
-    // The low roar of the fire.
-    simpleLayer(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: 420, gain: 0.4, lfoHz: 0.3, lfoDepth: 0.12 }),
-    // Crackles and pops.
-    sparkleLayer(ctx, dest, {
-      minGap: 0.08,
-      maxGap: 0.9,
-      build: (c, d, at) => {
-        const src = noiseSource(c, 'white');
-        const bp = c.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.value = 900 + Math.random() * 2600;
-        bp.Q.value = 5;
-        const g = c.createGain();
-        g.gain.setValueAtTime(0.06 + Math.random() * 0.09, at);
-        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.04 + Math.random() * 0.05);
-        src.connect(bp).connect(g).connect(d);
-        src.start(at, randomOffset());
-        src.stop(at + 0.12);
-      },
-    }),
-  ],
+  fireplace: atLevel(1.2, (ctx, dest) => [
+    // The roar, breathing unevenly as the flames catch and settle.
+    bed(ctx, dest, { noise: 'brown', filter: 'lowpass', frequency: [260, 480], gain: [0.26, 0.42], every: [0.8, 2.5], glide: 1.2 }),
+    // Hiss of sap and gas.
+    bed(ctx, dest, { noise: 'white', filter: 'bandpass', frequency: 4200, q: 0.8, gain: [0.004, 0.018], pan: 0.2, every: [0.4, 1.6], glide: 0.6 }),
+    events(ctx, dest, { gap: () => rand(0.06, 0.6), build: (c, d, at) => crackles(c, d, at) }),
+    events(ctx, dest, { gap: () => rand(5, 16), build: pop }),
+    events(ctx, dest, { gap: () => rand(35, 90), build: logShift }),
+  ]),
 };
 
 export const ambient = new AmbientEngine();
