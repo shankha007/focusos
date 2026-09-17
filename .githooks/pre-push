@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Refuses a push that would write to main, which changes reach only through a
+# pull request from uat.
+#
+# Hooks are not installed by cloning. Turn this one on per clone with:
+#
+#   git config core.hooksPath .githooks
+#
+# Git feeds one line per ref being pushed on stdin:
+#   <local ref> <local sha> <remote ref> <remote sha>
+
+protected_branch=refs/heads/main
+blocked=0
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ "$remote_ref" = "$protected_branch" ] && blocked=1
+done
+
+if [ "$blocked" -eq 1 ]; then
+  # An escape hatch for the one case this cannot know about — restoring main
+  # after something went wrong — so the hook never has to be deleted to be
+  # worked around.
+  if [ "${FOCUSOS_ALLOW_MAIN_PUSH:-}" = "1" ]; then
+    echo "pre-push: pushing to main, allowed by FOCUSOS_ALLOW_MAIN_PUSH." >&2
+    exit 0
+  fi
+
+  echo "pre-push: refusing to push straight to main." >&2
+  echo "  Changes go to uat first, then to main through a pull request:" >&2
+  echo "    git push origin HEAD:refs/heads/<your-branch> && gh pr create --base uat" >&2
+  echo "  If you really mean it: FOCUSOS_ALLOW_MAIN_PUSH=1 git push ..." >&2
+  exit 1
+fi
+
+exit 0
