@@ -306,24 +306,49 @@ real remaining time intact.
 
 ## Branching
 
-Work lands on **`uat`** first, and reaches **`main`** only through a pull request — `main` is what
-[focusos.pro](https://focusos.pro) deploys. CI runs on both branches.
+Every change travels the same way. `main` is what [focusos.pro](https://focusos.pro) deploys, and
+`uat` is where a change is proven before it gets there:
 
-GitHub branch protection would enforce this, but it needs GitHub Pro on a private repository, so
-two lighter guards stand in for it:
+```
+your branch ──PR──> uat ──(verify on uat)──PR──> main
+```
 
-- **A pre-push hook** refuses a push straight to `main`. Hooks are not installed by cloning, so turn
-  it on once per clone:
+Neither `main` nor `uat` accepts a direct push.
+
+```bash
+git switch uat && git pull
+git switch -c feat/thing            # work happens on its own branch
+git push -u origin feat/thing
+gh pr create --base uat             # step 1 — review and CI
+
+# once the change has been verified running on uat:
+gh pr create --base main --head uat --title "Release: <what is in it>"
+```
+
+Three guards keep that flow honest:
+
+- **The repository's "Protected branches" ruleset** refuses a direct push, a force-push and a
+  deletion on `main` and `uat`, and requires a pull request whose `verify` CI job has passed. It
+  applies to everyone, on every machine, with no bypass — including the repository owner. Genuine
+  emergencies mean turning the ruleset off in **Settings → Rules** and back on afterwards, which is
+  deliberately a visible act.
+- **A pre-push hook** refuses the same pushes locally, in a second, before anything is uploaded.
+  Hooks are not installed by cloning, so turn it on once per clone:
 
   ```bash
   git config core.hooksPath .githooks
   ```
 
-  To push to `main` deliberately — restoring it after a bad merge, say — prefix the push with
-  `FOCUSOS_ALLOW_MAIN_PUSH=1`.
+  To get past the hook deliberately, prefix the push with `FOCUSOS_ALLOW_PROTECTED_PUSH=1`. The
+  ruleset still applies — the hook is the fast "no", not the real one.
 
-- **The [Guard main](.github/workflows/guard-main.yml) workflow** fails whenever a commit reaches
-  `main` without a merged pull request. It cannot prevent the push, only make it impossible to miss.
+- **The [Guard protected branches](.github/workflows/guard-protected-branches.yml) workflow** checks
+  the part a ruleset cannot express: that a commit on `main` came from a pull request whose source
+  was `uat`, and that a commit on `uat` came from a pull request from some other branch. It fails
+  after the fact rather than preventing anything, which is why all three exist.
+
+CI (`verify`: audit, lint, type-check, tests, build, bundle budget) runs on every pull request into
+`main` or `uat`, and again on the push that merging produces.
 
 ## Your data
 
