@@ -39,6 +39,9 @@ function prefersNoMotion(): boolean {
 
 let animation = 0;
 
+/** Bumped by every scroll, so a scroll that has been superseded can tell. */
+let sequence = 0;
+
 /** Stops any tween in flight. Called on unmount so a scroll that was still
  *  running does not keep firing frames against a detached element. */
 function cancelScroll() {
@@ -72,21 +75,40 @@ function scrollTo(top: number) {
 
   const duration = Math.min(700, 220 + Math.abs(distance) * 0.35);
   const startedAt = performance.now();
+  let framed = false;
 
   const step = (now: number) => {
+    framed = true;
     const t = Math.min(1, (now - startedAt) / duration);
     // easeOutCubic — quick departure, soft landing.
     scroller.scrollTop = start + distance * (1 - Math.pow(1 - t, 3));
     if (t < 1) animation = requestAnimationFrame(step);
   };
   animation = requestAnimationFrame(step);
+
+  // requestAnimationFrame is not guaranteed to fire: a background tab, an
+  // embedded webview or a hidden preview pane can withhold frames while the
+  // document still reports itself visible. The tween would then never start and
+  // the link would do nothing at all — which is exactly the dead-button
+  // behaviour this tween exists to avoid. If no frame has arrived shortly, jump
+  // there instead. `sequence` makes a newer scroll win, so a late fallback
+  // cannot drag the page back to an abandoned target.
+  const mine = ++sequence;
+  setTimeout(() => {
+    if (framed || sequence !== mine) return;
+    cancelScroll();
+    scroller.scrollTop = target;
+  }, 250);
 }
 
 /**
- * In-page navigation scrolls by element id rather than linking to `#features`.
- * A real anchor would push a history entry and leave a fragment on every route,
- * and the offset below is measured against the scroll container rather than
- * handed to `scrollIntoView`, which is one of the APIs the tween above avoids.
+ * Scrolls to a section by element id. The offset is measured against the scroll
+ * container rather than handed to `scrollIntoView`, which is one of the APIs the
+ * tween above avoids.
+ *
+ * This is what `SectionLink` calls instead of letting the browser jump to the
+ * fragment. The links themselves are real anchors — a `<button>` is invisible to
+ * a crawler, which then sees a page with no internal links at all.
  */
 function scrollToId(id: string) {
   const scroller = getScroller();
@@ -103,6 +125,41 @@ function scrollToId(id: string) {
 
 function scrollToTop() {
   scrollTo(0);
+}
+
+/**
+ * An in-page link to one of the sections below.
+ *
+ * It is a real `<a href="#id">`, so a crawler can follow it and a visitor can
+ * copy or open it in a new tab, but a plain left click is handled here: the
+ * browser's own fragment jump is instant and ignores the sticky header, and it
+ * would push a history entry for every section a reader visits. `replaceState`
+ * puts the fragment in the address bar without that. Modified clicks — new tab,
+ * new window, download — are left to the browser.
+ */
+function SectionLink({
+  id,
+  className,
+  children,
+}: {
+  id: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={`#${id}`}
+      className={className}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        scrollToId(id);
+        window.history.replaceState(null, '', `#${id}`);
+      }}
+    >
+      {children}
+    </a>
+  );
 }
 
 /** Fade-and-rise used on each section as it enters. Honours reduced motion via
@@ -123,6 +180,17 @@ export function LandingPage() {
   // Leaving for /dashboard mid-scroll would otherwise leave the tween running
   // against an element that is no longer in the document.
   useEffect(() => cancelScroll, []);
+
+  // The section links are shareable now that they are real anchors, so an
+  // arriving /#features has to land on that section. The browser cannot do it
+  // itself: the scroll container and the sections do not exist until this
+  // renders, and the sticky header would cover the heading anyway.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const frame = requestAnimationFrame(() => scrollToId(id));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <div id={SCROLLER_ID} ref={scrollerRef} className="h-full overflow-y-auto bg-bg">
@@ -183,13 +251,13 @@ function LandingNav({ scrollerRef }: { scrollerRef: React.RefObject<HTMLDivEleme
             ['How it works', 'how'],
             ['Feedback', 'feedback'],
           ].map(([label, id]) => (
-            <button
+            <SectionLink
               key={id}
-              onClick={() => scrollToId(id)}
+              id={id}
               className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-elevated hover:text-fg"
             >
               {label}
-            </button>
+            </SectionLink>
           ))}
         </nav>
 
@@ -226,18 +294,27 @@ function Hero() {
             Offline-first · No account · No tracking
           </span>
 
+          {/* Keep this heading word for word in step with the #seo-shell H1 in
+              index.html — that markup is the same page to a crawler that does
+              not run JavaScript, and to anyone whose bundle is still loading.
+              "Pomodoro timer" is the phrase people search for, so it leads; the
+              old headline survives as the first line of the paragraph below. */}
           <h1 className="mt-5 text-[38px] font-semibold leading-[1.08] tracking-[-0.03em] text-fg sm:text-[52px] lg:text-[58px]">
-            Not just a timer.
+            {/* The space is load-bearing: without it the two text nodes either
+                side of the <br> concatenate to "timerthat" for anything reading
+                textContent, which is not the heading the shell in index.html
+                carries. */}
+            The free Pomodoro timer{' '}
             <br />
             <span className="bg-gradient-to-r from-accent to-break bg-clip-text text-transparent">
-              The whole focus workflow.
+              that learns how you focus
             </span>
           </h1>
 
           <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted sm:text-[17px]">
-            Plan the day, run deep-focus sessions, log what pulls you away, and get real analysis
-            back. FocusOS learns the session length you actually finish — not the one you
-            optimistically planned.
+            Not just a timer — the whole focus workflow. Plan the day, run deep-focus sessions, log
+            what pulls you away, and get real analysis back. FocusOS learns the session length you
+            actually finish, not the one you optimistically planned.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -565,12 +642,12 @@ function Footer() {
             &copy; {new Date().getFullYear()} {CREATOR.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <button onClick={() => scrollToId('privacy')} className="transition-colors hover:text-muted">
+            <SectionLink id="privacy" className="transition-colors hover:text-muted">
               Privacy
-            </button>
-            <button onClick={() => scrollToId('feedback')} className="transition-colors hover:text-muted">
+            </SectionLink>
+            <SectionLink id="feedback" className="transition-colors hover:text-muted">
               Feedback
-            </button>
+            </SectionLink>
             <Link to="/dashboard" className="font-medium text-muted transition-colors hover:text-accent">
               Open app
             </Link>
