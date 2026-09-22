@@ -40,22 +40,29 @@
       })();
     </script>
 
-    <title>FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion</title>
+    <!-- Under 60 characters, so Google shows it whole, and the keyword leads:
+         the brand is what someone reads last, not what they searched for. -->
+    <title>Free Offline Pomodoro Timer with Analytics · FocusOS</title>
     <meta
       name="description"
-      content="A free offline Pomodoro timer that learns the session length you actually finish. Deep focus mode, distraction tracking, and analytics. No account needed."
+      content="A free Pomodoro timer that works offline and learns the session length you actually finish. Deep focus mode, distraction tracking, analytics. No account."
     />
+    <!-- Lets Discover and image results use the full share card rather than a thumbnail. -->
+    <meta name="robots" content="max-image-preview:large" />
     <!-- index.html is served for every route, so the canonical points at the one
          page with content. robots.txt keeps crawlers off the app routes. -->
     <link rel="canonical" href="https://focusos.pro/" />
 
+    <!-- Kept word for word in step with <title> and the description above: a
+         share card that disagrees with the search result reads as two products. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="FocusOS" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://focusos.pro/" />
-    <meta property="og:title" content="FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion" />
+    <meta property="og:title" content="Free Offline Pomodoro Timer with Analytics · FocusOS" />
     <meta
       property="og:description"
-      content="A free offline Pomodoro timer that learns the session length you actually finish. Deep focus mode, distraction tracking, and analytics. No account needed."
+      content="A free Pomodoro timer that works offline and learns the session length you actually finish. Deep focus mode, distraction tracking, analytics. No account."
     />
     <meta property="og:image" content="https://focusos.pro/og-image.png" />
     <meta property="og:image:width" content="1200" />
@@ -63,24 +70,80 @@
     <meta property="og:image:alt" content="FocusOS — not just a timer, the whole focus workflow." />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FocusOS — Offline Pomodoro Timer &amp; Deep Work Companion" />
+    <meta name="twitter:title" content="Free Offline Pomodoro Timer with Analytics · FocusOS" />
     <meta
       name="twitter:description"
-      content="A free offline Pomodoro timer that learns the session length you actually finish. Deep focus mode, distraction tracking, and analytics. No account needed."
+      content="A free Pomodoro timer that works offline and learns the session length you actually finish. Deep focus mode, distraction tracking, analytics. No account."
     />
     <meta name="twitter:image" content="https://focusos.pro/og-image.png" />
 
+    <!--
+      A @graph rather than one object, so the site, the application and the
+      person who wrote it are separate nodes that reference each other by @id —
+      which is how a search engine tells "the author of this app" from "a name
+      in a field".
+
+      Deliberately absent: aggregateRating and review. Both are eligible for
+      stars in a search result, and both would have to be invented here. The
+      landing copy is held to what is true of the shipped app; the markup is
+      held to the same standard.
+
+      Not executable, so the CSP script-src hashes in vercel.json do not cover
+      this block and do not need updating when it changes.
+    -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "FocusOS",
-        "url": "https://focusos.pro/",
-        "applicationCategory": "ProductivityApplication",
-        "operatingSystem": "Any modern web browser",
-        "description": "An offline-first Pomodoro workspace: plan the day, run deep-focus sessions, log distractions, and get analysis back. Data never leaves the browser.",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "Shankha Shubhra Das" }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://focusos.pro/#website",
+            "url": "https://focusos.pro/",
+            "name": "FocusOS",
+            "description": "A free, offline-first Pomodoro timer and focus workspace.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://focusos.pro/#author" }
+          },
+          {
+            "@type": "Person",
+            "@id": "https://focusos.pro/#author",
+            "name": "Shankha Shubhra Das",
+            "url": "https://focusos.pro/",
+            "sameAs": [
+              "https://github.com/shankha007",
+              "https://www.linkedin.com/in/shankhad/"
+            ]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://focusos.pro/#app",
+            "name": "FocusOS",
+            "url": "https://focusos.pro/",
+            "applicationCategory": "ProductivityApplication",
+            "applicationSubCategory": "Pomodoro timer",
+            "operatingSystem": "Any modern web browser",
+            "browserRequirements": "Requires JavaScript. Works offline once loaded.",
+            "softwareVersion": "1.0.0",
+            "inLanguage": "en",
+            "isAccessibleForFree": true,
+            "description": "An offline-first Pomodoro workspace: plan the day, run deep-focus sessions, log distractions, and get analysis back. Data never leaves the browser.",
+            "image": "https://focusos.pro/og-image.png",
+            "screenshot": "https://focusos.pro/og-image.png",
+            "featureList": [
+              "Pomodoro timer with adaptive session and break lengths",
+              "Deep Focus Mode with a full-screen countdown and picture-in-picture",
+              "Distraction logging and distraction-pattern analysis",
+              "Focus analytics by day, week, month and year",
+              "A written daily reflection assembled from your own session data",
+              "Tasks with priorities, categories and session estimates",
+              "Eight ambient soundscapes synthesized in the browser",
+              "Works offline and installs as a Progressive Web App"
+            ],
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "author": { "@id": "https://focusos.pro/#author" },
+            "isPartOf": { "@id": "https://focusos.pro/#website" }
+          }
+        ]
       }
     </script>
     <style>
@@ -126,14 +189,17 @@
     -->
     <div id="root">
       <div id="seo-shell" style="max-width: 44rem; margin: 0 auto; padding: 12vh 1.5rem; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #e9ecf8;">
+        <!-- Word for word the H1 in LandingPage.tsx. Two different headings for
+             one page is a mixed signal to a crawler and a mismatch to anyone
+             who sees the shell before React mounts. -->
         <h1 style="font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 1rem;">
-          FocusOS — not just a timer, the whole focus workflow
+          The free Pomodoro timer that learns how you focus
         </h1>
         <p style="font-size: 1.0625rem; line-height: 1.6; color: #949cb8; margin: 0 0 1.5rem;">
-          A free, offline-first Pomodoro workspace. Plan the day, run deep-focus sessions, log what
-          pulls you away, and get real analysis back. FocusOS learns the session length you actually
-          finish — not the one you optimistically planned. No account, no tracking, no backend: your
-          data stays in your browser.
+          Not just a timer — the whole focus workflow. Plan the day, run deep-focus Pomodoro
+          sessions, log what pulls you away, and get real analysis back. FocusOS learns the session
+          length you actually finish, not the one you optimistically planned. No account, no
+          tracking, no backend: your data stays in your browser.
         </p>
         <ul style="font-size: 0.9375rem; line-height: 1.9; color: #949cb8; padding-left: 1.1rem; margin: 0;">
           <li>Deep Focus Mode with a full-screen countdown and picture-in-picture</li>
