@@ -1,0 +1,87 @@
+name: IndexNow
+
+# Tells Bing (and Yandex, Seznam, Naver — they share one endpoint) that the
+# site has changed, instead of waiting for them to come back on their own
+# schedule. Bing's index is also what ChatGPT search and DuckDuckGo read, so it
+# is worth more than Bing's own share of searches suggests.
+#
+# Google does not participate in IndexNow. Its equivalent is the sitemap plus
+# "Request indexing" in Search Console, which is a manual step after a release.
+#
+# The key is deliberately public: IndexNow's whole verification model is that
+# https://focusos.pro/<key>.txt serves the key back, proving whoever submitted
+# the URLs can publish on the domain. It is not a secret and does not belong in
+# repository secrets.
+
+on:
+  push:
+    branches: [main]
+  # For a re-submission that is not tied to a deploy.
+  workflow_dispatch:
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    name: submit changed URLs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the deployment, then submit the sitemap's URLs
+        env:
+          KEY: b7816b905841f0018cd9874e75763c38
+          HOST: focusos.pro
+        run: |
+          set -euo pipefail
+
+          # This fires on the push, while Vercel is still building. Waiting for
+          # the site to answer is not proof the new build is live, but the cost
+          # of being a minute early is only that a crawler fetches the previous
+          # version and comes back later — which is what would have happened
+          # without IndexNow at all.
+          sleep 90
+
+          # The sitemap is generated at build time (scripts/build-sitemap.mjs),
+          # so it is the one list that is always in step with what is deployed.
+          sitemap=$(curl -fsS --retry 5 --retry-delay 15 --retry-all-errors "https://$HOST/sitemap.xml")
+          urls=$(printf '%s' "$sitemap" | grep -oE '<loc>[^<]+</loc>' | sed -E 's|</?loc>||g')
+
+          if [ -z "$urls" ]; then
+            echo "::error::No <loc> entries found in https://$HOST/sitemap.xml"
+            exit 1
+          fi
+
+          echo "Submitting:"
+          echo "$urls" | sed 's/^/  /'
+
+          # The key file has to be readable before the endpoint will trust the
+          # submission, so check it rather than discovering the failure in a
+          # 403 that says very little.
+          served=$(curl -fsS "https://$HOST/$KEY.txt")
+          if [ "$served" != "$KEY" ]; then
+            echo "::error::https://$HOST/$KEY.txt did not serve the key back."
+            exit 1
+          fi
+
+          payload=$(printf '%s' "$urls" | jq -R . | jq -s \
+            --arg host "$HOST" \
+            --arg key "$KEY" \
+            '{host: $host, key: $key, keyLocation: "https://\($host)/\($key).txt", urlList: .}')
+
+          code=$(curl -sS -o /tmp/indexnow-response -w '%{http_code}' \
+            -X POST "https://api.indexnow.org/IndexNow" \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            -d "$payload")
+
+          echo "IndexNow responded $code"
+          cat /tmp/indexnow-response || true
+
+          # 200 accepted, 202 accepted but the key is still being checked.
+          case "$code" in
+            200 | 202) exit 0 ;;
+            *) echo "::error::IndexNow rejected the submission ($code)."; exit 1 ;;
+          esac
