@@ -1,7 +1,13 @@
 #!/bin/sh
 #
-# Refuses a push that would write to main, which changes reach only through a
-# pull request from uat.
+# Refuses a push that would write to a protected branch. Work goes to a branch
+# of its own, reaches uat through a pull request, and reaches main through a
+# second pull request from uat.
+#
+# The repository's "Protected branches" ruleset on GitHub refuses these pushes
+# server-side, for every clone and every machine. This hook is the local half:
+# it fails in a second, before the objects are uploaded and before the remote
+# has to say no.
 #
 # Hooks are not installed by cloning. Turn this one on per clone with:
 #
@@ -10,26 +16,32 @@
 # Git feeds one line per ref being pushed on stdin:
 #   <local ref> <local sha> <remote ref> <remote sha>
 
-protected_branch=refs/heads/main
-blocked=0
+blocked=''
 
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
-  [ "$remote_ref" = "$protected_branch" ] && blocked=1
+  case "$remote_ref" in
+    refs/heads/main | refs/heads/uat)
+      blocked="${blocked}${blocked:+, }${remote_ref#refs/heads/}"
+      ;;
+  esac
 done
 
-if [ "$blocked" -eq 1 ]; then
-  # An escape hatch for the one case this cannot know about — restoring main
-  # after something went wrong — so the hook never has to be deleted to be
-  # worked around.
-  if [ "${FOCUSOS_ALLOW_MAIN_PUSH:-}" = "1" ]; then
-    echo "pre-push: pushing to main, allowed by FOCUSOS_ALLOW_MAIN_PUSH." >&2
+if [ -n "$blocked" ]; then
+  # An escape hatch for the one case this cannot know about — restoring a
+  # branch after something went wrong — so the hook never has to be deleted to
+  # be worked around. The server-side ruleset still applies: getting past this
+  # hook is not the same as getting past GitHub.
+  if [ "${FOCUSOS_ALLOW_PROTECTED_PUSH:-}" = "1" ]; then
+    echo "pre-push: pushing to $blocked, allowed by FOCUSOS_ALLOW_PROTECTED_PUSH." >&2
     exit 0
   fi
 
-  echo "pre-push: refusing to push straight to main." >&2
-  echo "  Changes go to uat first, then to main through a pull request:" >&2
-  echo "    git push origin HEAD:refs/heads/<your-branch> && gh pr create --base uat" >&2
-  echo "  If you really mean it: FOCUSOS_ALLOW_MAIN_PUSH=1 git push ..." >&2
+  echo "pre-push: refusing to push straight to $blocked." >&2
+  echo "  Work goes to a branch of its own, then to uat, then to main:" >&2
+  echo "    git push -u origin HEAD          # your branch" >&2
+  echo "    gh pr create --base uat          # branch -> uat" >&2
+  echo "    gh pr create --base main --head uat   # uat -> main, once uat is verified" >&2
+  echo "  If you really mean it: FOCUSOS_ALLOW_PROTECTED_PUSH=1 git push ..." >&2
   exit 1
 fi
 
