@@ -1,0 +1,68 @@
+name: Guard protected branches
+
+# The repository's "Protected branches" ruleset is the real guard: it refuses a
+# direct push, a force-push and a deletion on main and uat, and requires a pull
+# request that passes CI. This workflow checks the part a ruleset cannot
+# express — that the pull request came from the right place:
+#
+#   your branch ──PR──> uat ──PR──> main
+#
+# A ruleset can require a pull request into main; it cannot require that the
+# pull request came from uat. So this fails loudly after the fact if it did
+# not, which is the only moment anyone can act on it.
+#
+# The matching pre-push hook in .githooks refuses the push before it leaves the
+# machine, on clones where it is installed. All three exist because none of
+# them covers the others' gaps.
+
+on:
+  push:
+    branches: [main, uat]
+
+concurrency:
+  group: guard-protected-branches-${{ github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  arrived-through-the-right-pull-request:
+    name: arrived through the right pull request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check how this commit reached ${{ github.ref_name }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # Every pull request this commit belongs to, merged, and targeting
+          # the branch that was just pushed. A merge commit's own SHA answers
+          # for the whole merge, so one match is enough.
+          #
+          # main accepts one source — uat. uat accepts any branch except main,
+          # which would mean the flow had run backwards.
+          if [ "$BRANCH" = "main" ]; then
+            expected='the source branch must be uat'
+            matches=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+              --jq '[.[] | select(.merged_at != null and .base.ref == "main" and .head.ref == "uat")] | length')
+          else
+            expected='the source must be a branch other than main'
+            matches=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+              --jq '[.[] | select(.merged_at != null and .base.ref == "uat" and .head.ref != "main")] | length')
+          fi
+
+          if [ "$matches" -gt 0 ]; then
+            echo "$SHA arrived on $BRANCH through a merged pull request ($expected)."
+            exit 0
+          fi
+
+          echo "::error::$SHA reached $BRANCH outside the branch flow — $expected."
+          echo "Changes flow: your branch -> uat -> main, one pull request at each step."
+          echo "Undo it with: git revert $SHA — or reset $BRANCH if nothing else has landed since."
+          exit 1
