@@ -4,9 +4,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(dashboard|tasks|analytics|achievements|settings)", "destination": "/index.html" },
+    { "source": "/(dashboard|tasks|analytics|achievements|settings)/", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/(dashboard|tasks|analytics|achievements|settings)(/?)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, follow" }]
+    },
     {
       "source": "/assets/(.*)",
       "headers": [
