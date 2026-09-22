@@ -284,9 +284,16 @@ function Hero() {
       </div>
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-16 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
+        {/* Movement only, no fade. An element at opacity 0 does not count as
+            painted, so fading the headline and the paragraph in over 600ms
+            pushed Largest Contentful Paint out by the length of the animation —
+            on the one page the whole site is ranked on. Sliding up from 20px
+            reads as the same entrance and is visible from the first frame.
+            Sections further down still fade (see `rise`): they are below the
+            fold, so they cannot be the LCP element. */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ y: 20 }}
+          animate={{ y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-[12px] font-medium text-accent">
