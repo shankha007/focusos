@@ -27,19 +27,19 @@ export const FEATURES: Feature[] = [
   {
     icon: Focus,
     title: 'Deep Focus Mode',
-    body: 'A full-screen countdown with an ambient drift background and your task title. Float it over any other window with picture-in-picture so the clock stays visible while you work.',
+    body: 'A full-screen Pomodoro countdown with an ambient drift background and your task title. Float it over any other window with picture-in-picture so the clock stays visible while you work.',
     tag: 'Picture-in-picture',
   },
   {
     icon: Brain,
     title: 'An engine that learns you',
-    body: 'After about ten sessions it reads your own history: the session length you actually finish, the break length that leaves you sharp, and the three-hour window where your focus is strongest.',
+    body: 'The classic 25 minutes is a starting point, not a rule. After about ten sessions the timer reads your own history: the session length you actually finish, the break length that leaves you sharp, and the three-hour window where your focus is strongest.',
     tag: 'Shows its reasoning',
   },
   {
     icon: BarChart3,
     title: 'Analytics worth reading',
-    body: 'Focus over time, your best hours, how mood predicts productivity, and what interrupts you — including how far into a session each distraction tends to hit.',
+    body: 'Focus time over days, weeks and months, your best hours, how mood predicts productivity, and what interrupts you — including how far into a session each distraction tends to hit.',
     tag: 'Day / week / month / year',
   },
   {
@@ -51,13 +51,13 @@ export const FEATURES: Feature[] = [
   {
     icon: ListChecks,
     title: 'Tasks that drive the plan',
-    body: 'Priorities, categories, tags, and session estimates. Drag to reorder and the daily plan follows — your highest-priority work scheduled into your peak window.',
+    body: 'Priorities, categories, tags, and an estimate in Pomodoro sessions. Drag to reorder and the daily plan follows — your highest-priority work scheduled into your peak window.',
     tag: 'Auto-ordered plan',
   },
   {
     icon: Volume2,
     title: 'Soundscapes, synthesized live',
-    body: 'Rain, forest, ocean, coffee shop, fireplace, wind, white and brown noise — generated in the browser from filtered noise and oscillators. Nothing downloads, nothing loops audibly.',
+    body: 'Rain, forest, ocean, coffee shop, fireplace, wind, white and brown noise to study or work to — generated in the browser from filtered noise and oscillators. Nothing downloads, nothing loops audibly.',
     tag: '8 soundscapes',
   },
   {
@@ -84,12 +84,12 @@ export const STEPS: Step[] = [
   {
     n: '01',
     title: 'Add what you are working on',
-    body: 'Give it a priority, a category, and a rough estimate in sessions. A specific title focuses better than a vague one.',
+    body: 'Give it a priority, a category, and a rough estimate in Pomodoro sessions. A specific title focuses better than a vague one.',
   },
   {
     n: '02',
     title: 'Start the session',
-    body: 'A two-tap check-in asks how you feel, then Deep Focus takes the screen. Log a distraction with one key without breaking flow.',
+    body: 'A two-tap check-in asks how you feel, then the Pomodoro timer takes the whole screen. Log a distraction with one key without breaking flow.',
   },
   {
     n: '03',
@@ -115,7 +115,7 @@ export const CREATOR = {
   name: 'Shankha Shubhra Das',
   role: 'Designer & developer of FocusOS',
   blurb:
-    'FocusOS started as a timer I wanted for my own work and grew into the whole focus workflow. It has no backend, no tracking, and no business model — just a tool I use every day. If it helps you too, I would genuinely like to hear about it.',
+    'FocusOS started as a Pomodoro timer I wanted for my own work and grew into the whole focus workflow. It has no backend, no tracking, and no business model — just a tool I use every day. If it helps you too, I would genuinely like to hear about it.',
   email: 'shankhasdas07@gmail.com',
   github: 'https://github.com/shankha007',
   linkedin: 'https://www.linkedin.com/in/shankhad/',
