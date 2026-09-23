@@ -18,6 +18,7 @@ import {
   type TimerState,
 } from '@/engine/timerEngine';
 import { parkSession } from './handoff';
+import { MARKETING_ROUTES } from './routes';
 
 /**
  * A working Pomodoro timer on the landing page.
@@ -57,15 +58,14 @@ const CUSTOM_MAX = 180;
 const TICK_MS = 250;
 
 /**
- * The title this page was served with.
+ * The landing page's own title, from the table that also drives the
+ * pre-renderer and the tab title.
  *
- * Read once, at module load, rather than when the component mounts — the same
- * trick useTimerTick uses. A visitor can start a session in the app and then
- * navigate back here, and the app leaves its own countdown in the title when
- * its route unmounts; reading at mount inherited that frozen "23:49 · Focus"
- * and then restored it as if it were the page's name.
+ * Read from there rather than from `document.title`, which is whatever the last
+ * page or a running session left behind: this component only ever renders on
+ * "/", so its title is knowable rather than inheritable.
  */
-const SERVED_TITLE = typeof document === 'undefined' ? 'FocusOS' : document.title;
+const SERVED_TITLE = MARKETING_ROUTES.find((route) => route.path === '/')?.title ?? 'FocusOS';
 
 /**
  * A short two-tone chime, built here rather than pulled from `lib/audio`.

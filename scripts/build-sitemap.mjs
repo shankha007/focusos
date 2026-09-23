@@ -16,27 +16,15 @@
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const ORIGIN = 'https://focusos.pro';
 const DIST = 'dist';
 
-/**
- * Only pages worth a crawler's time. The application routes are deliberately
- * absent: they render the visitor's own local data and carry
- * `X-Robots-Tag: noindex` (see vercel.json), so listing them would be asking
- * for a crawl of something we have just asked not to be indexed.
- *
- * `sources` are the files whose last commit dates the page. A page is as fresh
- * as the newest file that renders it.
- */
-const ROUTES = [
-  {
-    path: '/',
-    changefreq: 'weekly',
-    priority: '1.0',
-    sources: ['index.html', 'src/features/landing/LandingPage.tsx', 'src/features/landing/content.ts'],
-  },
-];
+// The same table the pre-renderer and the router read. It used to be duplicated
+// here, which lasted exactly as long as it took to add a second page.
+const { MARKETING_ROUTES, ORIGIN } = await import(
+  pathToFileURL(join(process.cwd(), 'src/features/landing/routes.ts')).href
+);
 
 /** `git log` date of the newest commit touching any of `files`, as YYYY-MM-DD. */
 function lastCommitDate(files) {
@@ -70,7 +58,7 @@ function lastCommitDate(files) {
   }
 }
 
-const entries = ROUTES.map(({ path, changefreq, priority, sources }) => {
+const entries = MARKETING_ROUTES.map(({ path, changefreq, priority, sources }) => {
   const lastmod = lastCommitDate(sources);
   return [
     '  <url>',
@@ -91,4 +79,4 @@ const xml = [
 ].join('\n');
 
 writeFileSync(join(DIST, 'sitemap.xml'), xml, 'utf8');
-console.log(`build-sitemap: wrote ${ROUTES.length} URL(s) to ${DIST}/sitemap.xml`);
+console.log(`build-sitemap: wrote ${MARKETING_ROUTES.length} URL(s) to ${DIST}/sitemap.xml`);
