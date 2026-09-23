@@ -99,10 +99,25 @@ export default defineConfig({
           },
         ],
         navigateFallback: "index.html",
-        // Files meant to be opened directly. Without this, anyone who has used
-        // the app and types one of these URLs gets the app shell back from the
-        // service worker instead of the file — a security researcher looking
-        // for security.txt would find a Pomodoro timer.
+        // Only the routes the router actually serves. The fallback used to
+        // answer *every* navigation, so once the worker was installed a
+        // mistyped URL got the app shell and the router's catch-all quietly
+        // redirected to /dashboard — the 404 page shipped in this build was
+        // unreachable for anyone who had opened the app before. The network
+        // returns a real 404 for those paths, and now the worker lets them
+        // through to find out.
+        navigateFallbackAllowlist: [
+          /^\/$/,
+          /^\/dashboard\/?$/,
+          /^\/tasks\/?$/,
+          /^\/analytics\/?$/,
+          /^\/achievements\/?$/,
+          /^\/settings\/?$/,
+        ],
+        // Files meant to be opened directly. Redundant against the allowlist
+        // above, and kept because it is the rule that states the intent: a
+        // security researcher looking for security.txt must not find a
+        // Pomodoro timer.
         navigateFallbackDenylist: [/^\/\.well-known\//, /^\/robots\.txt$/, /^\/sitemap\.xml$/],
       },
     }),

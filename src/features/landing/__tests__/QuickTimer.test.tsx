@@ -129,7 +129,6 @@ describe('QuickTimer', () => {
 
   it('puts the countdown in the tab title and restores it afterwards', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    document.title = 'Free Offline Pomodoro Timer with Analytics · FocusOS';
     const { unmount } = renderTimer();
 
     await user.click(screen.getByRole('button', { name: /start focusing/i }));
@@ -137,6 +136,57 @@ describe('QuickTimer', () => {
     expect(document.title).toMatch(/^24:00 · Focus — FocusOS$/);
 
     unmount();
-    expect(document.title).toBe('Free Offline Pomodoro Timer with Analytics · FocusOS');
+    // The title the document was served with, not whatever happened to be in
+    // the tab when this mounted — the app leaves its own countdown there when
+    // someone navigates back from a running session.
+    expect(document.title).not.toMatch(/Focus — FocusOS$/);
+  });
+
+  it('restores the served title even when the app left a countdown in the tab', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const servedTitle = document.title;
+    // What /dashboard leaves behind when its route unmounts mid-session.
+    document.title = '23:49 · Focus — FocusOS';
+    const { unmount } = renderTimer();
+
+    await user.click(screen.getByRole('button', { name: /start focusing/i }));
+    await jump(60_000);
+    unmount();
+
+    expect(document.title).toBe(servedTitle);
+  });
+
+  it('lets a custom length be retyped without the field fighting back', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderTimer();
+
+    await user.click(screen.getByRole('button', { name: 'Custom' }));
+    const minutes = screen.getByLabelText(/minutes/i);
+    await user.clear(minutes);
+    await user.type(minutes, '45');
+
+    // Clamping each keystroke turned an emptied field into "1", so "45" landed
+    // on top of it and became something else entirely.
+    expect(minutes).toHaveValue(45);
+    expect(screen.getByText('45:00')).toBeInTheDocument();
+  });
+
+  it('says "1 minute" rather than "1 minutes"', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderTimer();
+
+    await user.click(screen.getByRole('button', { name: 'Custom' }));
+    const minutes = screen.getByLabelText(/minutes/i);
+    await user.clear(minutes);
+    await user.type(minutes, '1');
+    expect(screen.getByText('1:00')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /start focusing/i }));
+    await jump(30_000);
+    expect(document.body.textContent).toContain('0 minutes in');
+    await jump(31_000);
+
+    // The sentences are assembled from several text nodes, so read the card.
+    expect(document.body.textContent).toContain('1 minute focused');
   });
 });

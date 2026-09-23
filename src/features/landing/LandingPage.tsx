@@ -283,7 +283,19 @@ function Hero() {
         <div className="absolute -bottom-32 right-[10%] h-[360px] w-[360px] rounded-full bg-break/10 blur-[100px]" />
       </div>
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-16 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:pb-28 lg:pt-24">
+      {/*
+        Three blocks, not two columns of prose and a picture: heading, timer,
+        then the rest of the copy.
+
+        On a phone — where most search traffic lands — a two-column layout
+        stacks in source order, which put the timer 765px down the page behind
+        the whole pitch. Someone who searched "pomodoro timer" had to scroll
+        past an argument for the product to reach the product. Here the DOM
+        order is heading, timer, copy, so the phone gets the timer immediately
+        and the H1 still comes first for a crawler; at lg the explicit row and
+        column placement rebuilds the original side-by-side.
+      */}
+      <div className="relative mx-auto grid max-w-6xl gap-6 px-5 pb-20 pt-10 sm:gap-7 sm:px-8 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:grid-rows-[auto_auto] lg:items-center lg:gap-x-12 lg:gap-y-5 lg:pb-28 lg:pt-24">
         {/* Movement only, no fade. An element at opacity 0 does not count as
             painted, so fading the headline and the paragraph in over 600ms
             pushed Largest Contentful Paint out by the length of the animation —
@@ -295,6 +307,7 @@ function Hero() {
           initial={{ y: 20 }}
           animate={{ y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="lg:col-start-1 lg:row-start-1 lg:self-end"
         >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-[12px] font-medium text-accent">
             <Sparkles className="h-3.5 w-3.5" />
@@ -317,8 +330,28 @@ function Hero() {
               that learns how you focus
             </span>
           </h1>
+        </motion.div>
 
-          <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted sm:text-[17px]">
+        <motion.div
+          // Movement only here too: after the reorder above this panel is the
+          // largest thing in a phone's first screen, which makes it a Largest
+          // Contentful Paint candidate — and an element at opacity 0 does not
+          // count as painted.
+          initial={{ y: 16 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mx-auto w-full max-w-[420px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center"
+        >
+          <QuickTimer />
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.6, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+          className="lg:col-start-1 lg:row-start-2 lg:self-start"
+        >
+          <p className="max-w-xl text-[16px] leading-relaxed text-muted sm:text-[17px]">
             Not just a timer — the whole focus workflow. Plan the day, run deep-focus sessions, log
             what pulls you away, and get real analysis back. FocusOS learns the session length you
             actually finish, not the one you optimistically planned.
@@ -344,14 +377,6 @@ function Hero() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto w-full max-w-[420px]"
-        >
-          <QuickTimer />
-        </motion.div>
       </div>
     </section>
   );

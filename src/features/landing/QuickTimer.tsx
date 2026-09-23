@@ -57,6 +57,17 @@ const CUSTOM_MAX = 180;
 const TICK_MS = 250;
 
 /**
+ * The title this page was served with.
+ *
+ * Read once, at module load, rather than when the component mounts — the same
+ * trick useTimerTick uses. A visitor can start a session in the app and then
+ * navigate back here, and the app leaves its own countdown in the title when
+ * its route unmounts; reading at mount inherited that frozen "23:49 · Focus"
+ * and then restored it as if it were the page's name.
+ */
+const SERVED_TITLE = typeof document === 'undefined' ? 'FocusOS' : document.title;
+
+/**
  * A short two-tone chime, built here rather than pulled from `lib/audio`.
  *
  * That module is the full ambient engine — oscillator graphs, noise buffers,
@@ -97,6 +108,15 @@ async function playChime(): Promise<void> {
 export function QuickTimer() {
   const [preset, setPreset] = useState<Preset>(PRESETS[0]);
   const [customMin, setCustomMin] = useState(30);
+  /**
+   * What is actually in the field.
+   *
+   * Clamping on every keystroke fought the person typing: emptying the field to
+   * replace "30" snapped it to 1, so the next digit landed on that instead of
+   * on an empty box. The text is kept as typed and only turned into minutes
+   * when it parses inside the range.
+   */
+  const [customText, setCustomText] = useState('30');
   const [custom, setCustom] = useState(false);
   const [onBreak, setOnBreak] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -120,15 +140,15 @@ export function QuickTimer() {
   const running = timer.status === 'running';
   const idle = timer.status === 'idle';
   const left = remainingMs(timer, now);
+  const minutesIn = Math.floor(elapsedMs(timer, now) / 60_000);
 
-  /** The title the page was served with, restored when nothing is running. */
-  const baseTitle = useRef<string>('');
-  useEffect(() => {
-    baseTitle.current = document.title;
-    return () => {
-      document.title = baseTitle.current;
-    };
-  }, []);
+  // Leaving the page mid-session must not leave the countdown in the tab.
+  useEffect(
+    () => () => {
+      document.title = SERVED_TITLE;
+    },
+    [],
+  );
 
   /** Ends a run that has reached zero: chime, park a finished focus session, show the result. */
   const complete = useCallback(
@@ -193,7 +213,7 @@ export function QuickTimer() {
       const paused = timer.status === 'paused' ? ' (paused)' : '';
       document.title = `${formatClock(left)} · ${label}${paused} — FocusOS`;
     } else {
-      document.title = baseTitle.current;
+      document.title = SERVED_TITLE;
     }
   }, [left, onBreak, timer.status]);
 
@@ -222,7 +242,7 @@ export function QuickTimer() {
   const ringColor = onBreak ? 'text-break' : 'text-accent';
 
   return (
-    <div className="panel relative overflow-hidden p-7 shadow-lift">
+    <div className="panel relative overflow-hidden p-5 shadow-lift sm:p-7">
       <div aria-hidden className="lit pointer-events-none absolute inset-0" />
 
       <div className="relative flex items-center justify-between">
@@ -248,7 +268,7 @@ export function QuickTimer() {
                   type="button"
                   onClick={() => chooseFocus(option)}
                   aria-pressed={active}
-                  className={`rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                  className={`min-h-11 rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors ${
                     active
                       ? 'border-accent/40 bg-accent/10 text-accent'
                       : 'border-border text-muted hover:border-subtle/40 hover:text-fg'
@@ -262,7 +282,7 @@ export function QuickTimer() {
               type="button"
               onClick={() => chooseFocus('custom')}
               aria-pressed={custom}
-              className={`rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+              className={`min-h-11 rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors ${
                 custom
                   ? 'border-accent/40 bg-accent/10 text-accent'
                   : 'border-border text-muted hover:border-subtle/40 hover:text-fg'
@@ -282,15 +302,23 @@ export function QuickTimer() {
                 type="number"
                 min={CUSTOM_MIN}
                 max={CUSTOM_MAX}
-                value={customMin}
+                value={customText}
                 onChange={(event) => {
-                  const value = Number(event.target.value);
-                  if (!Number.isFinite(value)) return;
-                  const clamped = Math.min(CUSTOM_MAX, Math.max(CUSTOM_MIN, Math.round(value)));
-                  setCustomMin(clamped);
-                  setTimer(createTimerState('focus', clamped * 60_000));
+                  const text = event.target.value;
+                  setCustomText(text);
+                  const value = Number(text);
+                  if (text === '' || !Number.isFinite(value)) return;
+                  if (value < CUSTOM_MIN || value > CUSTOM_MAX) return;
+                  const minutes = Math.round(value);
+                  setCustomMin(minutes);
+                  setTimer(createTimerState('focus', minutes * 60_000));
                 }}
-                className="tabular w-20 rounded-lg border border-border bg-elevated px-2 py-1.5 text-center text-[13px] text-fg"
+                onBlur={() => {
+                  // Whatever half-finished thing is in the box on the way out
+                  // becomes the length that is actually loaded.
+                  setCustomText(String(customMin));
+                }}
+                className="tabular min-h-11 w-20 rounded-lg border border-border bg-elevated px-2 py-1.5 text-center text-[13px] text-fg"
               />
             </div>
           ) : (
@@ -312,15 +340,18 @@ export function QuickTimer() {
             <p className="mt-2 text-[12px] text-subtle">
               {idle
                 ? `${onBreak ? breakMin : focusMin} minute ${onBreak ? 'break' : 'session'}`
-                : `${Math.floor(elapsedMs(timer, now) / 60_000)} minutes in`}
+                : `${minutesIn} ${minutesIn === 1 ? 'minute' : 'minutes'} in`}
             </p>
           </div>
         </TimerRing>
       </div>
 
+      {/* Every control here is size lg — 44px — rather than the default 36px.
+          This is the page's primary action and most of its traffic is a thumb
+          on a phone. */}
       <div className="relative mt-6 flex flex-wrap items-center justify-center gap-2">
         {idle ? (
-          <Button className="gap-2 px-6" onClick={() => begin(onBreak ? breakMin : focusMin, onBreak ? 'break' : 'focus')}>
+          <Button size="lg" className="gap-2 px-6" onClick={() => begin(onBreak ? breakMin : focusMin, onBreak ? 'break' : 'focus')}>
             <Play className="h-4 w-4" />
             {onBreak ? 'Start break' : 'Start focusing'}
           </Button>
@@ -328,6 +359,7 @@ export function QuickTimer() {
           <>
             <Button
               variant="secondary"
+              size="lg"
               className="gap-2"
               onClick={() => setTimer(running ? pause(timer) : resume(timer))}
             >
@@ -336,6 +368,7 @@ export function QuickTimer() {
             </Button>
             <Button
               variant="ghost"
+              size="lg"
               className="gap-2"
               onClick={() => {
                 setTimer(reset(timer));
@@ -354,7 +387,7 @@ export function QuickTimer() {
       {finished && (
         <div className="relative mt-6 rounded-xl border border-accent/25 bg-accent/8 px-4 py-3.5">
           <p className="text-[13.5px] font-medium text-fg">
-            Session complete — {focusMin} minutes focused.
+            Session complete — {focusMin} {focusMin === 1 ? 'minute' : 'minutes'} focused.
           </p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
             It is saved in this browser. Open the workspace and it joins your history, streak and
