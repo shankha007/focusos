@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTimerStore } from '@/store/useTimerStore';
+import { adoptHandoffSession } from '@/store/adoptHandoffSession';
 import { usePresetStore } from '@/store/usePresetStore';
 import { useTimerTick } from '@/hooks/useTimerTick';
 import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
@@ -35,6 +36,9 @@ function Boot({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const boot = async () => {
       await useSettingsStore.getState().load();
+      // Before the stats are read, so a session finished on the landing page is
+      // already in the database when the dashboard counts today.
+      await adoptHandoffSession();
       await Promise.all([
         useTaskStore.getState().load(),
         useStatsStore.getState().refresh(),

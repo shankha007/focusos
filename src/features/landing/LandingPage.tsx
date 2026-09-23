@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo, LogoMark } from '@/components/Logo';
-import { TimerRing } from '@/components/TimerRing';
 import { FeedbackForm } from './FeedbackForm';
+import { QuickTimer } from './QuickTimer';
 import { CREATOR, FEATURES, STATS, STEPS } from './content';
 
 /** The page's scroll container. Addressed by id so the scroll helpers below can
@@ -325,9 +325,12 @@ function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
+            {/* "Start focusing" now belongs to the timer beside this copy —
+                the page would otherwise carry two differently-behaved buttons
+                with the same label. This one is the way into the workspace. */}
             <Button asChild size="lg" className="gap-2 px-7 shadow-glow">
               <Link to="/dashboard">
-                Start focusing
+                Open the workspace
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -347,58 +350,10 @@ function Hero() {
           transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
           className="relative mx-auto w-full max-w-[420px]"
         >
-          <HeroPreview />
+          <QuickTimer />
         </motion.div>
       </div>
     </section>
-  );
-}
-
-/** A still of Deep Focus Mode — the screen the app is really about. */
-function HeroPreview() {
-  return (
-    <div className="panel relative overflow-hidden p-7 shadow-lift">
-      <div aria-hidden className="lit pointer-events-none absolute inset-0" />
-
-      <div className="relative flex items-center justify-between">
-        <span className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-subtle">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
-          Focus session
-        </span>
-        <LogoMark size={26} />
-      </div>
-
-      <div className="relative mt-6 grid place-items-center">
-        {/* The numbers have to agree: 18 minutes elapsed of a 25-minute
-            session is 72% of the ring and 7:00 left on the clock. */}
-        <TimerRing progress={0.72} size={216} strokeWidth={9} glow>
-          <div className="text-center">
-            <p className="tabular text-[42px] font-semibold leading-none tracking-tight text-fg">
-              07:00
-            </p>
-            <p className="mt-2 text-[12px] text-subtle">18 minutes in</p>
-          </div>
-        </TimerRing>
-      </div>
-
-      <div className="relative mt-6 rounded-xl border border-border bg-elevated px-4 py-3">
-        <p className="text-[11px] uppercase tracking-wide text-subtle">Working on</p>
-        <p className="mt-0.5 text-[14px] font-medium text-fg">Draft the Q3 proposal</p>
-      </div>
-
-      <div className="relative mt-3 grid grid-cols-3 gap-2">
-        {[
-          ['4', 'sessions'],
-          ['1h 40m', 'focused'],
-          ['0', 'distractions'],
-        ].map(([value, label]) => (
-          <div key={label} className="rounded-xl border border-border px-3 py-2 text-center">
-            <p className="tabular text-[15px] font-semibold text-fg">{value}</p>
-            <p className="text-[10.5px] text-subtle">{label}</p>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
