@@ -146,73 +146,15 @@
         ]
       }
     </script>
-    <style>
-      /*
-        #seo-shell below is static markup inside #root: it is what a crawler
-        that does not run JavaScript reads, and the browser paints it the
-        instant the HTML arrives. React wipes it on mount, so for a normal
-        visitor it was a flash of unrelated copy before the landing page.
-        Start it hidden and only reveal it if React has not taken over after a
-        moment — a healthy load never shows it, and a slow or broken bundle
-        still ends up with real content instead of a blank page.
-      */
-      #seo-shell {
-        opacity: 0;
-      }
-    </style>
-    <noscript>
-      <!-- Nothing will ever replace the shell without JavaScript: show it at once. -->
-      <style>
-        #seo-shell {
-          opacity: 1;
-        }
-      </style>
-    </noscript>
-    <script>
-      // Deliberately a timer rather than a CSS animation: animations are paused
-      // in background tabs and flattened by reduce-motion, either of which
-      // could leave the fallback copy invisible for good. If React has mounted
-      // by now the element is gone and this does nothing.
-      setTimeout(function () {
-        var shell = document.getElementById("seo-shell");
-        if (shell) shell.style.opacity = "1";
-      }, 900);
-    </script>
   </head>
   <body>
     <!--
-      React replaces everything inside #root on mount, so this markup is what a
-      crawler that does not execute JavaScript sees — and, for everyone else, a
-      first paint with real words in it rather than a blank page. Keep it in
-      step with the hero in src/features/landing/LandingPage.tsx; it is a
-      summary of that page, never different claims.
+      Empty on purpose. The marketing pages are rendered into this element at
+      build time by scripts/prerender.mjs, so what a crawler downloads is the
+      page itself. App routes are served app.html instead, which never carries
+      pre-rendered markup for React to throw away.
     -->
-    <div id="root">
-      <div id="seo-shell" style="max-width: 44rem; margin: 0 auto; padding: 12vh 1.5rem; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #e9ecf8;">
-        <!-- Word for word the H1 in LandingPage.tsx. Two different headings for
-             one page is a mixed signal to a crawler and a mismatch to anyone
-             who sees the shell before React mounts. -->
-        <h1 style="font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 1rem;">
-          The free Pomodoro timer that learns how you focus
-        </h1>
-        <p style="font-size: 1.0625rem; line-height: 1.6; color: #949cb8; margin: 0 0 1.5rem;">
-          Not just a timer — the whole focus workflow. Plan the day, run deep-focus Pomodoro
-          sessions, log what pulls you away, and get real analysis back. FocusOS learns the session
-          length you actually finish, not the one you optimistically planned. No account, no
-          tracking, no backend: your data stays in your browser.
-        </p>
-        <ul style="font-size: 0.9375rem; line-height: 1.9; color: #949cb8; padding-left: 1.1rem; margin: 0;">
-          <li>Deep Focus Mode with a full-screen countdown and picture-in-picture</li>
-          <li>An adaptive engine that learns your best session length, break length and peak hours</li>
-          <li>Analytics: focus over time, your best hours, mood vs productivity, distraction patterns</li>
-          <li>A written daily reflection assembled from your own numbers, not a language model</li>
-          <li>Tasks with priorities, categories and session estimates that drive a daily plan</li>
-          <li>Eight ambient soundscapes synthesized live in the browser</li>
-          <li>Nine themes, full keyboard navigation, high-contrast and reduce-motion modes</li>
-          <li>Installable as a Progressive Web App and fully usable offline</li>
-        </ul>
-      </div>
-    </div>
+    <div id="root"></div>
     <noscript>
       <p style="max-width: 44rem; margin: 0 auto; padding: 0 1.5rem 12vh; font-family: system-ui, sans-serif; color: #949cb8;">
         FocusOS is an offline-first web app and needs JavaScript to run. Enable it and reload to

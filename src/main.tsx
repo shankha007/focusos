@@ -28,8 +28,22 @@ function migrateHashRoute() {
 migrateHashRoute();
 registerPwa();
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const container = document.getElementById("root")!;
+
+const tree = (
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>
 );
+
+/**
+ * The marketing routes are pre-rendered at build time (scripts/prerender.mjs),
+ * so their markup is already in the document and React has to adopt it rather
+ * than throw it away and paint the same thing again. Everything else — every
+ * app route — arrives as an empty container and mounts normally.
+ */
+if (container.firstElementChild) {
+  ReactDOM.hydrateRoot(container, tree);
+} else {
+  ReactDOM.createRoot(container).render(tree);
+}

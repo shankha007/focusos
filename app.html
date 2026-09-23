@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-theme="midnight" data-mode="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0f" />
+
+    <!--
+      The application's shell, served for /dashboard and the other app routes
+      (see the rewrites in vercel.json).
+
+      It exists because index.html is no longer an empty container: the
+      marketing pages are pre-rendered into it at build time. Serving that file
+      for /dashboard would paint the landing page, then have React replace it
+      with the workspace — a flash of the wrong page on every cold load, and a
+      hydration mismatch to go with it.
+
+      Head tags are deliberately sparse. These routes carry
+      `X-Robots-Tag: noindex`, so a description or a share card here would be
+      metadata for a page no search engine is meant to hold.
+
+      The script below must stay byte-identical to the one in index.html: the
+      CSP in vercel.json allows it by hash, and one file drifting would silence
+      it on that page alone. Its own comment explains what it is for.
+    -->
+    <script>
+      // The user's appearance lives in IndexedDB, which cannot be read before
+      // the first paint — and the landing page never opens it at all. The
+      // settings store mirrors the resolved theme into localStorage on every
+      // paint; this reads it back and stamps the document before anything is
+      // drawn, so a light-theme user does not get a dark flash on the way in.
+      // Keep the 'system' resolution in step with systemTheme() in
+      // src/store/useSettingsStore.ts.
+      (function () {
+        try {
+          var saved = localStorage.getItem("focusos:appearance");
+          if (!saved) return;
+          var a = JSON.parse(saved);
+          var theme = a.theme;
+          var mode = a.mode;
+          if (a.pref === "system") {
+            var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            theme = dark ? "midnight" : "light";
+            mode = dark ? "dark" : "light";
+          }
+          var root = document.documentElement;
+          if (theme) root.dataset.theme = theme;
+          if (mode) root.dataset.mode = mode;
+          if (a.motion) root.dataset.motion = a.motion;
+          if (a.contrast) root.dataset.contrast = a.contrast;
+        } catch (e) {
+          // A malformed or unreadable value just means the markup's default stands.
+        }
+      })();
+    </script>
+
+    <title>FocusOS</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="max-width: 44rem; margin: 0 auto; padding: 12vh 1.5rem; font-family: system-ui, sans-serif; color: #949cb8;">
+        FocusOS is an offline-first web app and needs JavaScript to run. Enable it and reload to
+        start a session.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
