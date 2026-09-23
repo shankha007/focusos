@@ -344,8 +344,15 @@ Three guards keep that flow honest:
 
 - **The [Guard protected branches](.github/workflows/guard-protected-branches.yml) workflow** checks
   the part a ruleset cannot express: that a commit on `main` came from a pull request whose source
-  was `uat`, and that a commit on `uat` came from a pull request from some other branch. It fails
-  after the fact rather than preventing anything, which is why all three exist.
+  was `uat`. It fails after the fact rather than preventing anything, which is why all three exist.
+
+After a release, `main` carries a merge commit that `uat` does not, so GitHub reads `uat` as one
+behind per release. Nothing has diverged — the trees are identical — but the count grows. Carry it
+back with a pull request in the other direction, which moves no code:
+
+```bash
+gh pr create --base uat --head main --title "Sync uat with main after release"
+```
 
 CI (`verify`: audit, lint, type-check, tests, build, bundle budget) runs on every pull request into
 `main` or `uat`, and again on the push that merging produces.
