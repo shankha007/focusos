@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { TooltipProvider } from '@/components/ui/primitives';
 import { LandingPage } from '@/features/landing/LandingPage';
+import { PrivacyPage } from '@/features/landing/PrivacyPage';
 import { ErrorBoundary } from './ErrorBoundary';
 
 /**
@@ -64,6 +65,11 @@ export function AppRoutes() {
             {/* No sidebar, no timer chrome, and no database. The installed PWA
                 starts at /dashboard instead (see start_url in vite.config.ts). */}
             <Route path="/" element={<LandingPage />} />
+            {/* Marketing pages, pre-rendered at build time by
+                scripts/prerender.mjs — they are eager imports because their
+                markup ships in the HTML and a lazy chunk would have nothing to
+                hydrate against. */}
+            <Route path="/privacy" element={<PrivacyPage />} />
 
             <Route element={<Workspace />}>
               <Route path="/dashboard" element={<DashboardPage />} />

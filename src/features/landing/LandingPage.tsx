@@ -1,166 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  ArrowRight,
-  Github,
-  Linkedin,
-  Mail,
-  ShieldCheck,
-  Sparkles,
-  WifiOff,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, WifiOff, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Logo, LogoMark } from '@/components/Logo';
+import { LogoMark } from '@/components/Logo';
 import { FeedbackForm } from './FeedbackForm';
 import { QuickTimer } from './QuickTimer';
-import { CREATOR, FEATURES, STATS, STEPS } from './content';
-
-/** The page's scroll container. Addressed by id so the scroll helpers below can
- *  stay plain functions rather than threading a ref through every section. */
-const SCROLLER_ID = 'landing-scroll';
-
-/** Height of the sticky header, so a section does not land underneath it. */
-const HEADER_OFFSET = 72;
-
-function getScroller(): HTMLElement | null {
-  return document.getElementById(SCROLLER_ID);
-}
-
-/** Whether the visitor has asked for less movement, by OS setting or the app's
- *  own Accessibility toggle. */
-function prefersNoMotion(): boolean {
-  return (
-    document.documentElement.dataset.motion === 'reduced' ||
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
-
-let animation = 0;
-
-/** Bumped by every scroll, so a scroll that has been superseded can tell. */
-let sequence = 0;
-
-/** Stops any tween in flight. Called on unmount so a scroll that was still
- *  running does not keep firing frames against a detached element. */
-function cancelScroll() {
-  cancelAnimationFrame(animation);
-  animation = 0;
-}
-
-/**
- * Scrolls the container with a hand-rolled tween.
- *
- * Native smooth scrolling is not dependable here: `scrollIntoView`,
- * `scrollTo({behavior:'smooth'})` and CSS `scroll-behavior` are all silently
- * ignored on this container by some engines, which turns every in-page nav
- * click into a dead button with nothing logged. Driving the position ourselves
- * always moves, and lets the app's own reduced-motion setting opt out — which
- * the CSS media query alone would not cover.
- */
-function scrollTo(top: number) {
-  const scroller = getScroller();
-  if (!scroller) return;
-
-  const target = Math.max(0, Math.min(top, scroller.scrollHeight - scroller.clientHeight));
-  const start = scroller.scrollTop;
-  const distance = target - start;
-
-  cancelAnimationFrame(animation);
-  if (prefersNoMotion() || Math.abs(distance) < 2) {
-    scroller.scrollTop = target;
-    return;
-  }
-
-  const duration = Math.min(700, 220 + Math.abs(distance) * 0.35);
-  const startedAt = performance.now();
-  let framed = false;
-
-  const step = (now: number) => {
-    framed = true;
-    const t = Math.min(1, (now - startedAt) / duration);
-    // easeOutCubic — quick departure, soft landing.
-    scroller.scrollTop = start + distance * (1 - Math.pow(1 - t, 3));
-    if (t < 1) animation = requestAnimationFrame(step);
-  };
-  animation = requestAnimationFrame(step);
-
-  // requestAnimationFrame is not guaranteed to fire: a background tab, an
-  // embedded webview or a hidden preview pane can withhold frames while the
-  // document still reports itself visible. The tween would then never start and
-  // the link would do nothing at all — which is exactly the dead-button
-  // behaviour this tween exists to avoid. If no frame has arrived shortly, jump
-  // there instead. `sequence` makes a newer scroll win, so a late fallback
-  // cannot drag the page back to an abandoned target.
-  const mine = ++sequence;
-  setTimeout(() => {
-    if (framed || sequence !== mine) return;
-    cancelScroll();
-    scroller.scrollTop = target;
-  }, 250);
-}
-
-/**
- * Scrolls to a section by element id. The offset is measured against the scroll
- * container rather than handed to `scrollIntoView`, which is one of the APIs the
- * tween above avoids.
- *
- * This is what `SectionLink` calls instead of letting the browser jump to the
- * fragment. The links themselves are real anchors — a `<button>` is invisible to
- * a crawler, which then sees a page with no internal links at all.
- */
-function scrollToId(id: string) {
-  const scroller = getScroller();
-  const target = document.getElementById(id);
-  if (!scroller || !target) return;
-
-  scrollTo(
-    target.getBoundingClientRect().top -
-      scroller.getBoundingClientRect().top +
-      scroller.scrollTop -
-      HEADER_OFFSET,
-  );
-}
-
-function scrollToTop() {
-  scrollTo(0);
-}
-
-/**
- * An in-page link to one of the sections below.
- *
- * It is a real `<a href="#id">`, so a crawler can follow it and a visitor can
- * copy or open it in a new tab, but a plain left click is handled here: the
- * browser's own fragment jump is instant and ignores the sticky header, and it
- * would push a history entry for every section a reader visits. `replaceState`
- * puts the fragment in the address bar without that. Modified clicks — new tab,
- * new window, download — are left to the browser.
- */
-function SectionLink({
-  id,
-  className,
-  children,
-}: {
-  id: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={`#${id}`}
-      className={className}
-      onClick={(event) => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        scrollToId(id);
-        window.history.replaceState(null, '', `#${id}`);
-      }}
-    >
-      {children}
-    </a>
-  );
-}
+import { MarketingShell } from './chrome';
+import { scrollToId } from './scroll';
+import { FEATURES, STATS, STEPS } from './content';
 
 /** Fade-and-rise used on each section as it enters. Honours reduced motion via
  *  the global CSS override, which zeroes every animation duration. */
@@ -172,105 +19,19 @@ const rise = {
 };
 
 export function LandingPage() {
-  // The page scrolls inside its own container rather than the window, because
-  // #root is a fixed-height flex shell. The nav needs that element to know when
-  // content has passed under it.
-  const scrollerRef = useRef<HTMLDivElement>(null);
-
-  // Leaving for /dashboard mid-scroll would otherwise leave the tween running
-  // against an element that is no longer in the document.
-  useEffect(() => cancelScroll, []);
-
-  // The section links are shareable now that they are real anchors, so an
-  // arriving /#features has to land on that section. The browser cannot do it
-  // itself: the scroll container and the sections do not exist until this
-  // renders, and the sticky header would cover the heading anyway.
-  useEffect(() => {
-    const id = window.location.hash.slice(1);
-    if (!id) return;
-    const frame = requestAnimationFrame(() => scrollToId(id));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
   return (
-    <div id={SCROLLER_ID} ref={scrollerRef} className="h-full overflow-y-auto bg-bg">
-      <LandingNav scrollerRef={scrollerRef} />
-      <main>
-        <Hero />
-        <StatStrip />
-        <Features />
-        <Privacy />
-        <HowItWorks />
-        <CtaBand />
-        <FeedbackSection />
-      </main>
-      <Footer />
-    </div>
+    <MarketingShell>
+      <Hero />
+      <StatStrip />
+      <Features />
+      <Privacy />
+      <HowItWorks />
+      <CtaBand />
+      <FeedbackSection />
+    </MarketingShell>
   );
 }
 
-/* ── Nav ───────────────────────────────────────────────────── */
-
-function LandingNav({ scrollerRef }: { scrollerRef: React.RefObject<HTMLDivElement> }) {
-  const [scrolled, setScrolled] = useState(false);
-
-  // The bar starts transparent over the hero and gains a border and blur once
-  // content passes under it, so it never floats on nothing.
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const onScroll = () => setScrolled(scroller.scrollTop > 12);
-    onScroll();
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    return () => scroller.removeEventListener('scroll', onScroll);
-  }, [scrollerRef]);
-
-  return (
-    <header
-      className={
-        'sticky top-0 z-40 transition-colors duration-300 ' +
-        (scrolled ? 'border-b border-border bg-bg/85 backdrop-blur-lg' : 'border-b border-transparent')
-      }
-    >
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 sm:px-8">
-        {/* Already home, so the logo returns to the top rather than navigating. */}
-        <button
-          onClick={scrollToTop}
-          aria-label="FocusOS — back to top"
-          // text-left: a <button> centres its text, which would centre the
-          // wordmark over the wider tagline beneath it.
-          className="-mx-2 rounded-2xl px-2 py-1 text-left transition-colors hover:bg-elevated"
-        >
-          <Logo size={36} />
-        </button>
-
-        <nav className="ml-auto hidden items-center gap-1 md:flex">
-          {[
-            ['Features', 'features'],
-            ['Privacy', 'privacy'],
-            ['How it works', 'how'],
-            ['Feedback', 'feedback'],
-          ].map(([label, id]) => (
-            <SectionLink
-              key={id}
-              id={id}
-              className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-elevated hover:text-fg"
-            >
-              {label}
-            </SectionLink>
-          ))}
-        </nav>
-
-        <Button asChild size="sm" className="ml-auto gap-1.5 md:ml-2">
-          <Link to="/dashboard">
-            Open app
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </Button>
-      </div>
-    </header>
-  );
-}
 
 /* ── Hero ──────────────────────────────────────────────────── */
 
@@ -488,6 +249,14 @@ function Privacy() {
               </span>
             ))}
           </div>
+          <p className="mt-6 text-[13.5px]">
+            <Link
+              to="/privacy"
+              className="font-medium text-accent transition-colors hover:brightness-110"
+            >
+              Read the full privacy note →
+            </Link>
+          </p>
         </div>
       </motion.div>
     </section>
@@ -582,68 +351,6 @@ function FeedbackSection() {
 
 /** `external` opens in a new tab; the mailto hand-off must not, or the browser
  *  is left holding an empty tab after the mail client takes over. */
-const CONTACT_LINKS: {
-  icon: LucideIcon;
-  label: string;
-  href: string;
-  external?: boolean;
-}[] = [
-  { icon: Mail, label: 'Email', href: `mailto:${CREATOR.email}` },
-  { icon: Linkedin, label: 'LinkedIn', href: CREATOR.linkedin, external: true },
-  { icon: Github, label: 'GitHub', href: CREATOR.github, external: true },
-];
-
-function Footer() {
-  return (
-    <footer className="border-t border-border bg-surface/40 px-5 py-12 sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-md">
-            <Logo size={40} />
-            <p className="mt-4 text-[13px] leading-relaxed text-muted">{CREATOR.blurb}</p>
-          </div>
-
-          <div className="md:text-right">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">Built by</p>
-            <p className="mt-1.5 text-[16px] font-semibold tracking-tight text-fg">{CREATOR.name}</p>
-            <p className="mt-0.5 text-[13px] text-muted">{CREATOR.role}</p>
-
-            <div className="mt-4 flex flex-wrap gap-2 md:justify-end">
-              {CONTACT_LINKS.map(({ icon: Icon, label, href, external }) => (
-                <a
-                  key={label}
-                  href={href}
-                  {...(external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-elevated px-3 py-2 text-[12.5px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-[12.5px] text-subtle sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            &copy; {new Date().getFullYear()} {CREATOR.name}. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4">
-            <SectionLink id="privacy" className="transition-colors hover:text-muted">
-              Privacy
-            </SectionLink>
-            <SectionLink id="feedback" className="transition-colors hover:text-muted">
-              Feedback
-            </SectionLink>
-            <Link to="/dashboard" className="font-medium text-muted transition-colors hover:text-accent">
-              Open app
-            </Link>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
 
 /* ── Shared bits ───────────────────────────────────────────── */
 
