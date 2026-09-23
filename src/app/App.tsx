@@ -46,32 +46,47 @@ function RoutedErrorBoundary({ children }: { children: React.ReactNode }) {
   return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
 }
 
-/** Application root — providers, router, and the split between the front door and the app. */
-export function App() {
+/**
+ * Everything below the router: providers, the error boundary, and the split
+ * between the front door and the app.
+ *
+ * Separate from `App` because the pre-renderer mounts the same tree under a
+ * StaticRouter to write the marketing pages as real HTML at build time. Two
+ * copies of this tree would be two chances for the built page and the running
+ * one to disagree.
+ */
+export function AppRoutes() {
   return (
     <TooltipProvider delayDuration={400}>
-      <BrowserRouter>
-        <RoutedErrorBoundary>
-          <Suspense fallback={<WorkspaceFallback />}>
-            <Routes>
-              {/* No sidebar, no timer chrome, and no database. The installed PWA
-                  starts at /dashboard instead (see start_url in vite.config.ts). */}
-              <Route path="/" element={<LandingPage />} />
+      <RoutedErrorBoundary>
+        <Suspense fallback={<WorkspaceFallback />}>
+          <Routes>
+            {/* No sidebar, no timer chrome, and no database. The installed PWA
+                starts at /dashboard instead (see start_url in vite.config.ts). */}
+            <Route path="/" element={<LandingPage />} />
 
-              <Route element={<Workspace />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/tasks" element={<TasksPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/achievements" element={<AchievementsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                {/* An unrecognised path belongs in the app, not back out on the
-                    marketing page — someone reaching it already has a session. */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </RoutedErrorBoundary>
-      </BrowserRouter>
+            <Route element={<Workspace />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/achievements" element={<AchievementsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              {/* An unrecognised path belongs in the app, not back out on the
+                  marketing page — someone reaching it already has a session. */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </RoutedErrorBoundary>
     </TooltipProvider>
+  );
+}
+
+/** Application root in the browser. */
+export function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }

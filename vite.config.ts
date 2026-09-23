@@ -98,7 +98,10 @@ export default defineConfig({
             },
           },
         ],
-        navigateFallback: "index.html",
+        // app.html, not index.html: index.html is the pre-rendered landing
+        // page now, and falling back to it would paint the marketing page for
+        // a moment on every offline app navigation.
+        navigateFallback: "app.html",
         // Only the routes the router actually serves. The fallback used to
         // answer *every* navigation, so once the worker was installed a
         // mistyped URL got the app shell and the router's catch-all quietly
@@ -107,7 +110,6 @@ export default defineConfig({
         // returns a real 404 for those paths, and now the worker lets them
         // through to find out.
         navigateFallbackAllowlist: [
-          /^\/$/,
           /^\/dashboard\/?$/,
           /^\/tasks\/?$/,
           /^\/analytics\/?$/,
@@ -136,6 +138,13 @@ export default defineConfig({
   },
   build: {
     rolldownOptions: {
+      // Two documents: the pre-rendered marketing page and the app's own shell.
+      // Both load the same entry module; they differ in what is in the body
+      // when it arrives.
+      input: {
+        index: path.resolve(import.meta.dirname, "index.html"),
+        app: path.resolve(import.meta.dirname, "app.html"),
+      },
       output: {
         // Only libraries that are genuinely on the first-paint path belong
         // here. Naming a package as a chunk group makes it a static import of

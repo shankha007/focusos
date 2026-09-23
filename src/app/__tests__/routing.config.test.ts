@@ -32,11 +32,13 @@ describe('routing configuration', () => {
     expect(routes).toEqual(['dashboard', 'tasks', 'analytics', 'achievements', 'settings']);
   });
 
-  it.each(routes)('rewrites /%s to the app shell', (route) => {
+  it.each(routes)('rewrites /%s to the app shell, not the landing page', (route) => {
     const rewrites = JSON.parse(vercel).rewrites as { source: string; destination: string }[];
     const matching = rewrites.filter((rule) => rule.source.includes(route));
     expect(matching.length).toBeGreaterThan(0);
-    matching.forEach((rule) => expect(rule.destination).toBe('/index.html'));
+    // index.html holds the pre-rendered marketing page. Serving it here would
+    // paint the landing page and then have React replace it.
+    matching.forEach((rule) => expect(rule.destination).toBe('/app.html'));
   });
 
   it.each(routes)('sends X-Robots-Tag: noindex for /%s', (route) => {
@@ -74,6 +76,23 @@ describe('routing configuration', () => {
     // Disallow would stop a crawler ever reading the noindex header above,
     // which is what actually keeps these pages out of the index.
     expect(robots).not.toMatch(/^Disallow: \/\w/m);
+  });
+
+  it('keeps the two documents apart', () => {
+    // index.html is what the pre-renderer writes the marketing page into, so it
+    // must arrive empty; app.html is the shell for routes that render from
+    // scratch, so it must carry no marketing markup or metadata.
+    expect(read('index.html')).toMatch(/<div id="root"><\/div>/);
+    const app = read('app.html');
+    expect(app).toMatch(/<div id="root"><\/div>/);
+    expect(app).not.toMatch(/og:title|canonical|application\/ld\+json/);
+  });
+
+  it('gives both documents the same theme script, which the CSP allows by hash', () => {
+    // One CSP hash covers both files. A copy that drifts is silently blocked on
+    // that page alone, and the only symptom is a flash of the wrong theme.
+    const scriptOf = (file: string) => read(file).match(/<script>([\s\S]*?)<\/script>/)?.[1];
+    expect(scriptOf('app.html')).toBe(scriptOf('index.html'));
   });
 
   it('ships a static 404 page for Vercel to serve', () => {
