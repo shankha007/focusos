@@ -53,6 +53,18 @@ describe('routing configuration', () => {
     expect(rule?.headers.find((header) => header.key === 'X-Robots-Tag')?.value).toMatch(/noindex/);
   });
 
+  it.each(routes)('lets the service worker serve the app shell for /%s', (route) => {
+    // The worker answers navigations from its own cache. A route missing from
+    // the allowlist would be fetched from the network instead, which works
+    // online and fails offline — in an app whose whole claim is offline-first.
+    const config = read('vite.config.ts');
+    const allowlist = config.slice(
+      config.indexOf('navigateFallbackAllowlist'),
+      config.indexOf('navigateFallbackDenylist'),
+    );
+    expect(allowlist).toContain(String.raw`/^\/${route}`);
+  });
+
   it('has no catch-all rewrite, so an unknown path can 404', () => {
     const rewrites = JSON.parse(vercel).rewrites as { source: string }[];
     expect(rewrites.some((rule) => rule.source === '/(.*)')).toBe(false);
