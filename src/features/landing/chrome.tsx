@@ -4,6 +4,7 @@ import { ArrowRight, Github, Linkedin, Mail, type LucideIcon } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { CREATOR } from './content';
+import { MARKETING_ROUTES } from './routes';
 import { SCROLLER_ID, cancelScroll, scrollToId, scrollToTop } from './scroll';
 
 /**
@@ -219,20 +220,50 @@ function LogoHome() {
  */
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const { pathname, hash } = useLocation();
 
   // Leaving mid-scroll would otherwise leave the tween running against an
   // element that is no longer in the document.
   useEffect(() => cancelScroll, []);
 
-  // Section links are shareable, so an arriving /#features has to land on that
-  // section. The browser cannot do it itself: the container and the sections do
-  // not exist until this renders, and the sticky header would cover the heading.
+  /*
+    The tab's title, per page.
+
+    A pre-rendered page arrives with the right <title> in its HTML, but moving
+    between pages in the browser never reloads the document — so /privacy kept
+    the landing page's title, and a reader who then went home kept the privacy
+    one. The route table already holds the titles the pre-renderer writes, which
+    makes it the one place they are defined.
+  */
   useEffect(() => {
-    const id = window.location.hash.slice(1);
-    if (!id) return;
-    const frame = requestAnimationFrame(() => scrollToId(id));
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    const route = MARKETING_ROUTES.find((entry) => entry.path === pathname);
+    if (route) document.title = route.title;
+  }, [pathname]);
+
+  /*
+    Where the page opens.
+
+    Keyed on the location rather than run once on mount: this shell is the same
+    component at the same position for every marketing page, so React keeps the
+    instance and swaps the children — a mount effect fires on the first page
+    only, and "Features" clicked from /privacy arrived at /#features without
+    ever scrolling.
+
+    A timeout rather than requestAnimationFrame because frames are not
+    guaranteed to arrive in a background tab or an embedded webview, and a link
+    that silently does nothing is the failure this is here to prevent.
+  */
+  useEffect(() => {
+    const id = hash.slice(1);
+    const at = window.setTimeout(() => {
+      if (id) scrollToId(id);
+      // Assigning scrollTop rather than calling scrollTo: the method is absent
+      // in jsdom and in older embedded webviews, and this is the line that
+      // decides where every page opens.
+      else if (scrollerRef.current) scrollerRef.current.scrollTop = 0;
+    }, 0);
+    return () => window.clearTimeout(at);
+  }, [pathname, hash]);
 
   return (
     <div id={SCROLLER_ID} ref={scrollerRef} className="h-full overflow-y-auto bg-bg">
