@@ -45,6 +45,15 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
     changefreq: 'weekly',
     priority: '1.0',
   },
+  {
+    path: '/privacy',
+    title: 'Privacy — no server, no account, no tracking · FocusOS',
+    description:
+      'FocusOS stores your sessions and tasks in your own browser. No backend, no analytics, no cookies. What the host can see, and how to export or delete everything.',
+    sources: ['src/features/landing/PrivacyPage.tsx'],
+    changefreq: 'monthly',
+    priority: '0.5',
+  },
 ];
 
 /** Where a route's pre-rendered HTML is written, relative to the build output. */
