@@ -14,12 +14,15 @@ import { remainingMs } from '@/engine/timerEngine';
 const VISUAL_TICK_MS = 100;
 
 /**
- * The title the document was served with. Captured at module load — before
- * anything here has written to it — so the countdown can be peeled back off
- * without flattening the marketing title in index.html, which is what the
- * landing page is indexed and shared under.
+ * What the tab says when nothing is running.
+ *
+ * A constant, matching the <title> in app.html, rather than whatever
+ * `document.title` happened to be when this module loaded. The app's chunk is
+ * fetched on the first navigation into the workspace, which can be a click from
+ * the landing page or from /privacy — so reading the document meant the app
+ * adopted a marketing title and restored it after every session.
  */
-const BASE_TITLE = typeof document === 'undefined' ? 'FocusOS' : document.title;
+const BASE_TITLE = 'FocusOS';
 
 /**
  * Drives repaints while a session runs. Two independent clocks on purpose:
