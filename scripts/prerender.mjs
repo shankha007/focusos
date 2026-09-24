@@ -75,6 +75,37 @@ function withHead(html, route, canonical) {
   }, html);
 }
 
+/**
+ * Adds a page's own schema.org block after the site-wide one.
+ *
+ * Appended rather than substituted: the WebSite, Person and SoftwareApplication
+ * nodes in index.html describe entities that are the same on every page, and
+ * this block describes the page. Both are valid together, and the page's block
+ * references the others by @id rather than restating them.
+ */
+function withSchema(html, route) {
+  if (!route.schema) return html;
+  // The PWA plugin appends its manifest link to the head after Vite has
+  // formatted the file, so </head> is not where the source put it and carries
+  // no predictable indentation.
+  if (!html.includes('</head>')) throw new Error('prerender: index.html has no </head>');
+
+  const indented = JSON.stringify(route.schema, null, 2)
+    .split('\n')
+    .map((line) => `      ${line}`)
+    .join('\n');
+
+  const block = [
+    '',
+    '    <script type="application/ld+json">',
+    indented,
+    '    </script>',
+    '  </head>',
+  ].join('\n');
+
+  return html.replace('</head>', block);
+}
+
 /** Puts the rendered markup inside #root, which the template leaves empty. */
 function withBody(html, markup) {
   const pattern = /<div id="root">\s*<\/div>/;
@@ -100,7 +131,7 @@ const template = readFileSync(join(DIST, 'index.html'), 'utf8');
 for (const route of MARKETING_ROUTES) {
   const markup = render(route.path);
   const canonical = canonicalUrl(route.path);
-  const html = withBody(withHead(template, route, canonical), markup);
+  const html = withBody(withSchema(withHead(template, route, canonical), route), markup);
 
   const target = join(DIST, outputPath(route.path));
   mkdirSync(dirname(target), { recursive: true });

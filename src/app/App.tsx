@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { TooltipProvider } from '@/components/ui/primitives';
 import { LandingPage } from '@/features/landing/LandingPage';
 import { PrivacyPage } from '@/features/landing/PrivacyPage';
+import { PomodoroTechniquePage } from '@/features/landing/PomodoroTechniquePage';
 import { ErrorBoundary } from './ErrorBoundary';
 
 /**
@@ -70,6 +71,7 @@ export function AppRoutes() {
                 markup ships in the HTML and a lazy chunk would have nothing to
                 hydrate against. */}
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/pomodoro-technique" element={<PomodoroTechniquePage />} />
 
             <Route element={<Workspace />}>
               <Route path="/dashboard" element={<DashboardPage />} />
