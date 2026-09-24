@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy/index.html" },
+    { "source": "/pomodoro-technique", "destination": "/pomodoro-technique/index.html" },
     { "source": "/(dashboard|tasks|analytics|achievements|settings)", "destination": "/app.html" },
     { "source": "/(dashboard|tasks|analytics|achievements|settings)/", "destination": "/app.html" }
   ],

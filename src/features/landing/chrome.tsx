@@ -174,6 +174,9 @@ function Footer() {
             &copy; {new Date().getFullYear()} {CREATOR.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
+            <Link to="/pomodoro-technique" className="transition-colors hover:text-muted">
+              Pomodoro guide
+            </Link>
             <Link to="/privacy" className="transition-colors hover:text-muted">
               Privacy
             </Link>
