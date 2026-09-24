@@ -24,7 +24,7 @@ const read = (file: string) => readFileSync(join(root, file), 'utf8');
 function appRoutes(): string[] {
   const source = read('src/app/App.tsx');
   const marketing = new Set(MARKETING_ROUTES.map((route) => route.path.replace(/^\//, '')));
-  return [...source.matchAll(/<Route path="\/([a-z-]+)"/g)]
+  return [...source.matchAll(/<Route path="\/([a-z0-9-]+)"/g)]
     .map((match) => match[1])
     .filter((path) => !marketing.has(path));
 }

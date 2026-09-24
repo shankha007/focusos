@@ -82,6 +82,48 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
       about: { '@type': 'Thing', name: 'Pomodoro Technique' },
     },
   },
+  {
+    path: '/25-minute-timer',
+    title: '25 Minute Timer — free, online, offline · FocusOS',
+    description:
+      'A free 25 minute timer that starts in one click and keeps correct time in a background tab. No account. Why 25 minutes, and what to do when it rings.',
+    sources: ['src/features/landing/TwentyFiveMinuteTimerPage.tsx'],
+    changefreq: 'monthly',
+    priority: '0.9',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      // The three questions on the page, word for word. Markup that answers
+      // something the page does not is the kind of thing that gets structured
+      // data ignored site-wide.
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Does the timer keep running if I switch tabs?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. It reads the wall clock rather than counting ticks, so a background tab, a sleeping laptop or a locked phone cannot lose you minutes. The countdown in the tab title keeps pace too.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Do I need an account?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'No. There is no sign-up, and nothing is sent anywhere — the timer runs entirely in your browser.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Will it work offline?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The timer needs the page to load once. After that FocusOS runs offline, including the full workspace, because everything is stored in your browser rather than on a server.',
+          },
+        },
+      ],
+    },
+  },
 ];
 
 /** Where a route's pre-rendered HTML is written, relative to the build output. */

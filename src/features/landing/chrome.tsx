@@ -174,6 +174,9 @@ function Footer() {
             &copy; {new Date().getFullYear()} {CREATOR.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
+            <Link to="/25-minute-timer" className="transition-colors hover:text-muted">
+              25 minute timer
+            </Link>
             <Link to="/pomodoro-technique" className="transition-colors hover:text-muted">
               Pomodoro guide
             </Link>
