@@ -124,6 +124,45 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
       ],
     },
   },
+  {
+    path: '/study-timer',
+    title: 'Study Timer — 50/10 revision sessions · FocusOS',
+    description:
+      'A free study timer set to 50 minutes with a 10-minute break. Keeps time when your phone locks, needs no account, and explains what the breaks are actually for.',
+    sources: ['src/features/landing/StudyTimerPage.tsx'],
+    changefreq: 'monthly',
+    priority: '0.9',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How long should I study without a break?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Between 45 and 60 minutes suits most reading, problem-solving and writing. Shorter blocks of 25 minutes work better for flashcards, past papers, or any evening where starting is the hard part. The best length is the one you finish without drifting.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Is the Pomodoro technique good for studying?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'It is a reasonable default, particularly when you are struggling to start. Its 25-minute interval is a convention rather than a research finding, so treat it as a starting point and lengthen it if you find yourself stopping mid-flow.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Does this study timer work on a phone?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. It runs in the browser on any device, keeps correct time if you lock the screen or switch apps, and needs no account or install. FocusOS can also be installed as an app and used with no internet connection.',
+          },
+        },
+      ],
+    },
+  },
 ];
 
 /** Where a route's pre-rendered HTML is written, relative to the build output. */

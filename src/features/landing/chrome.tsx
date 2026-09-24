@@ -173,9 +173,14 @@ function Footer() {
           <p>
             &copy; {new Date().getFullYear()} {CREATOR.name}. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
+          {/* Wraps: this row holds a link per marketing page now, and a phone
+              is 375px wide. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link to="/25-minute-timer" className="transition-colors hover:text-muted">
               25 minute timer
+            </Link>
+            <Link to="/study-timer" className="transition-colors hover:text-muted">
+              Study timer
             </Link>
             <Link to="/pomodoro-technique" className="transition-colors hover:text-muted">
               Pomodoro guide

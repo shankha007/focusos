@@ -5,6 +5,7 @@ import { LandingPage } from '@/features/landing/LandingPage';
 import { PrivacyPage } from '@/features/landing/PrivacyPage';
 import { PomodoroTechniquePage } from '@/features/landing/PomodoroTechniquePage';
 import { TwentyFiveMinuteTimerPage } from '@/features/landing/TwentyFiveMinuteTimerPage';
+import { StudyTimerPage } from '@/features/landing/StudyTimerPage';
 import { ErrorBoundary } from './ErrorBoundary';
 
 /**
@@ -74,6 +75,7 @@ export function AppRoutes() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/pomodoro-technique" element={<PomodoroTechniquePage />} />
             <Route path="/25-minute-timer" element={<TwentyFiveMinuteTimerPage />} />
+            <Route path="/study-timer" element={<StudyTimerPage />} />
 
             <Route element={<Workspace />}>
               <Route path="/dashboard" element={<DashboardPage />} />

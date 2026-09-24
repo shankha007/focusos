@@ -51,6 +51,9 @@ const PRESETS: Preset[] = [
   { id: 'deep', label: '50 / 10', focusMin: 50, breakMin: 10, note: 'Longer stretches for deep work' },
 ];
 
+/** Presets by id, for the pages that open on something other than 25/5. */
+const PRESET_BY_ID = new Map(PRESETS.map((preset) => [preset.id, preset]));
+
 const CUSTOM_MIN = 1;
 const CUSTOM_MAX = 180;
 
@@ -96,8 +99,17 @@ async function playChime(): Promise<void> {
   }
 }
 
-export function QuickTimer() {
-  const [preset, setPreset] = useState<Preset>(PRESETS[0]);
+export function QuickTimer({ initialPresetId = 'classic' }: { initialPresetId?: string } = {}) {
+  /**
+   * Which preset the timer opens on.
+   *
+   * 25/5 everywhere except /study-timer, where a revision session is the point
+   * and 50/10 is the honest default. A prop rather than a second component: the
+   * two pages want the same timer, opened at a different length.
+   */
+  const initialPreset = PRESET_BY_ID.get(initialPresetId) ?? PRESETS[0];
+
+  const [preset, setPreset] = useState<Preset>(initialPreset);
   const [customMin, setCustomMin] = useState(30);
   /**
    * What is actually in the field.
@@ -116,7 +128,7 @@ export function QuickTimer() {
   const breakMin = custom ? Math.max(1, Math.round(customMin / 5)) : preset.breakMin;
 
   const [timer, setTimer] = useState<TimerState>(() =>
-    createTimerState('focus', PRESETS[0].focusMin * 60_000),
+    createTimerState('focus', initialPreset.focusMin * 60_000),
   );
   // Repaints only. Every displayed number is derived from `timer` and this.
   const [now, setNow] = useState(() => Date.now());

@@ -90,10 +90,13 @@ const SECTIONS: Section[] = [
           revision and anything you have been avoiding usually suit 25 or less.
         </p>
         <p>
-          The timer above takes a custom length, so you can try 50 or 15 without any setup. The
-          question worth asking is not which length is best, but which one you actually{' '}
-          <em>finish</em>: a 50-minute session abandoned half the time is worth less than a
-          25-minute one you complete.
+          The timer above takes a custom length, so you can try 50 or 15 without any setup — and the{' '}
+          <Link to="/study-timer" className="font-medium text-accent hover:brightness-110">
+            study timer
+          </Link>{' '}
+          opens on 50/10 if that is the rhythm you are after. The question worth asking is not which
+          length is best, but which one you actually <em>finish</em>: a 50-minute session abandoned
+          half the time is worth less than a 25-minute one you complete.
         </p>
       </>
     ),
