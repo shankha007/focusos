@@ -7,6 +7,7 @@
     { "source": "/privacy", "destination": "/privacy/index.html" },
     { "source": "/pomodoro-technique", "destination": "/pomodoro-technique/index.html" },
     { "source": "/25-minute-timer", "destination": "/25-minute-timer/index.html" },
+    { "source": "/study-timer", "destination": "/study-timer/index.html" },
     { "source": "/(dashboard|tasks|analytics|achievements|settings)", "destination": "/app.html" },
     { "source": "/(dashboard|tasks|analytics|achievements|settings)/", "destination": "/app.html" }
   ],
