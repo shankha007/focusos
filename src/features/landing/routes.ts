@@ -26,6 +26,12 @@ export interface MarketingRoute {
    */
   sources: string[];
   changefreq: 'daily' | 'weekly' | 'monthly';
+  /**
+   * Extra schema.org markup for this page, added alongside the site-wide graph
+   * in index.html rather than replacing it. A guide is an Article; the site and
+   * the application are the same entities whichever page you are on.
+   */
+  schema?: Record<string, unknown>;
   /** Relative to the other pages here, not an absolute claim about the site. */
   priority: string;
 }
@@ -53,6 +59,28 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
     sources: ['src/features/landing/PrivacyPage.tsx'],
     changefreq: 'monthly',
     priority: '0.5',
+  },
+  {
+    path: '/pomodoro-technique',
+    title: 'The Pomodoro Technique, Explained · FocusOS',
+    description:
+      'What the Pomodoro technique is, where 25 minutes came from, the variations worth trying, and where it usually goes wrong. With a timer you can start in one click.',
+    sources: ['src/features/landing/PomodoroTechniquePage.tsx'],
+    changefreq: 'monthly',
+    priority: '0.8',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: 'The Pomodoro technique, explained',
+      description:
+        'A guide to the Pomodoro technique: the four rules, why a timer helps, the variations worth trying, and the mistakes that stop it working.',
+      inLanguage: 'en',
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${ORIGIN}/pomodoro-technique` },
+      author: { '@id': `${ORIGIN}/#author` },
+      publisher: { '@id': `${ORIGIN}/#author` },
+      isPartOf: { '@id': `${ORIGIN}/#website` },
+      about: { '@type': 'Thing', name: 'Pomodoro Technique' },
+    },
   },
 ];
 

@@ -274,6 +274,16 @@ function HowItWorks() {
           <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.025em] text-fg sm:text-[38px]">
             Three steps, then it compounds
           </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted">
+            New to the method?{' '}
+            <Link
+              to="/pomodoro-technique"
+              className="font-medium text-accent transition-colors hover:brightness-110"
+            >
+              Read the guide to the Pomodoro technique
+            </Link>{' '}
+            — where the 25 minutes came from, and what to do when it stops fitting.
+          </p>
         </motion.div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-3">
