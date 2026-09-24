@@ -18,7 +18,7 @@ import {
   type TimerState,
 } from '@/engine/timerEngine';
 import { parkSession } from './handoff';
-import { MARKETING_ROUTES } from './routes';
+import { findRoute } from './routes';
 
 /**
  * A working Pomodoro timer, on the landing page and on /25-minute-timer.
@@ -150,8 +150,7 @@ export function QuickTimer({ initialPresetId = 'classic' }: { initialPresetId?: 
    * put there itself.
    */
   const { pathname } = useLocation();
-  const pageTitle =
-    MARKETING_ROUTES.find((route) => route.path === pathname)?.title ?? 'FocusOS';
+  const pageTitle = findRoute(pathname)?.title ?? 'FocusOS';
   const pageTitleRef = useRef(pageTitle);
   useEffect(() => {
     pageTitleRef.current = pageTitle;

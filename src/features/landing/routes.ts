@@ -165,6 +165,20 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
   },
 ];
 
+/**
+ * The route for a path, or undefined.
+ *
+ * Trailing slashes are stripped first. Vercel serves `/study-timer` and
+ * `/study-timer/` as the same pre-rendered file, and a reader who lands on the
+ * second form is on that page as far as everything else is concerned — but an
+ * exact match against this table says otherwise, which left the tab titled
+ * whatever the document arrived with and the timer restoring the wrong name.
+ */
+export function findRoute(pathname: string): MarketingRoute | undefined {
+  const normalised = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  return MARKETING_ROUTES.find((route) => route.path === normalised);
+}
+
 /** Where a route's pre-rendered HTML is written, relative to the build output. */
 export function outputPath(path: string): string {
   return path === '/' ? 'index.html' : `${path.replace(/^\//, '')}/index.html`;

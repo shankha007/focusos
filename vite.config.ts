@@ -81,6 +81,32 @@ export default defineConfig({
         ],
         runtimeCaching: [
           {
+            // The marketing pages, kept for offline once they have been seen.
+            //
+            // They are written by scripts/prerender.mjs after this manifest is
+            // generated, so they cannot be precached — which left an app whose
+            // headline claim is "works offline" answering its own footer links
+            // with a browser error page. Network first, so a visitor online
+            // always gets the current page and never a stale one; the copy is
+            // only read when the network is not there.
+            //
+            // "/" is absent on purpose: index.html is precached, and Workbox
+            // already resolves "/" to it.
+            urlPattern: ({ request, url }: { request: Request; url: URL }) =>
+              request.mode === "navigate" &&
+              /^\/(25-minute-timer|study-timer|pomodoro-technique|privacy)\/?$/.test(url.pathname),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "focusos-pages",
+              expiration: { maxEntries: 10 },
+              cacheableResponse: { statuses: [0, 200] },
+              // Seconds, not minutes: this only decides how long to wait before
+              // showing a cached page on a connection that is technically up
+              // and practically not.
+              networkTimeoutSeconds: 4,
+            },
+          },
+          {
             urlPattern: ({ url }: { url: URL }) =>
               /^\/assets\/jspdf.*\.js$/.test(url.pathname),
             handler: "CacheFirst",
