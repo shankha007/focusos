@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, Pause, Play, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LogoMark } from '@/components/Logo';
@@ -21,12 +21,12 @@ import { parkSession } from './handoff';
 import { MARKETING_ROUTES } from './routes';
 
 /**
- * A working Pomodoro timer on the landing page.
+ * A working Pomodoro timer, on the landing page and on /25-minute-timer.
  *
- * Someone searching "pomodoro timer" wants a timer, not a description of one.
- * This used to be a still image of Deep Focus Mode, so the first thing a
- * visitor had to do was decide to click through to an app they had not seen
- * working — and the page Google ranks answered a "do it now" search with a
+ * Someone searching for a timer wants a timer, not a description of one. The
+ * landing page used to show a still image of Deep Focus Mode, so the first
+ * thing a visitor had to do was decide to click through to an app they had not
+ * seen working — the page Google ranks answered a "do it now" search with a
  * brochure.
  *
  * It deliberately runs on nothing but `timerEngine` and React state: no Dexie,
@@ -57,15 +57,6 @@ const CUSTOM_MAX = 180;
 /** How often the clock is recomputed. The numbers come from timestamps, so this only drives repaints. */
 const TICK_MS = 250;
 
-/**
- * The landing page's own title, from the table that also drives the
- * pre-renderer and the tab title.
- *
- * Read from there rather than from `document.title`, which is whatever the last
- * page or a running session left behind: this component only ever renders on
- * "/", so its title is knowable rather than inheritable.
- */
-const SERVED_TITLE = MARKETING_ROUTES.find((route) => route.path === '/')?.title ?? 'FocusOS';
 
 /**
  * A short two-tone chime, built here rather than pulled from `lib/audio`.
@@ -137,6 +128,23 @@ export function QuickTimer() {
     timerRef.current = timer;
   }, [timer]);
 
+  /**
+   * The title of the page this timer is on, not of the page it was written for.
+   *
+   * It runs on "/" and on /25-minute-timer, and a countdown has to be peeled
+   * back off to whichever of them the visitor is actually reading. Read from
+   * the route table — the same one the pre-renderer writes titles from — rather
+   * than from document.title, which by then may be a countdown this component
+   * put there itself.
+   */
+  const { pathname } = useLocation();
+  const pageTitle =
+    MARKETING_ROUTES.find((route) => route.path === pathname)?.title ?? 'FocusOS';
+  const pageTitleRef = useRef(pageTitle);
+  useEffect(() => {
+    pageTitleRef.current = pageTitle;
+  }, [pageTitle]);
+
   const running = timer.status === 'running';
   const idle = timer.status === 'idle';
   const left = remainingMs(timer, now);
@@ -145,7 +153,7 @@ export function QuickTimer() {
   // Leaving the page mid-session must not leave the countdown in the tab.
   useEffect(
     () => () => {
-      document.title = SERVED_TITLE;
+      document.title = pageTitleRef.current;
     },
     [],
   );
@@ -213,9 +221,9 @@ export function QuickTimer() {
       const paused = timer.status === 'paused' ? ' (paused)' : '';
       document.title = `${formatClock(left)} · ${label}${paused} — FocusOS`;
     } else {
-      document.title = SERVED_TITLE;
+      document.title = pageTitle;
     }
-  }, [left, onBreak, timer.status]);
+  }, [left, onBreak, pageTitle, timer.status]);
 
   const begin = (minutes: number, kind: 'focus' | 'break') => {
     setOnBreak(kind === 'break');
