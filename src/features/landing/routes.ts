@@ -82,7 +82,102 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
       about: { '@type': 'Thing', name: 'Pomodoro Technique' },
     },
   },
+  {
+    path: '/25-minute-timer',
+    title: '25 Minute Timer — free, online, offline · FocusOS',
+    description:
+      'A free 25 minute timer that starts in one click and keeps correct time in a background tab. No account. Why 25 minutes, and what to do when it rings.',
+    sources: ['src/features/landing/TwentyFiveMinuteTimerPage.tsx'],
+    changefreq: 'monthly',
+    priority: '0.9',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      // The three questions on the page, word for word. Markup that answers
+      // something the page does not is the kind of thing that gets structured
+      // data ignored site-wide.
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Does the timer keep running if I switch tabs?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. It reads the wall clock rather than counting ticks, so a background tab, a sleeping laptop or a locked phone cannot lose you minutes. The countdown in the tab title keeps pace too.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Do I need an account?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'No. There is no sign-up, and nothing is sent anywhere — the timer runs entirely in your browser.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Will it work offline?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The timer needs the page to load once. After that FocusOS runs offline, including the full workspace, because everything is stored in your browser rather than on a server.',
+          },
+        },
+      ],
+    },
+  },
+  {
+    path: '/study-timer',
+    title: 'Study Timer — 50/10 revision sessions · FocusOS',
+    description:
+      'A free study timer set to 50 minutes with a 10-minute break. Keeps time when your phone locks, needs no account, and explains what the breaks are actually for.',
+    sources: ['src/features/landing/StudyTimerPage.tsx'],
+    changefreq: 'monthly',
+    priority: '0.9',
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How long should I study without a break?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Between 45 and 60 minutes suits most reading, problem-solving and writing. Shorter blocks of 25 minutes work better for flashcards, past papers, or any evening where starting is the hard part. The best length is the one you finish without drifting.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Is the Pomodoro technique good for studying?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'It is a reasonable default, particularly when you are struggling to start. Its 25-minute interval is a convention rather than a research finding, so treat it as a starting point and lengthen it if you find yourself stopping mid-flow.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Does this study timer work on a phone?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. It runs in the browser on any device, keeps correct time if you lock the screen or switch apps, and needs no account or install. FocusOS can also be installed as an app and used with no internet connection.',
+          },
+        },
+      ],
+    },
+  },
 ];
+
+/**
+ * The route for a path, or undefined.
+ *
+ * Trailing slashes are stripped first. Vercel serves `/study-timer` and
+ * `/study-timer/` as the same pre-rendered file, and a reader who lands on the
+ * second form is on that page as far as everything else is concerned — but an
+ * exact match against this table says otherwise, which left the tab titled
+ * whatever the document arrived with and the timer restoring the wrong name.
+ */
+export function findRoute(pathname: string): MarketingRoute | undefined {
+  const normalised = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  return MARKETING_ROUTES.find((route) => route.path === normalised);
+}
 
 /** Where a route's pre-rendered HTML is written, relative to the build output. */
 export function outputPath(path: string): string {

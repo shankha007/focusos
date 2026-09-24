@@ -189,8 +189,11 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <p>
-          You need a timer and one task. Nothing else, and no setup — the timer at the top of this
-          site runs a 25-minute session in one click, and keeps time correctly if you switch tabs.
+          You need a timer and one task. Nothing else, and no setup — the{' '}
+          <Link to="/25-minute-timer" className="font-medium text-accent hover:brightness-110">
+            25-minute timer
+          </Link>{' '}
+          runs in one click and keeps time correctly if you switch tabs.
         </p>
         <ol>
           <li>Write down the single thing you will work on.</li>

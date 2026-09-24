@@ -4,6 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuickTimer } from '../QuickTimer';
 import { readParkedSession } from '../handoff';
+import { MARKETING_ROUTES } from '../routes';
+
+/** The title of the page this component is rendered on below: the landing page. */
+const LANDING_TITLE = MARKETING_ROUTES.find((route) => route.path === '/')!.title;
 
 /**
  * The landing timer is the first thing a visitor from a search result touches,
@@ -136,15 +140,11 @@ describe('QuickTimer', () => {
     expect(document.title).toMatch(/^24:00 · Focus — FocusOS$/);
 
     unmount();
-    // The title the document was served with, not whatever happened to be in
-    // the tab when this mounted — the app leaves its own countdown there when
-    // someone navigates back from a running session.
-    expect(document.title).not.toMatch(/Focus — FocusOS$/);
+    expect(document.title).toBe(LANDING_TITLE);
   });
 
-  it('restores the served title even when the app left a countdown in the tab', async () => {
+  it('restores the page title even when the app left a countdown in the tab', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const servedTitle = document.title;
     // What /dashboard leaves behind when its route unmounts mid-session.
     document.title = '23:49 · Focus — FocusOS';
     const { unmount } = renderTimer();
@@ -153,7 +153,9 @@ describe('QuickTimer', () => {
     await jump(60_000);
     unmount();
 
-    expect(document.title).toBe(servedTitle);
+    // The page's own title, from the route table — never the countdown that was
+    // sitting in the tab when this mounted.
+    expect(document.title).toBe(LANDING_TITLE);
   });
 
   it('lets a custom length be retyped without the field fighting back', async () => {
