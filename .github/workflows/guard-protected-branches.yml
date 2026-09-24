@@ -58,16 +58,28 @@ jobs:
           # above. Refusing it here only made the tidy-up impossible.
           if [ "$BRANCH" = "main" ]; then
             expected='the source branch must be uat'
-            matches=$(gh api "repos/$REPO/commits/$SHA/pulls" \
-              --jq '[.[] | select(.merged_at != null and .base.ref == "main" and .head.ref == "uat")] | length')
+            filter='[.[] | select(.merged_at != null and .base.ref == "main" and .head.ref == "uat")] | length'
           else
             expected='it must arrive through a merged pull request'
-            matches=$(gh api "repos/$REPO/commits/$SHA/pulls" \
-              --jq '[.[] | select(.merged_at != null and .base.ref == "uat")] | length')
+            filter='[.[] | select(.merged_at != null and .base.ref == "uat")] | length'
           fi
 
+          # Retried, because GitHub does not associate a merge commit with its
+          # pull request the instant the merge happens. This job starts within
+          # seconds of the push and has already seen an empty list for a commit
+          # that a re-run twenty seconds later matched happily — a guard that
+          # cries wolf teaches people to ignore it, which is worse than not
+          # having one.
+          matches=0
+          for attempt in 1 2 3 4 5; do
+            matches=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq "$filter")
+            [ "$matches" -gt 0 ] && break
+            echo "No pull request associated with $SHA yet (attempt $attempt); waiting."
+            sleep 10
+          done
+
           if [ "$matches" -gt 0 ]; then
-            echo "$SHA arrived on $BRANCH through a merged pull request ($expected)."
+            echo "$SHA arrived on $BRANCH through a merged pull request — $expected."
             exit 0
           fi
 
