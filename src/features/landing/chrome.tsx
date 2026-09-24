@@ -4,7 +4,7 @@ import { ArrowRight, Github, Linkedin, Mail, type LucideIcon } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { CREATOR } from './content';
-import { MARKETING_ROUTES } from './routes';
+import { findRoute } from './routes';
 import { SCROLLER_ID, cancelScroll, scrollToId, scrollToTop } from './scroll';
 
 /**
@@ -247,7 +247,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
     makes it the one place they are defined.
   */
   useEffect(() => {
-    const route = MARKETING_ROUTES.find((entry) => entry.path === pathname);
+    const route = findRoute(pathname);
     if (route) document.title = route.title;
   }, [pathname]);
 

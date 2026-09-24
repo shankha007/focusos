@@ -71,6 +71,29 @@ describe('MarketingShell', () => {
     expect(await screen.findByRole('heading', { name: 'Landing' })).toBeInTheDocument();
   });
 
+  it('titles the tab when the path carries a trailing slash', () => {
+    // Vercel serves /study-timer and /study-timer/ as the same file, so a
+    // reader can arrive on either. An exact match against the route table said
+    // the second was not a marketing page at all, and the tab kept whatever
+    // title the document happened to arrive with.
+    render(
+      <MemoryRouter initialEntries={['/privacy/']}>
+        <Routes>
+          <Route
+            path="/privacy/"
+            element={
+              <MarketingShell>
+                <h1>Privacy</h1>
+              </MarketingShell>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(document.title).toBe(titleFor('/privacy'));
+  });
+
   it('scrolls rather than navigates when already on the landing page', () => {
     render(<Shell initial="/" />);
     expect(screen.getByRole('link', { name: 'Features' })).toHaveAttribute('href', '#features');
