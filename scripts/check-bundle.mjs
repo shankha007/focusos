@@ -28,11 +28,12 @@ const DIST = 'dist';
  * Headroom over the figures at the time the budgets were set. Landing was
  * lowered from 180 KB once Radix, Framer Motion and the secondary marketing
  * pages came off it (165 KB -> 89 KB), so the saving cannot quietly erode.
- * Precache: 1,342 KB when set, 1,494 KB now.
+ * Precache was lowered from 1,500 KB when Recharts was replaced by a small
+ * SVG chart (1,494 KB -> 1,128 KB), for the same reason.
  */
 const BUDGETS = {
   landingGzipKb: 100,
-  precacheKb: 1500,
+  precacheKb: 1250,
 };
 
 const read = (file) => readFileSync(join(DIST, file.replace(/^\//, '')));
