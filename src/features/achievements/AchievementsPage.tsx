@@ -172,7 +172,10 @@ function AchievementCard({
       className="enter-rise"
       style={{ '--enter-delay': `${Math.min(index * 0.03, 0.3)}s` } as React.CSSProperties}
     >
-      <Card className={cn('h-full p-4 transition-all', !unlocked && 'opacity-70')}>
+      {/* Locked cards read as quieter through their grey icon and muted title,
+          not by dimming the whole card — at 70% opacity their text fell below
+          readable contrast in every theme. */}
+      <Card className="h-full p-4 transition-all">
         <div className="flex items-start gap-3">
           <span
             className={cn(
@@ -185,7 +188,9 @@ function AchievementCard({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate text-[13px] font-semibold">{achievement.title}</p>
+              <p className={cn('truncate text-[13px] font-semibold', !unlocked && 'text-muted')}>
+                {achievement.title}
+              </p>
               {unlocked && <Badge tone="accent" className="shrink-0 capitalize">{tier}</Badge>}
             </div>
             <p className="mt-1 text-[12px] leading-relaxed text-muted">{achievement.description}</p>
