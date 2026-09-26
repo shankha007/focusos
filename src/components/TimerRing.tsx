@@ -62,7 +62,7 @@ export function TimerRing({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
-          className={cn('timer-ring-arc stroke-current', colorClass)}
+          className={cn('ring-arc stroke-current', colorClass)}
           style={
             {
               '--ring-empty': circumference,

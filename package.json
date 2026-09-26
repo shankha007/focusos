@@ -32,7 +32,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
     "dexie": "^4.0.10",
-    "framer-motion": "^11.11.17",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.462.0",

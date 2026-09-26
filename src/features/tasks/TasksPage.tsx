@@ -14,7 +14,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatedList } from '@/components/AnimatedList';
 import { Archive, CheckSquare, ListFilter, Plus, Search, Tag } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -274,31 +274,20 @@ export function TasksPage() {
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={visible.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-              <ul className="divide-y divide-border">
-                <AnimatePresence initial={false}>
-                  {visible.map((task) => (
-                    <motion.div
-                      key={task.id}
-                      layout
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.18 }}
-                    >
-                      <TaskRow
-                        task={task}
-                        sessions={sessions}
-                        categories={categories}
-                        onEdit={() => {
-                          setEditing(task);
-                          setDialogOpen(true);
-                        }}
-                        onStart={() => begin(task.id, task.title)}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </ul>
+              <AnimatedList items={visible} getKey={(task) => task.id} className="divide-y divide-border">
+                {(task) => (
+                  <TaskRow
+                    task={task}
+                    sessions={sessions}
+                    categories={categories}
+                    onEdit={() => {
+                      setEditing(task);
+                      setDialogOpen(true);
+                    }}
+                    onStart={() => begin(task.id, task.title)}
+                  />
+                )}
+              </AnimatedList>
             </SortableContext>
           </DndContext>
         )}

@@ -189,7 +189,6 @@ export default defineConfig({
               name: "react",
               test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
             },
-            { name: "motion", test: /node_modules[\\/](framer-motion|motion-dom|motion-utils)[\\/]/ },
           ],
         },
       },

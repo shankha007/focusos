@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Activity, Coffee, Target, Trash2, Zap } from 'lucide-react';
 import type { Session } from '@/types';
 import { Card, CardTitle } from '@/components/ui/card';
@@ -82,7 +81,7 @@ export function ActivityFeed() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+    <div className="enter-rise" style={{ '--enter-delay': '0.25s' } as React.CSSProperties}>
       <Card className="p-0">
         <div className="border-b border-border px-5 py-3.5">
           <CardTitle>Recent activity</CardTitle>
@@ -139,6 +138,6 @@ export function ActivityFeed() {
           </div>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 }

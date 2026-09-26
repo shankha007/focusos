@@ -29,11 +29,12 @@ const DIST = 'dist';
  * lowered from 180 KB once Radix, Framer Motion and the secondary marketing
  * pages came off it (165 KB -> 89 KB), so the saving cannot quietly erode.
  * Precache was lowered from 1,500 KB when Recharts was replaced by a small
- * SVG chart (1,494 KB -> 1,128 KB), for the same reason.
+ * SVG chart (1,494 KB -> 1,128 KB), and again to 1,100 KB when Framer Motion
+ * gave way to CSS (-> 1,023 KB), for the same reason.
  */
 const BUDGETS = {
   landingGzipKb: 100,
-  precacheKb: 1250,
+  precacheKb: 1100,
 };
 
 const read = (file) => readFileSync(join(DIST, file.replace(/^\//, '')));
