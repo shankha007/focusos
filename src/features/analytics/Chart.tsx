@@ -28,8 +28,6 @@ export interface ChartProps<T> {
   data: T[];
   kind: 'area' | 'bar';
   height: number;
-  /** What a screen reader announces for the whole chart. */
-  ariaLabel: string;
   value: (row: T) => number;
   label: (row: T) => string;
   /** Any CSS colour, e.g. 'rgb(var(--accent))'. */
@@ -57,7 +55,6 @@ export function Chart<T>({
   data,
   kind,
   height,
-  ariaLabel,
   value,
   label,
   color,
@@ -152,8 +149,6 @@ export function Chart<T>({
         <svg
           width={width}
           height={height}
-          role="img"
-          aria-label={ariaLabel}
           onPointerMove={onPointer}
           onPointerDown={onPointer}
           onPointerLeave={(event) => {

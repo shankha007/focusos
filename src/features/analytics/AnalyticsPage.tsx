@@ -281,7 +281,6 @@ export function AnalyticsPage() {
           className="mt-4"
           kind="area"
           height={220}
-          ariaLabel="Hours of focus per day"
           data={series}
           label={(d) => d.label}
           value={(d) => d.hours}
@@ -309,7 +308,6 @@ export function AnalyticsPage() {
             className="mt-4"
             kind="bar"
             height={200}
-            ariaLabel="Minutes of focus by hour of the day"
             data={hourly}
             label={(h) => h.label}
             value={(h) => h.minutes}
@@ -340,7 +338,6 @@ export function AnalyticsPage() {
             className="mt-4"
             kind="bar"
             height={200}
-            ariaLabel="Completed focus sessions per day"
             data={series}
             label={(d) => d.label}
             value={(d) => d.sessions}
