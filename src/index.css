@@ -289,6 +289,41 @@
   }
 }
 
+/* Analytics charts (Chart.tsx), at Recharts' own timings: bars grow from the
+   baseline over 0.4s, and the area sweeps in from the left over 1.5s. */
+.chart-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: chart-bar-grow 0.4s ease backwards;
+}
+
+@keyframes chart-bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.chart-area {
+  animation: chart-area-sweep 1.5s ease backwards;
+}
+
+@keyframes chart-area-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+/* A lone point appears once the sweep it would have been part of is done. */
+.chart-dot-late {
+  animation: chart-dot-in 0s linear 1.5s backwards;
+}
+
+@keyframes chart-dot-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Respect the OS-level reduced motion setting, and the in-app override */
 @media (prefers-reduced-motion: reduce) {
   *,

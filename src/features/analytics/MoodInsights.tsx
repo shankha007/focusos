@@ -1,18 +1,10 @@
 import { useMemo } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RTooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { HeartPulse } from 'lucide-react';
 import type { Session } from '@/types';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { moodCorrelation } from '@/engine/analytics';
+import { Chart } from './Chart';
 
 const MOOD_LABEL = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];
 
@@ -63,46 +55,28 @@ export function MoodInsights({ sessions }: { sessions: Session[] }) {
         />
       ) : (
         <>
-          <div className="mt-4 h-[168px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 5]}
-                  ticks={[0, 1, 2, 3, 4, 5]}
-                  tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={26}
-                />
-                <RTooltip
-                  cursor={{ fill: 'rgb(var(--elevated))' }}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null;
-                    const row = payload[0].payload as (typeof chartData)[number];
-                    return (
-                      <div className="rounded-xl border border-border bg-elevated px-3 py-2 shadow-lift">
-                        <p className="text-[11px] text-subtle">Mood: {label}</p>
-                        <p className="tabular text-[13px] font-medium">
-                          {row.productivity}/5 productivity
-                        </p>
-                        <p className="text-[11px] text-subtle">
-                          {row.count} session{row.count === 1 ? '' : 's'}
-                        </p>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar dataKey="productivity" fill="rgb(var(--accent))" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Chart
+            className="mt-4"
+            kind="bar"
+            height={168}
+            ariaLabel="Average productivity rating by mood before the session"
+            data={chartData}
+            label={(row) => row.label}
+            value={(row) => row.productivity}
+            color="rgb(var(--accent))"
+            yTicks={[0, 1, 2, 3, 4, 5]}
+            yWidth={26}
+            cursorFill="rgb(var(--elevated))"
+            tooltip={(row) => (
+              <div className="rounded-xl border border-border bg-elevated px-3 py-2 shadow-lift">
+                <p className="text-[11px] text-subtle">Mood: {row.label}</p>
+                <p className="tabular text-[13px] font-medium">{row.productivity}/5 productivity</p>
+                <p className="text-[11px] text-subtle">
+                  {row.count} session{row.count === 1 ? '' : 's'}
+                </p>
+              </div>
+            )}
+          />
 
           <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
             <Correlation label="Mood → productivity" value={data.moodToProductivity} />

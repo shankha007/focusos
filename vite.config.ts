@@ -175,7 +175,7 @@ export default defineConfig({
         // Only libraries that are genuinely on the first-paint path belong
         // here. Naming a package as a chunk group makes it a static import of
         // the entry, which Vite then emits a <link rel="modulepreload"> for —
-        // so listing "recharts" here quietly undid the lazy import of the
+        // so listing "recharts" here (back when the charts used it) quietly undid the lazy import of the
         // analytics page and downloaded 103 KB of charting on the landing
         // page. Left alone, Rolldown puts it in the async chunk that actually
         // uses it.
