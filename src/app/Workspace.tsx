@@ -15,7 +15,8 @@ import { useTimerStore } from '@/store/useTimerStore';
 import { adoptHandoffSession } from '@/store/adoptHandoffSession';
 import { usePresetStore } from '@/store/usePresetStore';
 import { useTimerTick } from '@/hooks/useTimerTick';
-import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
+import { captureAchievementBaseline, useAchievementWatcher } from '@/hooks/useAchievementWatcher';
+import { sessionsRepo } from '@/db/repositories';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 
 /**
@@ -37,6 +38,12 @@ function Boot({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const boot = async () => {
       await useSettingsStore.getState().load();
+      // Before anything below can add a session, so the badges those sessions
+      // earn are announced rather than taken as already known.
+      captureAchievementBaseline(
+        await sessionsRepo.all(),
+        useSettingsStore.getState().settings.dailyGoalSessions,
+      );
       // Before the stats are read, so a session finished on the landing page is
       // already in the database when the dashboard counts today.
       await adoptHandoffSession();
