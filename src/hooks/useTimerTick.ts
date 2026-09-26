@@ -7,7 +7,7 @@ import { remainingMs } from '@/engine/timerEngine';
 
 /**
  * The visual tick only needs to outpace the ring's 0.4s transition for motion
- * to look continuous — framer-motion interpolates between targets. Ticking on
+ * to look continuous — the CSS transition interpolates between targets. Ticking on
  * every frame instead pushed a store update 60 times a second, re-rendering
  * every timer subscriber for sub-pixel movement nobody can see.
  */
@@ -22,7 +22,7 @@ const VISUAL_TICK_MS = 100;
  * the landing page or from /privacy — so reading the document meant the app
  * adopted a marketing title and restored it after every session.
  */
-const BASE_TITLE = 'FocusOS';
+export const BASE_TITLE = 'FocusOS';
 
 /**
  * Drives repaints while a session runs. Two independent clocks on purpose:

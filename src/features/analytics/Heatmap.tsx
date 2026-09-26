@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { DayStat } from '@/types';
 import { heatmapData } from '@/engine/analytics';
+import { useToday } from '@/hooks/useToday';
 import {
   heatmapCellLabel,
   heatmapSummary,
@@ -46,7 +47,10 @@ interface Tip {
  * floating label now follows whichever day is hovered or focused.
  */
 export function Heatmap({ stats, weeks = 53 }: { stats: Map<string, DayStat>; weeks?: number }) {
-  const cells = useMemo(() => heatmapData(stats, weeks), [stats, weeks]);
+  // Keyed on the date as well as the data, so a page left open past midnight
+  // gains the new day's square instead of stopping at yesterday.
+  const startOfToday = useToday();
+  const cells = useMemo(() => heatmapData(stats, weeks, startOfToday), [stats, weeks, startOfToday]);
   const summaryId = useId();
   const gridRef = useRef<HTMLDivElement>(null);
 

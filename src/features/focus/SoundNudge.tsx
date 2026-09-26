@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Presence } from '@/components/Presence';
 import { Headphones, X } from 'lucide-react';
 import { SOUNDS, ambient } from '@/lib/audio';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -67,31 +67,29 @@ export function SoundNudge({ active }: { active: boolean }) {
   };
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={reducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={reducedMotion ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mr-1 flex items-center text-[12px] text-subtle"
-        >
-          <button
-            onClick={() => void accept()}
-            className="flex items-center gap-1.5 rounded-full px-2 py-1 transition-colors hover:text-fg"
-          >
-            <Headphones className="h-3.5 w-3.5" />
-            Focus with {sound.label.toLowerCase()}?
-          </button>
-          <button
-            onClick={dismiss}
-            aria-label="Dismiss sound suggestion"
-            className="rounded-full p-1 opacity-60 transition-opacity hover:opacity-100"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    // A slow fade either way — unless motion is reduced, where it simply
+    // appears and goes.
+    <Presence
+      show={visible}
+      enter={reducedMotion ? undefined : 'fade-in'}
+      exit={reducedMotion ? undefined : 'fade-out'}
+      className="mr-1 flex items-center text-[12px] text-subtle"
+      style={{ '--fade-duration': '0.8s' } as React.CSSProperties}
+    >
+      <button
+        onClick={() => void accept()}
+        className="flex items-center gap-1.5 rounded-full px-2 py-1 transition-colors hover:text-fg"
+      >
+        <Headphones className="h-3.5 w-3.5" />
+        Focus with {sound.label.toLowerCase()}?
+      </button>
+      <button
+        onClick={dismiss}
+        aria-label="Dismiss sound suggestion"
+        className="rounded-full p-1 opacity-60 transition-opacity hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </Presence>
   );
 }

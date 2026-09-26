@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router';
 import { AppRoutes } from './app/App';
+import { preloadMarketingPage } from './features/landing/pages';
 
 /**
  * Build-time entry point. Never shipped to a browser.
@@ -20,7 +21,10 @@ import { AppRoutes } from './app/App';
  * has none of them. Only the marketing routes are rendered, and they are
  * deliberately built from React state alone, so this stays true.
  */
-export function render(url: string): string {
+export async function render(url: string): Promise<string> {
+  // renderToString does not wait for anything: a page still loading would be
+  // written out as an empty Suspense fallback.
+  await preloadMarketingPage(url);
   return renderToString(
     <StrictMode>
       <StaticRouter location={url}>

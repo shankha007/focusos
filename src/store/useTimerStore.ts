@@ -14,7 +14,7 @@ import {
   start as startState,
   type TimerState,
 } from '@/engine/timerEngine';
-import { distractionsRepo, sessionsRepo, tasksRepo } from '@/db/repositories';
+import { distractionsRepo, sessionsRepo } from '@/db/repositories';
 import { useSettingsStore } from './useSettingsStore';
 import { useTaskStore } from './useTaskStore';
 import { useStatsStore } from './useStatsStore';
@@ -427,11 +427,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     if (meaningful || completed) {
       await sessionsRepo.add(session);
       if (timer.type === 'focus' && completed) {
-        if (state.taskId) {
-          await tasksRepo.incrementSessions(state.taskId);
-          // Session counts are shown all over the UI; reload so they aren't stale.
-          await useTaskStore.getState().load();
-        }
+        if (state.taskId) await useTaskStore.getState().adjustSessions(state.taskId, 1);
         await useSettingsStore
           .getState()
           .update({ xp: settings.xp + xpForSession(session) });

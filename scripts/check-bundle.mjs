@@ -24,10 +24,17 @@ import { gzipSync } from 'node:zlib';
 
 const DIST = 'dist';
 
-/** Headroom over the figures at the time the budgets were set: 158 KB and 1,342 KB. */
+/**
+ * Headroom over the figures at the time the budgets were set. Landing was
+ * lowered from 180 KB once Radix, Framer Motion and the secondary marketing
+ * pages came off it (165 KB -> 89 KB), so the saving cannot quietly erode.
+ * Precache was lowered from 1,500 KB when Recharts was replaced by a small
+ * SVG chart (1,494 KB -> 1,128 KB), and again to 1,100 KB when Framer Motion
+ * gave way to CSS (-> 1,023 KB), for the same reason.
+ */
 const BUDGETS = {
-  landingGzipKb: 180,
-  precacheKb: 1500,
+  landingGzipKb: 100,
+  precacheKb: 1100,
 };
 
 const read = (file) => readFileSync(join(DIST, file.replace(/^\//, '')));

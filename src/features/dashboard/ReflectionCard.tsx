@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { BookOpen, CheckCircle2, Clock, Lightbulb, Zap } from 'lucide-react';
-import { Card, CardTitle } from '@/components/ui/primitives';
+import { Card, CardTitle } from '@/components/ui/card';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -35,7 +34,7 @@ export function ReflectionCard() {
   }[reflection.tone];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+    <div className="enter-rise" style={{ '--enter-delay': '0.15s' } as React.CSSProperties}>
       <Card className="p-0">
         <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
           <span className={`grid h-6 w-6 place-items-center rounded-lg ${toneClass}`}>
@@ -87,7 +86,7 @@ export function ReflectionCard() {
           </Section>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }
 

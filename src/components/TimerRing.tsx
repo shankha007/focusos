@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface TimerRingProps {
@@ -52,7 +51,10 @@ export function TimerRing({
           strokeWidth={strokeWidth}
           className="stroke-current text-subtle/15"
         />
-        <motion.circle
+        {/* Pure CSS, so the landing page's timer needs no animation library:
+            `ring-fill` sweeps in from an empty ring on mount, and the
+            transition carries every later change of progress. */}
+        <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -60,17 +62,15 @@ export function TimerRing({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
-          className={cn('stroke-current', colorClass)}
-          style={{
-            filter: glow ? 'drop-shadow(0 0 12px currentColor)' : undefined,
-            opacity: glow ? 0.95 : 1,
-          }}
-          // Without an explicit starting offset the first render animates from
-          // `undefined`, which framer-motion cannot interpolate. An empty ring
-          // is the right place to start from.
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className={cn('ring-arc stroke-current', colorClass)}
+          style={
+            {
+              '--ring-empty': circumference,
+              strokeDashoffset: offset,
+              filter: glow ? 'drop-shadow(0 0 12px currentColor)' : undefined,
+              opacity: glow ? 0.95 : 1,
+            } as React.CSSProperties
+          }
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center">{children}</div>

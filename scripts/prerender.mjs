@@ -129,7 +129,7 @@ const { render } = await import(pathToFileURL(join(process.cwd(), SSR_DIR, 'entr
 const template = readFileSync(join(DIST, 'index.html'), 'utf8');
 
 for (const route of MARKETING_ROUTES) {
-  const markup = render(route.path);
+  const markup = await render(route.path);
   const canonical = canonicalUrl(route.path);
   const html = withBody(withSchema(withHead(template, route, canonical), route), markup);
 

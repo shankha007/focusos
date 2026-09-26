@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { Award, Flame, Hourglass, Lock, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { DynamicIcon } from '@/components/DynamicIcon';
-import { Badge, Card } from '@/components/ui/primitives';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { buildContext, evaluateAchievements, levelForXp } from '@/engine/achievements';
@@ -42,24 +42,28 @@ export function AchievementsPage() {
       />
 
       {/* Level banner */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="enter-rise">
         <Card className="lit relative overflow-hidden">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <div className="relative grid h-20 w-20 shrink-0 place-items-center">
               <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
                 <circle cx="50" cy="50" r="44" fill="none" strokeWidth="7" className="stroke-subtle/15" />
-                <motion.circle
+                <circle
                   cx="50"
                   cy="50"
                   r="44"
                   fill="none"
                   strokeWidth="7"
                   strokeLinecap="round"
-                  className="stroke-accent"
+                  className="ring-arc stroke-accent"
                   strokeDasharray={2 * Math.PI * 44}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 44 }}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 44 * (1 - level.pct) }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                  style={
+                    {
+                      '--ring-empty': 2 * Math.PI * 44,
+                      '--ring-duration': '0.8s',
+                      strokeDashoffset: 2 * Math.PI * 44 * (1 - level.pct),
+                    } as React.CSSProperties
+                  }
                 />
               </svg>
               <div className="text-center leading-none">
@@ -79,17 +83,15 @@ export function AchievementsPage() {
                 {pluralize(Math.ceil((level.needed - level.into) / 50), 'session')}.
               </p>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-subtle/20">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${level.pct * 100}%` }}
-                  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                <div
+                  className="bar-fill h-full rounded-full bg-accent"
+                  style={{ width: `${level.pct * 100}%`, '--bar-duration': '0.7s' } as React.CSSProperties}
                 />
               </div>
             </div>
           </div>
         </Card>
-      </motion.div>
+      </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -166,12 +168,14 @@ function AchievementCard({
   const { unlocked, progressValue, tier } = achievement;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.03, 0.3) }}
+    <div
+      className="enter-rise"
+      style={{ '--enter-delay': `${Math.min(index * 0.03, 0.3)}s` } as React.CSSProperties}
     >
-      <Card className={cn('h-full p-4 transition-all', !unlocked && 'opacity-70')}>
+      {/* Locked cards read as quieter through their grey icon and muted title,
+          not by dimming the whole card — at 70% opacity their text fell below
+          readable contrast in every theme. */}
+      <Card className="h-full p-4 transition-all">
         <div className="flex items-start gap-3">
           <span
             className={cn(
@@ -184,7 +188,9 @@ function AchievementCard({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate text-[13px] font-semibold">{achievement.title}</p>
+              <p className={cn('truncate text-[13px] font-semibold', !unlocked && 'text-muted')}>
+                {achievement.title}
+              </p>
               {unlocked && <Badge tone="accent" className="shrink-0 capitalize">{tier}</Badge>}
             </div>
             <p className="mt-1 text-[12px] leading-relaxed text-muted">{achievement.description}</p>
@@ -205,7 +211,7 @@ function AchievementCard({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }
 

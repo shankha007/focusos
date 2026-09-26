@@ -426,8 +426,7 @@ export function summarize(sessions: Session[], distractions: Distraction[]): Per
 }
 
 /** Heatmap cells for the trailing year, GitHub-contribution style. */
-export function heatmapData(stats: Map<string, DayStat>, weeks = 53) {
-  const today = startOfDay();
+export function heatmapData(stats: Map<string, DayStat>, weeks = 53, today = startOfDay()) {
   const end = today;
   // Back up to the Monday that starts the window.
   const start = addDays(end, -(weeks * 7 - 1));

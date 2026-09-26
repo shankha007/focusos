@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ArrowRight, ShieldCheck, Sparkles, WifiOff, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LogoMark } from '@/components/Logo';
@@ -8,15 +7,7 @@ import { QuickTimer } from './QuickTimer';
 import { MarketingShell } from './chrome';
 import { scrollToId } from './scroll';
 import { FEATURES, STATS, STEPS } from './content';
-
-/** Fade-and-rise used on each section as it enters. Honours reduced motion via
- *  the global CSS override, which zeroes every animation duration. */
-const rise = {
-  initial: { opacity: 0, y: 16 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: '-80px' },
-  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-};
+import { Reveal } from './Reveal';
 
 export function LandingPage() {
   return (
@@ -62,55 +53,42 @@ function Hero() {
             pushed Largest Contentful Paint out by the length of the animation —
             on the one page the whole site is ranked on. Sliding up from 20px
             reads as the same entrance and is visible from the first frame.
-            Sections further down still fade (see `rise`): they are below the
+            Sections further down still fade (see `Reveal`): they are below the
             fold, so they cannot be the LCP element. */}
-        <motion.div
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:col-start-1 lg:row-start-1 lg:self-end"
-        >
+        <div className="enter-up lg:col-start-1 lg:row-start-1 lg:self-end">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-[12px] font-medium text-accent">
             <Sparkles className="h-3.5 w-3.5" />
             Offline-first · No account · No tracking
           </span>
 
-          {/* Keep this heading word for word in step with the #seo-shell H1 in
-              index.html — that markup is the same page to a crawler that does
-              not run JavaScript, and to anyone whose bundle is still loading.
-              "Pomodoro timer" is the phrase people search for, so it leads; the
+          {/* "Pomodoro timer" is the phrase people search for, so it leads; the
               old headline survives as the first line of the paragraph below. */}
           <h1 className="mt-5 text-[38px] font-semibold leading-[1.08] tracking-[-0.03em] text-fg sm:text-[52px] lg:text-[58px]">
             {/* The space is load-bearing: without it the two text nodes either
                 side of the <br> concatenate to "timerthat" for anything reading
-                textContent, which is not the heading the shell in index.html
-                carries. */}
+                textContent — a crawler's idea of the heading included. */}
             The free Pomodoro timer{' '}
             <br />
             <span className="bg-gradient-to-r from-accent to-break bg-clip-text text-transparent">
               that learns how you focus
             </span>
           </h1>
-        </motion.div>
+        </div>
 
-        <motion.div
-          // Movement only here too: after the reorder above this panel is the
-          // largest thing in a phone's first screen, which makes it a Largest
-          // Contentful Paint candidate — and an element at opacity 0 does not
-          // count as painted.
-          initial={{ y: 16 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto w-full max-w-[420px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center"
+        {/* Movement only here too: after the reorder above this panel is the
+            largest thing in a phone's first screen, which makes it a Largest
+            Contentful Paint candidate — and an element at opacity 0 does not
+            count as painted. */}
+        <div
+          className="enter-up relative mx-auto w-full max-w-[420px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center"
+          style={{ animationDuration: '0.7s', animationDelay: '0.12s' }}
         >
           <QuickTimer />
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.6, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="lg:col-start-1 lg:row-start-2 lg:self-start"
+        <div
+          className="enter-up lg:col-start-1 lg:row-start-2 lg:self-start"
+          style={{ animationDelay: '0.06s' }}
         >
           <p className="max-w-xl text-[16px] leading-relaxed text-muted sm:text-[17px]">
             Not just a timer — the whole focus workflow. Plan the day, run deep-focus sessions, log
@@ -136,7 +114,7 @@ function Hero() {
           <p className="mt-4 text-[12.5px] text-subtle">
             Free and open in your browser. Nothing to install, nothing to sign up for.
           </p>
-        </motion.div>
+        </div>
 
       </div>
     </section>
@@ -166,7 +144,7 @@ function Features() {
   return (
     <section id="features" className="scroll-mt-20 px-5 py-20 sm:px-8 lg:py-28">
       <div className="mx-auto max-w-6xl">
-        <motion.div {...rise} className="max-w-2xl">
+        <Reveal className="max-w-2xl">
           <SectionLabel>Features</SectionLabel>
           <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.025em] text-fg sm:text-[38px]">
             Everything the focus loop needs
@@ -175,14 +153,13 @@ function Features() {
             Eight parts that feed each other: what you plan shapes what you run, what you run shapes
             what it learns, and what it learns shapes tomorrow&rsquo;s plan.
           </p>
-        </motion.div>
+        </Reveal>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map(({ icon: Icon, title, body, tag }, i) => (
-            <motion.div
+            <Reveal
               key={title}
-              {...rise}
-              transition={{ ...rise.transition, delay: Math.min(i, 3) * 0.06 }}
+              delay={Math.min(i, 3) * 0.06}
               className="panel panel-hover group flex flex-col p-5"
             >
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/12 text-accent transition-colors group-hover:bg-accent/20">
@@ -193,7 +170,7 @@ function Features() {
               <span className="mt-4 inline-flex w-fit rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-subtle">
                 {tag}
               </span>
-            </motion.div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -212,8 +189,7 @@ const PRIVACY_CHIPS: { icon: LucideIcon; label: string }[] = [
 function Privacy() {
   return (
     <section id="privacy" className="scroll-mt-20 px-5 pb-20 sm:px-8 lg:pb-28">
-      <motion.div
-        {...rise}
+      <Reveal
         className="panel relative mx-auto max-w-6xl overflow-hidden px-6 py-12 sm:px-12"
       >
         <div aria-hidden className="lit pointer-events-none absolute inset-0" />
@@ -258,7 +234,7 @@ function Privacy() {
             </Link>
           </p>
         </div>
-      </motion.div>
+      </Reveal>
     </section>
   );
 }
@@ -269,7 +245,7 @@ function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-20 px-5 pb-20 sm:px-8 lg:pb-28">
       <div className="mx-auto max-w-6xl">
-        <motion.div {...rise} className="max-w-2xl">
+        <Reveal className="max-w-2xl">
           <SectionLabel>How it works</SectionLabel>
           <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.025em] text-fg sm:text-[38px]">
             Three steps, then it compounds
@@ -284,20 +260,19 @@ function HowItWorks() {
             </Link>{' '}
             — where the 25 minutes came from, and what to do when it stops fitting.
           </p>
-        </motion.div>
+        </Reveal>
 
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {STEPS.map(({ n, title, body }, i) => (
-            <motion.div
+            <Reveal
               key={n}
-              {...rise}
-              transition={{ ...rise.transition, delay: i * 0.08 }}
+              delay={i * 0.08}
               className="panel p-6"
             >
               <span className="tabular text-[13px] font-semibold text-accent">{n}</span>
               <h3 className="mt-3 text-[16px] font-semibold tracking-tight text-fg">{title}</h3>
               <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{body}</p>
-            </motion.div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -310,8 +285,7 @@ function HowItWorks() {
 function CtaBand() {
   return (
     <section className="px-5 pb-20 sm:px-8 lg:pb-28">
-      <motion.div
-        {...rise}
+      <Reveal
         className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-accent/25 bg-accent/[0.07] px-6 py-14 text-center sm:px-12"
       >
         <div
@@ -334,7 +308,7 @@ function CtaBand() {
             </Link>
           </Button>
         </div>
-      </motion.div>
+      </Reveal>
     </section>
   );
 }
@@ -344,7 +318,7 @@ function CtaBand() {
 function FeedbackSection() {
   return (
     <section id="feedback" className="scroll-mt-20 px-5 pb-20 sm:px-8 lg:pb-28">
-      <motion.div {...rise} className="mx-auto max-w-2xl">
+      <Reveal className="mx-auto max-w-2xl">
         <div className="mb-8 text-center">
           <SectionLabel>Feedback</SectionLabel>
           <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.025em] text-fg sm:text-[36px]">
@@ -352,7 +326,7 @@ function FeedbackSection() {
           </h2>
         </div>
         <FeedbackForm />
-      </motion.div>
+      </Reveal>
     </section>
   );
 }

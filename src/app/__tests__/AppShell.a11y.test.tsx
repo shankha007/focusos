@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { AppShell } from '../AppShell';
-import { TooltipProvider } from '@/components/ui/primitives';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { bootStores, resetApp } from '@/test/helpers';
+import { useTimerStore } from '@/store/useTimerStore';
 
 function renderShell() {
   return render(
@@ -45,6 +46,19 @@ describe('AppShell — getting around by keyboard and screen reader', () => {
     await user.keyboard('{Enter}');
 
     expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+
+  it('gives every button a name, including the icon-only ones on a phone', async () => {
+    // The floating pause/resume button only exists while a session runs.
+    await act(() => useTimerStore.getState().startSession('focus'));
+    renderShell();
+
+    const unnamed = screen
+      .getAllByRole('button')
+      .filter((button) => !button.getAttribute('aria-label') && !button.textContent?.trim());
+    expect(unnamed).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Open command palette' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
   });
 
   it('names its navigation', () => {

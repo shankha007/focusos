@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import type { SessionType } from '@/types';
 import { BREATH_PATTERN, suggestBreak } from '@/engine/breaks';
@@ -47,6 +46,16 @@ export function BreakActivity({
   );
 }
 
+/** A breathing circle's size and timing, as the custom properties .breath reads. */
+function breathStyle(reduced: boolean, scale: number, seconds: number, delay: number): React.CSSProperties {
+  if (reduced) return {};
+  return {
+    transform: `scale(${scale})`,
+    '--breath-duration': `${seconds}s`,
+    '--breath-delay': `${delay}s`,
+  } as React.CSSProperties;
+}
+
 /** Paced 4-7-8 breathing. The circle's scale is the instruction. */
 function BreathingGuide() {
   const reducedMotion = useSettingsStore((s) => s.reducedMotion);
@@ -64,15 +73,15 @@ function BreathingGuide() {
   return (
     <div className="mt-5 flex flex-col items-center gap-4 border-t border-border pt-5">
       <div className="relative grid h-28 w-28 place-items-center">
-        <motion.div
-          className="absolute inset-0 rounded-full bg-break/20"
-          animate={reducedMotion ? {} : { scale }}
-          transition={{ duration: current.seconds, ease: 'easeInOut' }}
+        {/* Each eases to this phase's size over this phase's length (see
+            .breath). With motion reduced they hold still at rest size. */}
+        <div
+          className="breath absolute inset-0 rounded-full bg-break/20"
+          style={breathStyle(reducedMotion, scale, current.seconds, 0)}
         />
-        <motion.div
-          className="absolute inset-3 rounded-full bg-break/25"
-          animate={reducedMotion ? {} : { scale }}
-          transition={{ duration: current.seconds, ease: 'easeInOut', delay: 0.1 }}
+        <div
+          className="breath absolute inset-3 rounded-full bg-break/25"
+          style={breathStyle(reducedMotion, scale, current.seconds, 0.1)}
         />
         <span className="relative text-[13px] font-medium text-fg">{current.label}</span>
       </div>

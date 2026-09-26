@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SettingsPage } from '../SettingsPage';
-import { TooltipProvider } from '@/components/ui/primitives';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { bootStores, resetApp } from '@/test/helpers';
 
 function renderSettings() {

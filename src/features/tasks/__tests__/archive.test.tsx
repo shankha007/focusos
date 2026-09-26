@@ -4,7 +4,7 @@ import { DndContext } from '@dnd-kit/core';
 import { SortableContext } from '@dnd-kit/sortable';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TaskRow } from '../TaskRow';
-import { TooltipProvider } from '@/components/ui/primitives';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useTaskStore } from '@/store/useTaskStore';
 import { db } from '@/db/schema';
 import type { Task } from '@/types';

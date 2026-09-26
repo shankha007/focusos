@@ -1,5 +1,5 @@
-import { Suspense, useMemo, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import type { ShellContext } from './shell';
 import {
   BarChart3,
@@ -12,9 +12,8 @@ import {
   Settings as SettingsIcon,
   Trophy,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/primitives';
+import { Tooltip } from '@/components/ui/tooltip';
 import { CommandPalette } from './CommandPalette';
 import { Logo, LogoMark } from '@/components/Logo';
 import { useTimerStore } from '@/store/useTimerStore';
@@ -40,10 +39,61 @@ const NAV = [
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
+/**
+ * Moves the sidebar highlight onto the active page's row.
+ *
+ * With `glide` it travels there on the spring the old shared-layout animation
+ * used (see .nav-indicator). It never glides when it first appears, or
+ * reappears after no row was active — then it is simply placed, as a freshly
+ * mounted highlight was.
+ */
+function placeNavIndicator(nav: HTMLElement | null, indicator: HTMLElement | null, glide: boolean) {
+  if (!nav || !indicator) return;
+  const row = nav.querySelector<HTMLElement>('a[aria-current="page"] > span');
+  if (!row) {
+    indicator.style.opacity = '0';
+    return;
+  }
+  const jump = !glide || indicator.style.opacity !== '1';
+  if (jump) indicator.style.transition = 'none';
+  indicator.style.height = `${row.offsetHeight}px`;
+  indicator.style.transform = `translateY(${row.offsetTop}px)`;
+  indicator.style.opacity = '1';
+  if (jump) {
+    // Commit the jump before handing the transition back.
+    void indicator.offsetHeight;
+    indicator.style.transition = '';
+  }
+}
+
 /** The frame every page renders inside: sidebar on desktop, top bar and bottom nav on mobile, a live timer readout while a session runs, and the global keyboard shortcuts. */
 export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const navRef = useRef<HTMLElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+
+  // The highlight glides to each newly active page…
+  useLayoutEffect(() => {
+    placeNavIndicator(navRef.current, indicatorRef.current, true);
+  }, [pathname]);
+
+  // …and is simply re-placed when the sidebar resizes: it has no size on a
+  // phone and gains one at desktop width, and web fonts can change row heights
+  // after first paint. An observer reports once as it starts; that report is
+  // the layout effect's job, so it is skipped.
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || typeof ResizeObserver === 'undefined') return;
+    let first = true;
+    const observer = new ResizeObserver(() => {
+      if (first) first = false;
+      else placeNavIndicator(nav, indicatorRef.current, false);
+    });
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, []);
 
   const timer = useTimerStore((s) => s.timer);
   useTimerStore((s) => s.tick);
@@ -99,7 +149,13 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
 
         {/* Named, because there are two navigation landmarks in this file. Only
             one is ever rendered at a given breakpoint, so they share a name. */}
-        <nav aria-label="Primary" className="flex flex-col gap-0.5">
+        <nav ref={navRef} aria-label="Primary" className="relative flex flex-col gap-0.5">
+          {/* One highlight for the whole list, gliding to the active page. */}
+          <span
+            ref={indicatorRef}
+            aria-hidden
+            className="nav-indicator pointer-events-none absolute inset-x-0 top-0 rounded-xl bg-elevated opacity-0"
+          />
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to}>
               {({ isActive }) => (
@@ -109,13 +165,6 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
                     isActive ? 'text-fg' : 'text-muted hover:bg-elevated hover:text-fg',
                   )}
                 >
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active"
-                      className="absolute inset-0 rounded-xl bg-elevated"
-                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                    />
-                  )}
                   <Icon className="relative h-4 w-4 shrink-0" />
                   <span className="relative">{label}</span>
                 </span>
@@ -197,7 +246,12 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
                 {formatClock(remaining)}
               </button>
             )}
-            <Button size="icon-sm" variant="ghost" onClick={() => setPaletteOpen(true)}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Open command palette"
+            >
               <Command className="h-4 w-4" />
             </Button>
           </div>
@@ -239,8 +293,14 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
         {/* Floating play control — only when a session is live */}
         {active && (
           <div className="fixed bottom-20 right-4 z-30 lg:hidden">
+            {/* The tooltip only describes; an icon-only button needs a name of its own. */}
             <Tooltip content={running ? 'Pause' : 'Resume'}>
-              <Button size="icon-lg" className="rounded-full shadow-lift" onClick={toggle}>
+              <Button
+                size="icon-lg"
+                className="rounded-full shadow-lift"
+                onClick={toggle}
+                aria-label={running ? 'Pause' : 'Resume'}
+              >
                 {running ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </Button>
             </Tooltip>

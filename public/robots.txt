@@ -1,8 +1,9 @@
 # FocusOS — https://focusos.pro
 #
-# Only "/" has content worth indexing. Every other route serves the same
-# client-rendered shell over the visitor's own local data, so indexing them
-# yields a set of near-identical thin pages and nothing else.
+# The marketing pages — "/" and the others listed in the sitemap — are the
+# content worth indexing. The app's routes (/dashboard, /tasks, ...) serve the
+# same client-rendered shell over the visitor's own local data, so indexing
+# them yields a set of near-identical thin pages and nothing else.
 #
 # Those routes are deliberately NOT disallowed here. A disallowed URL can still
 # be indexed — without a snippet, as a bare link — when something points at it,

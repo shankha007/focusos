@@ -1,13 +1,8 @@
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, FileJson, Layers, Replace, Upload } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   BACKUP_TABLES,
@@ -105,14 +100,25 @@ export function RestoreDialog({
         usePresetStore.getState().load(),
       ]);
 
-      toast.success(
-        `Restored ${result.total} ${pluralize(result.total, 'record')}.`,
-        {
-          description: result.settingsRestored
-            ? 'Your settings came back with it.'
-            : 'Your current settings were left as they are.',
-        },
-      );
+      const settingsNote = result.settingsRestored
+        ? 'Your settings came back with it.'
+        : 'Your current settings were left as they are.';
+      if (result.mode === 'replace') {
+        toast.success(`Restored ${result.total} ${pluralize(result.total, 'record')}.`, {
+          description: settingsNote,
+        });
+      } else if (result.added === 0) {
+        // Merging a backup of what is already here used to report every row in
+        // the file as restored, which read as though something had changed.
+        toast.success('Nothing new to merge.', {
+          description: `Everything in this backup is already here. ${settingsNote}`,
+        });
+      } else {
+        const updated = result.total - result.added;
+        toast.success(`Merged ${result.added} new ${pluralize(result.added, 'record')}.`, {
+          description: `${updated > 0 ? `${updated} already here ${updated === 1 ? 'was' : 'were'} updated from the backup. ` : ''}${settingsNote}`,
+        });
+      }
       close();
     } catch {
       toast.error('The restore failed — nothing was changed.', {

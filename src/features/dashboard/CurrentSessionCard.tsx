@@ -1,7 +1,6 @@
-import { motion } from 'framer-motion';
 import { Maximize2, Pause, Play, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/primitives';
+import { Card } from '@/components/ui/card';
 import { TimerRing } from '@/components/TimerRing';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useTaskStore } from '@/store/useTaskStore';
@@ -37,7 +36,7 @@ export function CurrentSessionCard({
   const nextTask = tasks.find((t) => t.status === 'todo' || t.status === 'active');
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+    <div className="enter-rise">
       <Card className={cn('lit relative overflow-hidden', idle ? 'p-6' : 'p-6')}>
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
           <TimerRing
@@ -111,6 +110,6 @@ export function CurrentSessionCard({
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -36,11 +35,9 @@ export function StatCard({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay, ease: [0.22, 1, 0.36, 1] }}
-      className="panel panel-hover p-4"
+    <div
+      className="enter-rise-tween panel panel-hover p-4"
+      style={{ '--enter-delay': `${delay}s` } as React.CSSProperties}
     >
       <div className="flex items-start justify-between">
         <p className="text-[12px] font-medium text-muted">{label}</p>
@@ -54,14 +51,18 @@ export function StatCard({
 
       {progress !== undefined && (
         <div className="mt-3 h-1 overflow-hidden rounded-full bg-subtle/20">
-          <motion.div
-            className={cn('h-full rounded-full', bars[tone])}
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(100, progress * 100)}%` }}
-            transition={{ duration: 0.6, delay: delay + 0.1, ease: [0.22, 1, 0.36, 1] }}
+          <div
+            className={cn('bar-fill h-full rounded-full', bars[tone])}
+            style={
+              {
+                width: `${Math.min(100, progress * 100)}%`,
+                '--bar-duration': '0.6s',
+                '--bar-delay': `${delay + 0.1}s`,
+              } as React.CSSProperties
+            }
           />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

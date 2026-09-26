@@ -93,6 +93,10 @@ describe('useTimerStore — closing the tab mid-session', () => {
 
     expect(useSettingsStore.getState().settings.xp).toBeGreaterThan(xpBefore);
     expect((await db.tasks.get('task_a'))?.completedSessions).toBe(1);
+    // The store is patched in place rather than reloaded, and has to agree.
+    const inStore = useTaskStore.getState().tasks.find((t) => t.id === 'task_a');
+    expect(inStore?.completedSessions).toBe(1);
+    expect(inStore?.status).toBe('active');
   });
 });
 

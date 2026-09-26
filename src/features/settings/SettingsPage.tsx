@@ -18,19 +18,12 @@ import {
 } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
-import {
-  Badge,
-  Card,
-  CardDescription,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-  Slider,
-  Switch,
-} from '@/components/ui/primitives';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { SoundPicker } from '@/features/focus/SoundPicker';
 import { CategoryPresetMap, PresetManager } from './PresetManager';
 import { RestoreDialog } from './RestoreDialog';

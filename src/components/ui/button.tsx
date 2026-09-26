@@ -15,7 +15,7 @@ const buttonVariants = cva(
           'bg-elevated text-fg border border-border hover:bg-elevated hover:border-subtle/40 shadow-soft',
         ghost: 'text-muted hover:bg-elevated hover:text-fg',
         outline: 'border border-border text-fg hover:bg-elevated',
-        danger: 'bg-danger text-white hover:brightness-110',
+        danger: 'bg-danger text-danger-fg hover:brightness-110',
         subtle: 'bg-accent/10 text-accent hover:bg-accent/16',
       },
       size: {

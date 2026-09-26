@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   Minimize2,
   Pause,
@@ -12,7 +11,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/primitives';
+import { Presence } from '@/components/Presence';
+import { Tooltip } from '@/components/ui/tooltip';
 import { TimerRing } from '@/components/TimerRing';
 import { DistractionLogger } from './DistractionLogger';
 import { BreakActivity } from './BreakActivity';
@@ -85,16 +85,24 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
    * untouched on the way out.
    */
   useEffect(() => {
-    const overlay = overlayRef.current;
+    // Workspace mounts this inside a Presence wrapper, which is what fades in
+    // and out; that wrapper, not the overlay, is the page-level element whose
+    // siblings are covered.
+    const inner = overlayRef.current;
+    const overlay = inner?.parentElement?.hasAttribute('data-presence') ? inner.parentElement : inner;
     const covered = Array.from(overlay?.parentElement?.children ?? []).filter(
       (el): el is HTMLElement =>
         el instanceof HTMLElement &&
         el !== overlay &&
-        // The toast host is a live region sitting at the same level. Silencing
-        // it would swallow the very confirmations this screen produces, so it
-        // stays announceable and clickable.
-        !el.hasAttribute('aria-live') &&
-        !el.querySelector('[aria-live]'),
+        // The toast host and the route announcer are live regions sitting at
+        // the same level. Silencing them would swallow the very confirmations
+        // this screen produces, so they stay announceable and clickable.
+        //
+        // Only an element that *is* a live region is spared — not one that
+        // merely contains one. The app shell holds live regions of its own
+        // (drag-and-drop's announcer on the Tasks page), and sparing the shell
+        // for them left the whole page behind the overlay reachable.
+        !el.hasAttribute('aria-live'),
     );
 
     // Remember what each element looked like rather than assuming it was
@@ -121,12 +129,9 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <motion.div
+    // Fades in and out through the Presence wrapper Workspace puts around it.
+    <div
       ref={overlayRef}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
       className="fixed inset-0 z-40 flex flex-col bg-bg"
       role="dialog"
       aria-modal="true"
@@ -138,21 +143,17 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
           like a still image. */}
       {!reducedMotion && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <motion.div
+          <div
             className={cn(
-              'absolute -left-1/4 top-[-20%] h-[70vh] w-[70vh] rounded-full blur-[120px]',
+              'wash-a absolute -left-1/4 top-[-20%] h-[70vh] w-[70vh] rounded-full blur-[120px]',
               isFocus ? 'bg-accent/20' : 'bg-break/20',
             )}
-            animate={{ x: [0, 60, -20, 0], y: [0, 40, 80, 0], scale: [1, 1.12, 0.96, 1] }}
-            transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <motion.div
+          <div
             className={cn(
-              'absolute -right-1/4 bottom-[-20%] h-[60vh] w-[60vh] rounded-full blur-[120px]',
+              'wash-b absolute -right-1/4 bottom-[-20%] h-[60vh] w-[60vh] rounded-full blur-[120px]',
               isFocus ? 'bg-focus/14' : 'bg-break/12',
             )}
-            animate={{ x: [0, -50, 20, 0], y: [0, -30, -70, 0], scale: [1, 0.94, 1.1, 1] }}
-            transition={{ duration: 34, repeat: Infinity, ease: 'easeInOut' }}
           />
           <AmbientOrbs type={timer.type} />
         </div>
@@ -209,13 +210,9 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
       {/* Center */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6">
         {isFocus && taskTitle && (
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 max-w-md text-center text-lg font-medium tracking-tight sm:text-xl"
-          >
+          <p className="enter-rise mb-8 max-w-md text-center text-lg font-medium tracking-tight sm:text-xl">
             {taskTitle}
-          </motion.p>
+          </p>
         )}
 
         <TimerRing
@@ -332,29 +329,25 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
         ))}
       </div>
 
-      <AnimatePresence>
-        {showSound && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="absolute right-4 top-16 z-20 w-[280px]"
-          >
-            <div className="panel p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-[13px] font-semibold">Ambient sound</p>
-                <Button variant="ghost" size="icon-sm" onClick={() => setShowSound(false)}>
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-              <SoundPicker compact />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Presence
+        show={showSound}
+        enter="slide-in-right"
+        exit="slide-out-right"
+        className="absolute right-4 top-16 z-20 w-[280px]"
+      >
+        <div className="panel p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[13px] font-semibold">Ambient sound</p>
+            <Button variant="ghost" size="icon-sm" onClick={() => setShowSound(false)}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <SoundPicker compact />
+        </div>
+      </Presence>
 
       <DistractionLogger open={showDistraction} onOpenChange={setShowDistraction} />
 
-    </motion.div>
+    </div>
   );
 }

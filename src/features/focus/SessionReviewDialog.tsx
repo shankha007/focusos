@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import type { Rating } from '@/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Textarea,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { RatingPicker } from './RatingPicker';
 import { useTimerStore } from '@/store/useTimerStore';

@@ -1,4 +1,4 @@
-import { sessionsRepo, tasksRepo } from '@/db/repositories';
+import { sessionsRepo } from '@/db/repositories';
 import { xpForSession } from '@/engine/achievements';
 import { useSettingsStore } from './useSettingsStore';
 import { useStatsStore } from './useStatsStore';
@@ -34,10 +34,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
 
   if (session.type !== 'focus' || !session.completed) return;
 
-  if (session.taskId) {
-    await tasksRepo.decrementSessions(session.taskId);
-    await useTaskStore.getState().load();
-  }
+  if (session.taskId) await useTaskStore.getState().adjustSessions(session.taskId, -1);
 
   const { settings, update } = useSettingsStore.getState();
   await update({ xp: Math.max(0, settings.xp - xpForSession(session)) });

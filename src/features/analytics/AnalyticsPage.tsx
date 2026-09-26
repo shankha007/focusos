@@ -1,34 +1,18 @@
 import { useMemo, useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip as RTooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { BarChart3, Download, FileJson, FileText, Sheet } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardDescription,
-  CardTitle,
-  EmptyState,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/primitives';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Chart } from './Chart';
 import { Heatmap } from './Heatmap';
 import { CategoryBreakdown } from './CategoryBreakdown';
 import { DistractionReport } from './DistractionReport';
 import { MoodInsights } from './MoodInsights';
 import { useStatsStore } from '@/store/useStatsStore';
+import { useToday } from '@/hooks/useToday';
 import { useTaskStore } from '@/store/useTaskStore';
 import {
   byHour,
@@ -64,13 +48,13 @@ const PERIOD_LABEL: Record<Period, string> = {
 };
 
 /**
- * Recharts picks its own tick values, so a raw `unit` prop can render things
+ * The chart picks its own tick values, so a raw unit suffix can render things
  * like "0.45h". Format explicitly and keep the label short — the axis is only
  * as wide as `Y_AXIS_WIDTH`, and anything longer gets clipped.
  */
 const hourTick = (value: number) => {
   if (value === 0) return '0';
-  // Under an hour, Recharts' ticks are fractions that all round to the same
+  // Under an hour, the automatic ticks are fractions that all round to the same
   // tenth — an axis reading "0h, 0h, 0h, 0.1h, 0.1h". Minutes keep them
   // distinct and still fit inside Y_AXIS_WIDTH.
   if (Math.abs(value) < 1) return `${Math.round(value * 60)}m`;
@@ -83,17 +67,16 @@ const hourTick = (value: number) => {
 
 /**
  * A whole-minute scale for the focus-per-day axis, in hours, or `undefined` to
- * let Recharts decide.
+ * let the chart decide.
  *
- * Left to itself, Recharts divides the domain into equal fractions. Under an
+ * Left to itself, the chart divides the domain into equal fractions. Under an
  * hour those land between whole minutes — 1.25, 2.5, 3.75 — and `hourTick`
  * rounds them to labels that repeat or skip, so the axis reads "1m, 2m, 4m, 5m"
  * with no 3m and uneven gaps. Choosing the step ourselves keeps the labels
- * distinct and evenly spaced. The domain is pinned to match, since ticks
- * outside it are simply dropped. Past an hour the default fractions already
- * read well, so leave them alone.
+ * distinct and evenly spaced; the last tick is the top of the scale. Past an
+ * hour the default fractions already read well, so leave them alone.
  */
-function focusAxisScale(maxHours: number): { ticks: number[]; domain: [number, number] } | undefined {
+function focusAxisTicks(maxHours: number): number[] | undefined {
   const maxMinutes = maxHours * 60;
   if (maxMinutes <= 0 || maxMinutes >= 60) return undefined;
 
@@ -103,7 +86,7 @@ function focusAxisScale(maxHours: number): { ticks: number[]; domain: [number, n
 
   const ticks: number[] = [];
   for (let m = 0; m <= top; m += step) ticks.push(m / 60);
-  return { ticks, domain: [0, top / 60] };
+  return ticks;
 }
 
 /** Axis tick for a minutes-based scale. */
@@ -122,19 +105,22 @@ export function AnalyticsPage() {
   const distractionCategories = useTaskStore((s) => s.distractionCategories);
   const categories = useTaskStore((s) => s.categories);
   const [period, setPeriod] = useState<Period>('week');
+  // Everything below that means "up to now" follows this, so a page left open
+  // past midnight moves on to the new day — and a new week, month or year.
+  const today = useToday();
 
   const from = useMemo(() => {
     switch (period) {
       case 'day':
-        return startOfDay();
+        return startOfDay(today);
       case 'week':
-        return startOfWeek();
+        return startOfWeek(today);
       case 'month':
-        return startOfMonth();
+        return startOfMonth(today);
       case 'year':
-        return startOfYear();
+        return startOfYear(today);
     }
-  }, [period]);
+  }, [period, today]);
 
   const sessions = useMemo(
     () => allSessions.filter((s) => s.startedAt >= from),
@@ -153,7 +139,7 @@ export function AnalyticsPage() {
 
   const series = useMemo(() => {
     const stats = toDayStats(sessions, distractions);
-    return dayRange(from, Date.now(), stats).map((d) => ({
+    return dayRange(from, today, stats).map((d) => ({
       date: d.date,
       label: new Date(`${d.date}T00:00:00`).toLocaleDateString(undefined, {
         month: 'short',
@@ -163,11 +149,11 @@ export function AnalyticsPage() {
       sessions: d.sessions,
       distractions: d.distractions,
     }));
-  }, [sessions, distractions, from]);
+  }, [sessions, distractions, from, today]);
 
   /** Whole-minute gridlines for the focus-per-day chart while the day is short. */
-  const focusScale = useMemo(
-    () => focusAxisScale(Math.max(...series.map((d) => d.hours), 0)),
+  const focusTicks = useMemo(
+    () => focusAxisTicks(Math.max(...series.map((d) => d.hours), 0)),
     [series],
   );
 
@@ -295,43 +281,22 @@ export function AnalyticsPage() {
       <Card className="mt-4">
         <CardTitle>Focus over time</CardTitle>
         <CardDescription>Time spent focusing each day, finished or not.</CardDescription>
-        <div className="mt-4 h-[220px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="focusFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(var(--accent))" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="rgb(var(--accent))" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                axisLine={false}
-                tickLine={false}
-                minTickGap={20}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                axisLine={false}
-                tickLine={false}
-                width={Y_AXIS_WIDTH}
-                tickFormatter={hourTick}
-                ticks={focusScale?.ticks}
-                domain={focusScale?.domain ?? [0, 'auto']}
-              />
-              <RTooltip content={<ChartTooltip unit="h" />} />
-              <Area
-                type="monotone"
-                dataKey="hours"
-                stroke="rgb(var(--accent))"
-                strokeWidth={2}
-                fill="url(#focusFill)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <Chart
+          className="mt-4"
+          kind="area"
+          height={220}
+          data={series}
+          label={(d) => d.label}
+          value={(d) => d.hours}
+          color="rgb(var(--accent))"
+          yWidth={Y_AXIS_WIDTH}
+          yFormat={hourTick}
+          yTicks={focusTicks}
+          xMinGap={20}
+          tooltip={(d) => (
+            <ChartTooltip label={d.label} value={d.hours} unit="h" name="hours" color="rgb(var(--accent))" />
+          )}
+        />
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -343,38 +308,23 @@ export function AnalyticsPage() {
               ? `Your strongest hour is ${peakHour.label}.`
               : 'Not enough data for this period yet.'}
           </CardDescription>
-          <div className="mt-4 h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourly} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10, fill: 'rgb(var(--subtle))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={2}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={Y_AXIS_WIDTH}
-                  tickFormatter={hourlyTick}
-                  allowDecimals={false}
-                />
-                <RTooltip content={<ChartTooltip unit=" min" />} />
-                <Bar dataKey="minutes" radius={[3, 3, 0, 0]}>
-                  {hourly.map((h) => (
-                    <Cell
-                      key={h.hour}
-                      fill="rgb(var(--accent))"
-                      fillOpacity={0.25 + h.intensity * 0.75}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Chart
+            className="mt-4"
+            kind="bar"
+            height={200}
+            data={hourly}
+            label={(h) => h.label}
+            value={(h) => h.minutes}
+            color="rgb(var(--accent))"
+            barOpacity={(h) => 0.25 + h.intensity * 0.75}
+            yWidth={Y_AXIS_WIDTH}
+            yFormat={hourlyTick}
+            allowDecimals={false}
+            xInterval={2}
+            xFontSize={10}
+            // Shaded bar by bar, so there is no one series colour for the text.
+            tooltip={(h) => <ChartTooltip label={h.label} value={h.minutes} unit=" min" name="minutes" />}
+          />
         </Card>
 
         <MoodInsights sessions={sessions} />
@@ -388,29 +338,21 @@ export function AnalyticsPage() {
         <Card>
           <CardTitle>Sessions per day</CardTitle>
           <CardDescription>Completed focus sessions across the period.</CardDescription>
-          <div className="mt-4 h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  minTickGap={20}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: 'rgb(var(--subtle))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={Y_AXIS_WIDTH}
-                  allowDecimals={false}
-                />
-                <RTooltip content={<ChartTooltip />} />
-                <Bar dataKey="sessions" fill="rgb(var(--break))" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Chart
+            className="mt-4"
+            kind="bar"
+            height={200}
+            data={series}
+            label={(d) => d.label}
+            value={(d) => d.sessions}
+            color="rgb(var(--break))"
+            yWidth={Y_AXIS_WIDTH}
+            allowDecimals={false}
+            xMinGap={20}
+            tooltip={(d) => (
+              <ChartTooltip label={d.label} value={d.sessions} name="sessions" color="rgb(var(--break))" />
+            )}
+          />
         </Card>
       </div>
 
@@ -429,31 +371,34 @@ export function AnalyticsPage() {
           </Button>
         </div>
         <div className="mt-4">
-          <Heatmap stats={allStats} weeks={Math.min(53, Math.ceil((Date.now() - (allSessions[0]?.startedAt ?? Date.now())) / (DAY * 7)) + 6)} />
+          <Heatmap stats={allStats} weeks={Math.min(53, Math.ceil((today - startOfDay(allSessions[0]?.startedAt ?? today)) / (DAY * 7)) + 6)} />
         </div>
       </Card>
     </PageContainer>
   );
 }
 
-interface TooltipPayload {
-  active?: boolean;
-  payload?: { name: string; value: number; color: string }[];
-  label?: string;
-}
-
-/** The hover card shared by every chart on this page. */
-function ChartTooltip({ active, payload, label, unit = '' }: TooltipPayload & { unit?: string }) {
-  if (!active || !payload?.length) return null;
+/** The hover card shared by every chart on this page, e.g. "Sep 24" over "1.5h hours". */
+function ChartTooltip({
+  label,
+  value,
+  name,
+  unit = '',
+  color,
+}: {
+  label: string;
+  value: number;
+  name: string;
+  unit?: string;
+  color?: string;
+}) {
   return (
     <div className="rounded-xl border border-border bg-elevated px-3 py-2 shadow-lift">
       <p className="text-[11px] font-medium text-subtle">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} className="tabular text-[13px] font-medium capitalize" style={{ color: p.color }}>
-          {p.value}
-          {unit} {p.name}
-        </p>
-      ))}
+      <p className="tabular text-[13px] font-medium capitalize" style={{ color }}>
+        {value}
+        {unit} {name}
+      </p>
     </div>
   );
 }

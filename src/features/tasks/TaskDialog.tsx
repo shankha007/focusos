@@ -1,19 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import type { Priority, Task } from '@/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input, Textarea } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/store/useTaskStore';
 import { cn, clamp, dateKey } from '@/lib/utils';

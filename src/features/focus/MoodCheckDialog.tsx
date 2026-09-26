@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Rating } from '@/types';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RatingPicker } from './RatingPicker';
 
