@@ -17,6 +17,7 @@ export default {
         focus: "rgb(var(--focus) / <alpha-value>)",
         break: "rgb(var(--break) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)",
+        "danger-fg": "rgb(var(--danger-fg) / <alpha-value>)",
         warn: "rgb(var(--warn) / <alpha-value>)",
         success: "rgb(var(--success) / <alpha-value>)",
       },
