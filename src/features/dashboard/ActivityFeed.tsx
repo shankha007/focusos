@@ -2,15 +2,9 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Coffee, Target, Trash2, Zap } from 'lucide-react';
 import type { Session } from '@/types';
-import {
-  Card,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  EmptyState,
-} from '@/components/ui/primitives';
+import { Card, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';

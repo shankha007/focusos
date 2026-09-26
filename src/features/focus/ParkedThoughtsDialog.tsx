@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Bookmark } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DynamicIcon } from '@/components/DynamicIcon';
 import { useTimerStore } from '@/store/useTimerStore';

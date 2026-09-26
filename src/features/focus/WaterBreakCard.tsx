@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Droplet, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/primitives';
+import { Card } from '@/components/ui/card';
 import { useHydrationStore } from '@/store/useHydrationStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTimerStore } from '@/store/useTimerStore';

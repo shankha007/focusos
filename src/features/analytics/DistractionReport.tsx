@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import type { Distraction, DistractionCategory } from '@/types';
-import { Card, CardDescription, CardTitle, EmptyState } from '@/components/ui/primitives';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { distractionPatterns } from '@/engine/analytics';
 import { fmtHour } from '@/engine/adaptive';
 import { pluralize } from '@/lib/utils';

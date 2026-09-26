@@ -15,15 +15,9 @@ import { BarChart3, Download, FileJson, FileText, Sheet } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardDescription,
-  CardTitle,
-  EmptyState,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/primitives';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Heatmap } from './Heatmap';
 import { CategoryBreakdown } from './CategoryBreakdown';
 import { DistractionReport } from './DistractionReport';

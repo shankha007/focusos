@@ -238,16 +238,54 @@
   }
 }
 
-@layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    scrollbar-width: none;
-  }
+/*
+ * Marketing-page entrances, in CSS so the landing page needs no animation
+ * library. Both use `backwards` fill: the start state holds through any delay,
+ * and once finished the element is released back to its own styles, so hover
+ * transitions on the same element keep working.
+ */
 
-  .drag-region {
-    -webkit-app-region: drag;
+/* Hero blocks: movement only. An element at opacity 0 does not count as
+   painted, and these are the Largest Contentful Paint candidates. */
+.enter-up {
+  animation: enter-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes enter-up {
+  from {
+    transform: translateY(20px);
+  }
+}
+
+/* Sections further down fade and rise as they scroll in (see Reveal.tsx).
+   Hidden only when scripts run — with them off, nothing would ever reveal it. */
+@media (scripting: enabled) {
+  [data-reveal=""] {
+    opacity: 0;
+  }
+}
+
+[data-reveal="shown"] {
+  animation: reveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/* TimerRing's arc: sweeps in from empty (--ring-empty is the full dash
+   length) when it mounts, then eases to each new value of progress. */
+.timer-ring-arc {
+  animation: ring-fill 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transition: stroke-dashoffset 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-empty);
   }
 }
 

@@ -3,14 +3,9 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Archive, ArchiveRestore, CalendarClock, Check, GripVertical, Pencil, Play, Trash2 } from 'lucide-react';
 import type { Category, Session, Task } from '@/types';
-import {
-  Badge,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Tooltip,
-} from '@/components/ui/primitives';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { useTaskStore } from '@/store/useTaskStore';
 import { estimateTaskSessions } from '@/engine/adaptive';

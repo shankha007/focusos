@@ -24,9 +24,14 @@ import { gzipSync } from 'node:zlib';
 
 const DIST = 'dist';
 
-/** Headroom over the figures at the time the budgets were set: 158 KB and 1,342 KB. */
+/**
+ * Headroom over the figures at the time the budgets were set. Landing was
+ * lowered from 180 KB once Radix, Framer Motion and the secondary marketing
+ * pages came off it (165 KB -> 89 KB), so the saving cannot quietly erode.
+ * Precache: 1,342 KB when set, 1,494 KB now.
+ */
 const BUDGETS = {
-  landingGzipKb: 180,
+  landingGzipKb: 100,
   precacheKb: 1500,
 };
 

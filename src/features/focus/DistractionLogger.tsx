@@ -2,13 +2,8 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Bookmark } from 'lucide-react';
 import { DynamicIcon } from '@/components/DynamicIcon';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTaskStore } from '@/store/useTaskStore';

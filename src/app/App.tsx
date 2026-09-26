@@ -1,15 +1,17 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { TooltipProvider } from '@/components/ui/primitives';
 import { LandingPage } from '@/features/landing/LandingPage';
-import { PrivacyPage } from '@/features/landing/PrivacyPage';
-import { PomodoroTechniquePage } from '@/features/landing/PomodoroTechniquePage';
-import { TwentyFiveMinuteTimerPage } from '@/features/landing/TwentyFiveMinuteTimerPage';
-import { StudyTimerPage } from '@/features/landing/StudyTimerPage';
+import {
+  PomodoroTechniquePage,
+  PrivacyPage,
+  StudyTimerPage,
+  TwentyFiveMinuteTimerPage,
+} from '@/features/landing/pages';
 import { ErrorBoundary } from './ErrorBoundary';
 
 /**
- * Only the marketing page is part of the initial bundle.
+ * Only the landing page is part of the initial bundle. The other marketing
+ * pages are loaded ahead of rendering instead (see features/landing/pages.tsx).
  *
  * `/` is the front door: it is what gets indexed, linked and shared, and its
  * visitor has not decided to use the app yet. Everything behind it — the shell,
@@ -61,36 +63,34 @@ function RoutedErrorBoundary({ children }: { children: React.ReactNode }) {
  */
 export function AppRoutes() {
   return (
-    <TooltipProvider delayDuration={400}>
-      <RoutedErrorBoundary>
-        <Suspense fallback={<WorkspaceFallback />}>
-          <Routes>
-            {/* No sidebar, no timer chrome, and no database. The installed PWA
-                starts at /dashboard instead (see start_url in vite.config.ts). */}
-            <Route path="/" element={<LandingPage />} />
-            {/* Marketing pages, pre-rendered at build time by
-                scripts/prerender.mjs — they are eager imports because their
-                markup ships in the HTML and a lazy chunk would have nothing to
-                hydrate against. */}
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/pomodoro-technique" element={<PomodoroTechniquePage />} />
-            <Route path="/25-minute-timer" element={<TwentyFiveMinuteTimerPage />} />
-            <Route path="/study-timer" element={<StudyTimerPage />} />
+    <RoutedErrorBoundary>
+      <Suspense fallback={<WorkspaceFallback />}>
+        <Routes>
+          {/* No sidebar, no timer chrome, and no database. The installed PWA
+              starts at /dashboard instead (see start_url in vite.config.ts). */}
+          <Route path="/" element={<LandingPage />} />
+          {/* Marketing pages, pre-rendered at build time by
+              scripts/prerender.mjs. Their markup ships in the HTML, so each is
+              preloaded before React renders it rather than suspending on a
+              lazy chunk with nothing to hydrate against. */}
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/pomodoro-technique" element={<PomodoroTechniquePage />} />
+          <Route path="/25-minute-timer" element={<TwentyFiveMinuteTimerPage />} />
+          <Route path="/study-timer" element={<StudyTimerPage />} />
 
-            <Route element={<Workspace />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/achievements" element={<AchievementsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              {/* An unrecognised path belongs in the app, not back out on the
-                  marketing page — someone reaching it already has a session. */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </RoutedErrorBoundary>
-    </TooltipProvider>
+          <Route element={<Workspace />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            {/* An unrecognised path belongs in the app, not back out on the
+                marketing page — someone reaching it already has a session. */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </RoutedErrorBoundary>
   );
 }
 

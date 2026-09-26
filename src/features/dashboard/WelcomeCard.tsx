@@ -1,5 +1,5 @@
 import { Sparkles } from 'lucide-react';
-import { Card, CardTitle } from '@/components/ui/primitives';
+import { Card, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSettingsStore } from '@/store/useSettingsStore';
 

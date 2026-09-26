@@ -18,19 +18,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Archive, CheckSquare, ListFilter, Plus, Search, Tag } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  EmptyState,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/primitives';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaskRow } from './TaskRow';
 import { allTags, filterTasks, type StatusFilter } from './filterTasks';
 import { TaskDialog } from './TaskDialog';

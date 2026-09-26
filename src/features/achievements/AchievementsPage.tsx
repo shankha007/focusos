@@ -4,7 +4,8 @@ import { Award, Flame, Hourglass, Lock, ShieldCheck, Sparkles, Trophy } from 'lu
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { DynamicIcon } from '@/components/DynamicIcon';
-import { Badge, Card } from '@/components/ui/primitives';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { buildContext, evaluateAchievements, levelForXp } from '@/engine/achievements';

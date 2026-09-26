@@ -19,7 +19,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTaskStore } from '@/store/useTaskStore';

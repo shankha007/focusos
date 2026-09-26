@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, CheckCircle2, Clock, Lightbulb, Zap } from 'lucide-react';
-import { Card, CardTitle } from '@/components/ui/primitives';
+import { Card, CardTitle } from '@/components/ui/card';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useSettingsStore } from '@/store/useSettingsStore';

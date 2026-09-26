@@ -10,7 +10,8 @@ import {
 } from 'recharts';
 import { HeartPulse } from 'lucide-react';
 import type { Session } from '@/types';
-import { Card, CardDescription, CardTitle, EmptyState } from '@/components/ui/primitives';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { moodCorrelation } from '@/engine/analytics';
 
 const MOOD_LABEL = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];

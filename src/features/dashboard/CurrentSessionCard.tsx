@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Maximize2, Pause, Play, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/primitives';
+import { Card } from '@/components/ui/card';
 import { TimerRing } from '@/components/TimerRing';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useTaskStore } from '@/store/useTaskStore';
