@@ -276,11 +276,12 @@
   }
 }
 
-/* TimerRing's arc: sweeps in from empty (--ring-empty is the full dash
-   length) when it mounts, then eases to each new value of progress. */
-.timer-ring-arc {
-  animation: ring-fill 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  transition: stroke-dashoffset 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+/* A progress ring's arc (TimerRing, the level ring): sweeps in from empty
+   (--ring-empty is the full dash length) when it mounts, then eases to each
+   new value of progress. */
+.ring-arc {
+  animation: ring-fill var(--ring-duration, 0.4s) cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transition: stroke-dashoffset var(--ring-duration, 0.4s) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes ring-fill {
@@ -322,6 +323,190 @@
   from {
     opacity: 0;
   }
+}
+
+/*
+ * In-app motion, formerly Framer Motion, at Framer's own timings. Where the
+ * code gave no timing, Framer used its defaults: opacity over 0.3s on
+ * [0.25, 0.1, 0.35, 1], and movement on an underdamped spring (stiffness 500,
+ * damping 25) that overshoots by about 12%. The springs are CSS linear() curves
+ * sampled from the spring equation; each is preceded by a cubic-bezier
+ * fallback for browsers without linear(), which drop the second declaration.
+ */
+
+/* A card or panel fading and rising 8px into place. --enter-delay staggers. */
+.enter-rise {
+  animation:
+    enter-fade 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) var(--enter-delay, 0s) backwards,
+    enter-rise 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) var(--enter-delay, 0s) backwards;
+  animation:
+    enter-fade 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) var(--enter-delay, 0s) backwards,
+    enter-rise 0.55s
+      linear(0, 0.0636, 0.216, 0.4081, 0.6034, 0.7775, 0.9171, 1.0179, 1.0813, 1.1129, 1.1201, 1.1105, 1.0912, 1.0678, 1.0445, 1.0241, 1.008, 0.9965, 0.9895, 0.9861, 0.9856, 0.987, 0.9894, 0.9923, 0.995, 0.9974, 0.9993, 1.0006, 1.0013, 1.0017, 1.0017, 1.0015, 1)
+      var(--enter-delay, 0s) backwards;
+}
+
+/* The same entrance on a plain curve, for the stat cards, which set one. */
+.enter-rise-tween {
+  animation:
+    enter-fade 0.3s cubic-bezier(0.22, 1, 0.36, 1) var(--enter-delay, 0s) backwards,
+    enter-rise 0.3s cubic-bezier(0.22, 1, 0.36, 1) var(--enter-delay, 0s) backwards;
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    translate: 0 8px;
+  }
+}
+
+/* A progress bar filling from empty, then easing to each new width. */
+.bar-fill {
+  animation: bar-grow var(--bar-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1) var(--bar-delay, 0s) backwards;
+  transition: width var(--bar-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1) var(--bar-delay, 0s);
+}
+
+@keyframes bar-grow {
+  from {
+    width: 0;
+  }
+}
+
+/* Presence (components/Presence.tsx): a plain fade in and out. The exit holds
+   its end state until the element is removed. */
+.fade-in {
+  animation: enter-fade var(--fade-duration, 0.25s) ease-in-out backwards;
+}
+
+.fade-out {
+  animation: exit-fade var(--fade-duration, 0.25s) ease-in-out forwards;
+}
+
+@keyframes exit-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Presence: a panel fading in from 20px to the right, and back out. */
+.slide-in-right {
+  animation:
+    enter-fade 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) backwards,
+    slide-from-right 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+  animation:
+    enter-fade 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) backwards,
+    slide-from-right 0.55s
+      linear(0, 0.0636, 0.216, 0.4081, 0.6034, 0.7775, 0.9171, 1.0179, 1.0813, 1.1129, 1.1201, 1.1105, 1.0912, 1.0678, 1.0445, 1.0241, 1.008, 0.9965, 0.9895, 0.9861, 0.9856, 0.987, 0.9894, 0.9923, 0.995, 0.9974, 0.9993, 1.0006, 1.0013, 1.0017, 1.0017, 1.0015, 1)
+      backwards;
+}
+
+.slide-out-right {
+  animation:
+    exit-fade 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) forwards,
+    slide-to-right 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+  animation:
+    exit-fade 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) forwards,
+    slide-to-right 0.55s
+      linear(0, 0.0636, 0.216, 0.4081, 0.6034, 0.7775, 0.9171, 1.0179, 1.0813, 1.1129, 1.1201, 1.1105, 1.0912, 1.0678, 1.0445, 1.0241, 1.008, 0.9965, 0.9895, 0.9861, 0.9856, 0.987, 0.9894, 0.9923, 0.995, 0.9974, 0.9993, 1.0006, 1.0013, 1.0017, 1.0017, 1.0015, 1)
+      forwards;
+}
+
+@keyframes slide-from-right {
+  from {
+    translate: 20px 0;
+  }
+}
+
+@keyframes slide-to-right {
+  to {
+    translate: 20px 0;
+  }
+}
+
+/* The sidebar's active-page highlight gliding between items: the spring the
+   old layout animation used (stiffness 380, damping 32, ~1% overshoot). */
+.nav-indicator {
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.4, 1);
+  transition: transform 0.6s
+    linear(0, 0.0546, 0.1785, 0.3282, 0.477, 0.6107, 0.7227, 0.8117, 0.8793, 0.9284, 0.9624, 0.9848, 0.9987, 1.0064, 1.01, 1.011, 1.0104, 1.0091, 1.0074, 1.0058, 1.0043, 1.0031, 1.0021, 1.0014, 1.0008, 1.0004, 1.0002, 1, 0.9999, 0.9999, 0.9999, 0.9999, 1);
+}
+
+/* The breathing guide's circle: eases to each phase's size over that phase's
+   length (--breath-duration), starting from rest when it first appears. */
+.breath {
+  animation: breath-start var(--breath-duration) ease-in-out var(--breath-delay, 0s) backwards;
+  transition: transform var(--breath-duration) ease-in-out var(--breath-delay, 0s);
+}
+
+@keyframes breath-start {
+  from {
+    transform: scale(1);
+  }
+}
+
+/* Deep Focus's two slow background washes, drifting on long loops. */
+.wash-a {
+  animation: wash-a 28s ease-in-out infinite;
+}
+
+.wash-b {
+  animation: wash-b 34s ease-in-out infinite;
+}
+
+@keyframes wash-a {
+  33.333% {
+    transform: translate(60px, 40px) scale(1.12);
+  }
+  66.667% {
+    transform: translate(-20px, 80px) scale(0.96);
+  }
+}
+
+@keyframes wash-b {
+  33.333% {
+    transform: translate(-50px, -30px) scale(0.94);
+  }
+  66.667% {
+    transform: translate(20px, -70px) scale(1.1);
+  }
+}
+
+/*
+ * Reduced motion. Framer's reduced mode stopped movement but still ran fades
+ * and non-positional changes — opacity, widths, a ring's progress — so those
+ * keep their timing here; the blanket rule below would otherwise stop them too.
+ * These selectors outrank it, and both are !important.
+ */
+[data-motion="reduced"] .enter-rise,
+[data-motion="reduced"] .enter-rise-tween,
+[data-motion="reduced"] .slide-in-right {
+  animation-name: enter-fade !important;
+  animation-duration: 0.3s !important;
+}
+
+[data-motion="reduced"] .slide-out-right {
+  animation-name: exit-fade !important;
+  animation-duration: 0.3s !important;
+}
+
+[data-motion="reduced"] .fade-in,
+[data-motion="reduced"] .fade-out {
+  animation-duration: var(--fade-duration, 0.25s) !important;
+}
+
+[data-motion="reduced"] .bar-fill {
+  animation-duration: var(--bar-duration, 0.6s) !important;
+  transition-duration: var(--bar-duration, 0.6s) !important;
+}
+
+[data-motion="reduced"] .ring-arc {
+  animation-duration: var(--ring-duration, 0.4s) !important;
+  transition-duration: var(--ring-duration, 0.4s) !important;
 }
 
 /* Respect the OS-level reduced motion setting, and the in-app override */

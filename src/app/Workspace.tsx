@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { Toaster } from 'sonner';
+import { Presence } from '@/components/Presence';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppShell } from './AppShell';
 import { DeepFocusMode } from '@/features/focus/DeepFocusMode';
@@ -105,7 +105,6 @@ function Chrome() {
   useTimerTick();
   useAchievementWatcher();
   useAppUpdate();
-  const reducedMotion = useSettingsStore((s) => s.reducedMotion);
   const deepFocus = useTimerStore((s) => s.timer.status === 'running' || s.timer.status === 'paused');
   const sessionType = useTimerStore((s) => s.timer.type);
   const [showDeepFocus, setShowDeepFocus] = useState(false);
@@ -119,21 +118,19 @@ function Chrome() {
     if (deepFocus && sessionType === 'focus') setShowDeepFocus(true);
   }, [deepFocus, sessionType]);
 
+  // Reduced motion needs no wiring here: the settings store paints
+  // data-motion="reduced" on the document for the in-app switch and the OS
+  // preference alike, and index.css applies it to every animation at once.
   return (
-    // Gating each animation by hand only ever covers the ones someone remembered
-    // — the nav indicator's spring and every list transition were still moving
-    // for a user who had asked their OS for less. This applies the answer once,
-    // to everything Framer Motion drives. "user" is not enough on its own: it
-    // reads the OS but not the in-app switch, which can also turn motion off.
-    <MotionConfig reducedMotion={reducedMotion ? 'always' : 'never'}>
+    <>
       {/* The landing page used to share this tree, so the overlay and both
           prompts had to check the route before rendering. They are only
           reachable from inside the app now, and the checks are gone with it. */}
       <AppShell onOpenFocus={() => setShowDeepFocus(true)} />
 
-      <AnimatePresence>
-        {showDeepFocus && <DeepFocusMode onClose={() => setShowDeepFocus(false)} />}
-      </AnimatePresence>
+      <Presence show={showDeepFocus} enter="fade-in" exit="fade-out">
+        <DeepFocusMode onClose={() => setShowDeepFocus(false)} />
+      </Presence>
 
       <SessionReviewDialog />
       <ParkedThoughtsDialog />
@@ -146,7 +143,7 @@ function Chrome() {
           className: 'rounded-xl border border-border bg-surface text-fg shadow-lift text-[13px]',
         }}
       />
-    </MotionConfig>
+    </>
   );
 }
 

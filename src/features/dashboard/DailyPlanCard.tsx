@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { Info, Play, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardTitle } from '@/components/ui/card';
@@ -32,7 +31,7 @@ export function DailyPlanCard({
   const { plan, sessionLength, peakWindows } = adaptive;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+    <div className="enter-rise" style={{ '--enter-delay': '0.1s' } as React.CSSProperties}>
       <Card className="p-0">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
           <div className="flex items-center gap-2">
@@ -91,7 +90,7 @@ export function DailyPlanCard({
           </>
         )}
       </Card>
-    </motion.div>
+    </div>
   );
 }
 

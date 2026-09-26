@@ -1,5 +1,4 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MotionGlobalConfig } from 'framer-motion';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SoundNudge } from '../SoundNudge';
 import {
@@ -42,8 +41,6 @@ describe('nudgeAllowed', () => {
 
 describe('SoundNudge', () => {
   beforeEach(() => {
-    // The exit fade runs on animation frames, which fake timers do not drive.
-    MotionGlobalConfig.skipAnimations = true;
     localStorage.clear();
     vi.useFakeTimers();
     setSound(false);
@@ -51,7 +48,6 @@ describe('SoundNudge', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    MotionGlobalConfig.skipAnimations = false;
   });
 
   /** Lets the exit finish on real time, then checks the suggestion has gone. */
