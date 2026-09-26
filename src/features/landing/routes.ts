@@ -64,7 +64,7 @@ export const MARKETING_ROUTES: MarketingRoute[] = [
     path: '/pomodoro-technique',
     title: 'The Pomodoro Technique, Explained · FocusOS',
     description:
-      'What the Pomodoro technique is, where 25 minutes came from, the variations worth trying, and where it usually goes wrong. With a timer you can start in one click.',
+      'What the Pomodoro technique is, where 25 minutes came from, the variations worth trying, and where it usually goes wrong. With a timer to start in one click.',
     sources: ['src/features/landing/PomodoroTechniquePage.tsx'],
     changefreq: 'monthly',
     priority: '0.8',

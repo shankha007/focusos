@@ -125,7 +125,7 @@ describe('routing configuration', () => {
       // Google truncates a title past roughly 60 characters and a description
       // past roughly 160.
       expect(route.title.length, `${route.path} title`).toBeLessThanOrEqual(60);
-      expect(route.description.length, `${route.path} description`).toBeLessThanOrEqual(165);
+      expect(route.description.length, `${route.path} description`).toBeLessThanOrEqual(160);
     });
   });
 
