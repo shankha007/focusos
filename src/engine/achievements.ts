@@ -177,7 +177,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 
 export const XP_PER_SESSION = 25;
 export const XP_PER_FOCUS_MINUTE = 1;
-export const XP_ACHIEVEMENT_BONUS = 100;
 
 /** XP earned by one session: a flat award, a point per focused minute, and a bonus for finishing it undistracted. Unfinished sessions and breaks earn nothing. */
 export function xpForSession(session: Session): number {
