@@ -9,7 +9,9 @@ vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), err
 
 const firstSession = makeSession({ id: 'ses_first' });
 const unlockToasts = () =>
-  vi.mocked(toast.success).mock.calls.map(([title]) => String(title)).filter((t) => t.startsWith('Achievement unlocked'));
+  vi.mocked(toast.success).mock.calls
+    .map(([title]) => (typeof title === 'string' ? title : ''))
+    .filter((t) => t.startsWith('Achievement unlocked'));
 
 describe('useAchievementWatcher', () => {
   beforeEach(async () => {

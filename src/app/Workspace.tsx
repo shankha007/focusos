@@ -14,7 +14,7 @@ import { useStatsStore } from '@/store/useStatsStore';
 import { useTimerStore } from '@/store/useTimerStore';
 import { adoptHandoffSession } from '@/store/adoptHandoffSession';
 import { usePresetStore } from '@/store/usePresetStore';
-import { useTimerTick } from '@/hooks/useTimerTick';
+import { BASE_TITLE, useTimerTick } from '@/hooks/useTimerTick';
 import { captureAchievementBaseline, useAchievementWatcher } from '@/hooks/useAchievementWatcher';
 import { sessionsRepo } from '@/db/repositories';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
@@ -35,6 +35,12 @@ function Boot({ children }: { children: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    // Arriving from a marketing page, the tab still carries that page's title.
+    // The timer takes the title over once the app is running; until then —
+    // while loading, or on the error screen below — it should at least say
+    // where the user is.
+    document.title = BASE_TITLE;
+
     let cancelled = false;
     const boot = async () => {
       await useSettingsStore.getState().load();
