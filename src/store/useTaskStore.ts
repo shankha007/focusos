@@ -22,6 +22,8 @@ interface TaskStoreState {
   toggleDone: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   reorder: (orderedIds: string[]) => Promise<void>;
+  /** Credits (+1) or takes back (-1) one finished focus session on a task. */
+  adjustSessions: (id: string, delta: 1 | -1) => Promise<void>;
   /** Archives every finished task, reloading once rather than once per task. */
   archiveAllDone: () => Promise<void>;
   addCategory: (name: string, color: string) => Promise<void>;
@@ -94,6 +96,18 @@ export const useTaskStore = create<TaskStoreState>((set, get) => ({
     const untouched = get().tasks.filter((t) => !moved.has(t.id));
     set({ tasks: [...reordered, ...untouched].sort((a, b) => a.order - b.order) });
     await tasksRepo.reorder(orderedIds);
+  },
+
+  /**
+   * Swaps in the one task the repository just wrote, rather than re-reading
+   * every task and both category tables — this runs at the end of every focus
+   * session, and only one row has changed.
+   */
+  adjustSessions: async (id, delta) => {
+    const task =
+      delta > 0 ? await tasksRepo.incrementSessions(id) : await tasksRepo.decrementSessions(id);
+    if (!task) return;
+    set((state) => ({ tasks: state.tasks.map((t) => (t.id === id ? task : t)) }));
   },
 
   /** Creates a task category. */

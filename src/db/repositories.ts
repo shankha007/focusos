@@ -96,15 +96,17 @@ export const tasksRepo = {
     });
   },
 
-  /** Credits one finished focus session to the task, moving a fresh task into 'active' on its first. */
-  async incrementSessions(id: string): Promise<void> {
+  /** Credits one finished focus session to the task, moving a fresh task into 'active' on its first. Returns the task as written, or undefined if it no longer exists. */
+  async incrementSessions(id: string): Promise<Task | undefined> {
     const task = await db.tasks.get(id);
-    if (!task) return;
-    await db.tasks.update(id, {
+    if (!task) return undefined;
+    const patch = {
       completedSessions: task.completedSessions + 1,
-      status: task.status === "todo" ? "active" : task.status,
+      status: task.status === "todo" ? ("active" as const) : task.status,
       updatedAt: Date.now(),
-    });
+    };
+    await db.tasks.update(id, patch);
+    return { ...task, ...patch };
   },
 
   /**
@@ -112,15 +114,17 @@ export const tasksRepo = {
    * inverse of `incrementSessions`, down to moving a task with nothing left
    * credited back from 'active' to 'todo'.
    */
-  async decrementSessions(id: string): Promise<void> {
+  async decrementSessions(id: string): Promise<Task | undefined> {
     const task = await db.tasks.get(id);
-    if (!task) return;
+    if (!task) return undefined;
     const completedSessions = Math.max(0, task.completedSessions - 1);
-    await db.tasks.update(id, {
+    const patch = {
       completedSessions,
-      status: completedSessions === 0 && task.status === "active" ? "todo" : task.status,
+      status: completedSessions === 0 && task.status === "active" ? ("todo" as const) : task.status,
       updatedAt: Date.now(),
-    });
+    };
+    await db.tasks.update(id, patch);
+    return { ...task, ...patch };
   },
 
   /** Archives every finished task at once, returning how many were archived. */
