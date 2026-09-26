@@ -59,7 +59,6 @@ export function MoodInsights({ sessions }: { sessions: Session[] }) {
             className="mt-4"
             kind="bar"
             height={168}
-            ariaLabel="Average productivity rating by mood before the session"
             data={chartData}
             label={(row) => row.label}
             value={(row) => row.productivity}

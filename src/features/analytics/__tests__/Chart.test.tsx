@@ -69,7 +69,6 @@ describe('Chart', () => {
       <Chart
         kind="bar"
         height={200}
-        ariaLabel="Minutes by hour"
         data={rows}
         label={(r) => r.label}
         value={(r) => r.minutes}
@@ -80,10 +79,17 @@ describe('Chart', () => {
       />,
     );
 
-  it('draws one bar per non-empty value, on a labelled chart', () => {
+  it('draws one bar per non-empty value', () => {
     const { container } = renderBars();
-    expect(screen.getByRole('img', { name: 'Minutes by hour' })).toBeInTheDocument();
     expect(container.querySelectorAll('path.chart-bar')).toHaveLength(3);
+  });
+
+  it('exposes its axis text to assistive tech the way Recharts did, with no role or label of its own', () => {
+    const { container } = renderBars();
+    const svg = container.querySelector('svg')!;
+    expect(svg).not.toHaveAttribute('role');
+    expect(svg).not.toHaveAttribute('aria-label');
+    expect(screen.getByText('9am').closest('[aria-hidden="true"]')).toBeNull();
   });
 
   it('labels every other category when asked to, like a numeric interval', () => {
@@ -94,8 +100,8 @@ describe('Chart', () => {
   });
 
   it('shows the hovered bar in the tooltip and hides it when the pointer leaves', () => {
-    renderBars();
-    const svg = screen.getByRole('img');
+    const { container } = renderBars();
+    const svg = container.querySelector('svg')!;
     // Plot runs from x=38 to x=296 across four bands of 64.5px; 200 is in the third.
     fireEvent.pointerMove(svg, { clientX: 200, clientY: 100 });
     expect(screen.getByText('45 min at 11am')).toBeInTheDocument();
