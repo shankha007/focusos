@@ -32,6 +32,17 @@ export default {
         ],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
+      // Tailwind 3 builds a colour's opacity modifier (bg-accent/12) only for
+      // steps on this scale, and silently emits nothing for any other. The
+      // default scale runs in fives, so every /8, /12, /14 and /16 in the app —
+      // the badge tints among them — rendered as no colour at all. These are
+      // the steps the components actually use.
+      opacity: {
+        8: "0.08",
+        12: "0.12",
+        14: "0.14",
+        16: "0.16",
+      },
       borderRadius: {
         xl: "0.875rem",
         "2xl": "1.125rem",
