@@ -246,7 +246,12 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
                 {formatClock(remaining)}
               </button>
             )}
-            <Button size="icon-sm" variant="ghost" onClick={() => setPaletteOpen(true)}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Open command palette"
+            >
               <Command className="h-4 w-4" />
             </Button>
           </div>
@@ -288,8 +293,14 @@ export function AppShell({ onOpenFocus }: { onOpenFocus: () => void }) {
         {/* Floating play control — only when a session is live */}
         {active && (
           <div className="fixed bottom-20 right-4 z-30 lg:hidden">
+            {/* The tooltip only describes; an icon-only button needs a name of its own. */}
             <Tooltip content={running ? 'Pause' : 'Resume'}>
-              <Button size="icon-lg" className="rounded-full shadow-lift" onClick={toggle}>
+              <Button
+                size="icon-lg"
+                className="rounded-full shadow-lift"
+                onClick={toggle}
+                aria-label={running ? 'Pause' : 'Resume'}
+              >
                 {running ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </Button>
             </Tooltip>
