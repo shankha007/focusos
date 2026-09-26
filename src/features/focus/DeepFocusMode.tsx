@@ -12,7 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/primitives';
+import { Tooltip } from '@/components/ui/tooltip';
 import { TimerRing } from '@/components/TimerRing';
 import { DistractionLogger } from './DistractionLogger';
 import { BreakActivity } from './BreakActivity';

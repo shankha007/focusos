@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./app/App";
 import { registerPwa } from "./lib/pwa";
+import { preloadAllMarketingPages, preloadMarketingPage } from "./features/landing/pages";
 import "./index.css";
 
 /**
@@ -43,7 +44,23 @@ const tree = (
  * app route — arrives as an empty container and mounts normally.
  */
 if (container.firstElementChild) {
-  ReactDOM.hydrateRoot(container, tree);
+  // A secondary marketing page lives in its own chunk, and hydrating before it
+  // arrives would discard the markup. Hydrate once it is here — for "/" and
+  // every app route this resolves immediately.
+  void preloadMarketingPage(window.location.pathname).then(() => {
+    ReactDOM.hydrateRoot(container, tree);
+  });
 } else {
   ReactDOM.createRoot(container).render(tree);
 }
+
+/**
+ * The rest of the marketing pages, fetched once the browser is idle, so a
+ * footer link between them never waits on the network. Off the critical path,
+ * which is the whole point of splitting them out; the service worker caches the
+ * chunks after that.
+ */
+const preloadRest = () => void preloadAllMarketingPages();
+// Safari has no requestIdleCallback.
+if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(preloadRest);
+else window.setTimeout(preloadRest, 1500);

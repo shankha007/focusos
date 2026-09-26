@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { Toaster } from 'sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppShell } from './AppShell';
 import { DeepFocusMode } from '@/features/focus/DeepFocusMode';
 import { SessionReviewDialog } from '@/features/focus/SessionReviewDialog';
@@ -149,11 +150,19 @@ function Chrome() {
   );
 }
 
-/** Layout route for every page inside the app. Boots the data layer, then renders the chrome around an `Outlet`. */
+/**
+ * Layout route for every page inside the app. Boots the data layer, then renders the chrome around an `Outlet`.
+ *
+ * The tooltip provider lives here rather than at the root: only app screens
+ * show tooltips, and mounting it above the marketing routes put Radix on the
+ * landing page's critical path.
+ */
 export default function Workspace() {
   return (
-    <Boot>
-      <Chrome />
-    </Boot>
+    <TooltipProvider delayDuration={400}>
+      <Boot>
+        <Chrome />
+      </Boot>
+    </TooltipProvider>
   );
 }

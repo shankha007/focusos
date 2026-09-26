@@ -1,7 +1,7 @@
 import { Volume2, VolumeX } from 'lucide-react';
 import { SOUNDS, ambient } from '@/lib/audio';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { Slider } from '@/components/ui/primitives';
+import { Slider } from '@/components/ui/slider';
 import { DynamicIcon } from '@/components/DynamicIcon';
 import type { SoundId } from '@/types';
 import { cn } from '@/lib/utils';

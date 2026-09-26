@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { AppShell } from '../AppShell';
-import { TooltipProvider } from '@/components/ui/primitives';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { bootStores, resetApp } from '@/test/helpers';
 
 function renderShell() {

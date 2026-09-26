@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, Plus, Trash2 } from 'lucide-react';
-import {
-  Badge,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/primitives';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { usePresetStore, describePreset, matchesSettings } from '@/store/usePresetStore';
 import { useSettingsStore } from '@/store/useSettingsStore';

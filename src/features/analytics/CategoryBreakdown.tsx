@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { FolderOpen } from 'lucide-react';
 import type { Category, Session } from '@/types';
-import { Card, CardDescription, CardTitle, EmptyState, Tooltip } from '@/components/ui/primitives';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Tooltip } from '@/components/ui/tooltip';
 import { byCategory } from '@/engine/analytics';
 import { formatDuration, pluralize } from '@/lib/utils';
 

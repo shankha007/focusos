@@ -13,7 +13,8 @@ import {
 import { PageContainer, PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
-import { Card, CardTitle, EmptyState } from '@/components/ui/primitives';
+import { Card, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { MoodCheckDialog } from '@/features/focus/MoodCheckDialog';
 import { CurrentSessionCard } from './CurrentSessionCard';
 import { WaterBreakCard } from '@/features/focus/WaterBreakCard';

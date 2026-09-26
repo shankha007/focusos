@@ -51,11 +51,6 @@ export function addDays(ts: number, n: number): number {
   return d.getTime();
 }
 
-/** Derived from the next day's start: a DST day is 23 or 25 hours, not 24. */
-export function endOfDay(ts: number = Date.now()): number {
-  return startOfDay(addDays(startOfDay(ts), 1)) - 1;
-}
-
 /** Week starts Monday. */
 export function startOfWeek(ts: number = Date.now()): number {
   const d = new Date(startOfDay(ts));

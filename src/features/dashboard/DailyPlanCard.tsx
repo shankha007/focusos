@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Info, Play, Sparkles } from 'lucide-react';
-import { Badge, Card, CardTitle, EmptyState, Tooltip } from '@/components/ui/primitives';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { useStatsStore } from '@/store/useStatsStore';
 import { useTaskStore } from '@/store/useTaskStore';

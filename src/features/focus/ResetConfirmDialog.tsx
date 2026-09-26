@@ -1,9 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useTimerStore } from '@/store/useTimerStore';
 import { elapsedMs, labelForType } from '@/engine/timerEngine';

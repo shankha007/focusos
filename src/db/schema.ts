@@ -10,7 +10,7 @@ import type {
   Task,
   TimerPreset,
 } from "@/types";
-import { MINUTE, uid } from "@/lib/utils";
+import { MINUTE } from "@/lib/utils";
 
 /** The IndexedDB database, declared through Dexie. Everything FocusOS stores lives here on the user's own device — nothing is sent anywhere. */
 export class FocusDB extends Dexie {
@@ -320,9 +320,4 @@ export async function initDb(): Promise<Settings> {
   }
 
   return (await db.settings.get("settings")) ?? DEFAULT_SETTINGS;
-}
-
-/** A new task id, prefixed so ids stay recognisable in exported backups. */
-export function makeTaskId() {
-  return `task_${uid()}`;
 }

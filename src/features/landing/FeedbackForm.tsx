@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Check, Copy, Mail, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input, Textarea } from '@/components/ui/primitives';
+import { Input, Textarea } from '@/components/ui/input';
 import { CREATOR } from './content';
 
 /**

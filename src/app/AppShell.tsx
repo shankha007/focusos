@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/primitives';
+import { Tooltip } from '@/components/ui/tooltip';
 import { CommandPalette } from './CommandPalette';
 import { Logo, LogoMark } from '@/components/Logo';
 import { useTimerStore } from '@/store/useTimerStore';

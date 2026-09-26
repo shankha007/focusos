@@ -1,13 +1,8 @@
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, FileJson, Layers, Replace, Upload } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  Input,
-} from '@/components/ui/primitives';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   BACKUP_TABLES,
