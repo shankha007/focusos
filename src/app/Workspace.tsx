@@ -14,8 +14,9 @@ import { useStatsStore } from '@/store/useStatsStore';
 import { useTimerStore } from '@/store/useTimerStore';
 import { adoptHandoffSession } from '@/store/adoptHandoffSession';
 import { usePresetStore } from '@/store/usePresetStore';
-import { useTimerTick } from '@/hooks/useTimerTick';
-import { useAchievementWatcher } from '@/hooks/useAchievementWatcher';
+import { BASE_TITLE, useTimerTick } from '@/hooks/useTimerTick';
+import { captureAchievementBaseline, useAchievementWatcher } from '@/hooks/useAchievementWatcher';
+import { sessionsRepo } from '@/db/repositories';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 
 /**
@@ -34,9 +35,21 @@ function Boot({ children }: { children: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    // Arriving from a marketing page, the tab still carries that page's title.
+    // The timer takes the title over once the app is running; until then —
+    // while loading, or on the error screen below — it should at least say
+    // where the user is.
+    document.title = BASE_TITLE;
+
     let cancelled = false;
     const boot = async () => {
       await useSettingsStore.getState().load();
+      // Before anything below can add a session, so the badges those sessions
+      // earn are announced rather than taken as already known.
+      captureAchievementBaseline(
+        await sessionsRepo.all(),
+        useSettingsStore.getState().settings.dailyGoalSessions,
+      );
       // Before the stats are read, so a session finished on the landing page is
       // already in the database when the dashboard counts today.
       await adoptHandoffSession();

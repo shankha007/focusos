@@ -12,6 +12,7 @@ import { CategoryBreakdown } from './CategoryBreakdown';
 import { DistractionReport } from './DistractionReport';
 import { MoodInsights } from './MoodInsights';
 import { useStatsStore } from '@/store/useStatsStore';
+import { useToday } from '@/hooks/useToday';
 import { useTaskStore } from '@/store/useTaskStore';
 import {
   byHour,
@@ -104,19 +105,22 @@ export function AnalyticsPage() {
   const distractionCategories = useTaskStore((s) => s.distractionCategories);
   const categories = useTaskStore((s) => s.categories);
   const [period, setPeriod] = useState<Period>('week');
+  // Everything below that means "up to now" follows this, so a page left open
+  // past midnight moves on to the new day — and a new week, month or year.
+  const today = useToday();
 
   const from = useMemo(() => {
     switch (period) {
       case 'day':
-        return startOfDay();
+        return startOfDay(today);
       case 'week':
-        return startOfWeek();
+        return startOfWeek(today);
       case 'month':
-        return startOfMonth();
+        return startOfMonth(today);
       case 'year':
-        return startOfYear();
+        return startOfYear(today);
     }
-  }, [period]);
+  }, [period, today]);
 
   const sessions = useMemo(
     () => allSessions.filter((s) => s.startedAt >= from),
@@ -135,7 +139,7 @@ export function AnalyticsPage() {
 
   const series = useMemo(() => {
     const stats = toDayStats(sessions, distractions);
-    return dayRange(from, Date.now(), stats).map((d) => ({
+    return dayRange(from, today, stats).map((d) => ({
       date: d.date,
       label: new Date(`${d.date}T00:00:00`).toLocaleDateString(undefined, {
         month: 'short',
@@ -145,7 +149,7 @@ export function AnalyticsPage() {
       sessions: d.sessions,
       distractions: d.distractions,
     }));
-  }, [sessions, distractions, from]);
+  }, [sessions, distractions, from, today]);
 
   /** Whole-minute gridlines for the focus-per-day chart while the day is short. */
   const focusTicks = useMemo(
@@ -367,7 +371,7 @@ export function AnalyticsPage() {
           </Button>
         </div>
         <div className="mt-4">
-          <Heatmap stats={allStats} weeks={Math.min(53, Math.ceil((Date.now() - (allSessions[0]?.startedAt ?? Date.now())) / (DAY * 7)) + 6)} />
+          <Heatmap stats={allStats} weeks={Math.min(53, Math.ceil((today - startOfDay(allSessions[0]?.startedAt ?? today)) / (DAY * 7)) + 6)} />
         </div>
       </Card>
     </PageContainer>

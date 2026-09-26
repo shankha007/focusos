@@ -5,6 +5,7 @@ import {
   MAX_GLASSES_PER_DAY,
   withinLimit,
 } from '@/db/schema';
+import type { IndexableType, Table } from 'dexie';
 import { BACKUP_VERSION } from '@/db/repositories';
 import type {
   Achievement,
@@ -459,6 +460,12 @@ export interface RestoreResult {
   /** Rows written, per table. */
   written: Record<BackupTable, number>;
   total: number;
+  /**
+   * Rows that were not here before. Everything, for a replace; for a merge,
+   * only the ones whose id was new — the rest overwrote a row that was already
+   * here, which for a backup of this same data changes nothing.
+   */
+  added: number;
   settingsRestored: boolean;
 }
 
@@ -487,8 +494,23 @@ export async function restoreBackup(
   ];
 
   const settingsRestored = mode === 'replace' && backup.settings !== null;
+  let added = 0;
 
   await db.transaction('rw', tables, async () => {
+    if (mode === 'merge') {
+      // Counted before anything is written, so the result can say what the
+      // merge actually brought in rather than how long the file was.
+      const incoming: [Table, unknown[]][] = BACKUP_TABLES.map((name) => [db[name], backup.rows[name]]);
+      const fresh = await Promise.all(
+        incoming.map(async ([table, rows]) => {
+          const key = table.schema.primKey.keyPath as string;
+          const existing = await table.bulkGet(rows.map((row) => (row as Record<string, IndexableType>)[key]));
+          return existing.filter((row) => row === undefined).length;
+        }),
+      );
+      added = fresh.reduce((a, b) => a + b, 0);
+    }
+
     if (mode === 'replace') {
       await Promise.all([
         db.tasks.clear(),
@@ -529,10 +551,12 @@ export async function restoreBackup(
     BACKUP_TABLES.map((table) => [table, backup.rows[table].length]),
   ) as Record<BackupTable, number>;
 
+  const total = Object.values(written).reduce((a, b) => a + b, 0);
   return {
     mode,
     written,
-    total: Object.values(written).reduce((a, b) => a + b, 0),
+    total,
+    added: mode === 'replace' ? total : added,
     settingsRestored,
   };
 }
