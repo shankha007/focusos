@@ -94,11 +94,15 @@ export function DeepFocusMode({ onClose }: { onClose: () => void }) {
       (el): el is HTMLElement =>
         el instanceof HTMLElement &&
         el !== overlay &&
-        // The toast host is a live region sitting at the same level. Silencing
-        // it would swallow the very confirmations this screen produces, so it
-        // stays announceable and clickable.
-        !el.hasAttribute('aria-live') &&
-        !el.querySelector('[aria-live]'),
+        // The toast host and the route announcer are live regions sitting at
+        // the same level. Silencing them would swallow the very confirmations
+        // this screen produces, so they stay announceable and clickable.
+        //
+        // Only an element that *is* a live region is spared — not one that
+        // merely contains one. The app shell holds live regions of its own
+        // (drag-and-drop's announcer on the Tasks page), and sparing the shell
+        // for them left the whole page behind the overlay reachable.
+        !el.hasAttribute('aria-live'),
     );
 
     // Remember what each element looked like rather than assuming it was
