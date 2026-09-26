@@ -35,14 +35,14 @@ export const THEME_OPTIONS: ThemeOption[] = [
     value: 'lavender',
     label: 'Lavender',
     description: 'Soft violet daylight',
-    swatch: ['#f5f3fc', '#ffffff', '#7852e4'],
+    swatch: ['#f5f3fc', '#ffffff', '#6e46e2'],
     dark: false,
   },
   {
     value: 'dark',
     label: 'Dark',
     description: 'Balanced neutral dark',
-    swatch: ['#141418', '#1c1c21', '#817ff5'],
+    swatch: ['#141418', '#1c1c21', '#8785f5'],
     dark: true,
   },
   {
