@@ -5,20 +5,23 @@ import { BREATH_PATTERN, suggestBreak } from '@/engine/breaks';
 import { Button } from '@/components/ui/button';
 import { DynamicIcon } from '@/components/DynamicIcon';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { cn } from '@/lib/utils';
 
 /** Suggests something to actually do with the break, matched to its length and how long the user has been sitting. The refresh button rolls a different suggestion. */
 export function BreakActivity({
   type,
   cycleCount,
+  className,
 }: {
   type: SessionType;
   cycleCount: number;
+  className?: string;
 }) {
   const [seed, setSeed] = useState(() => Date.now());
   const suggestion = useMemo(() => suggestBreak(type, cycleCount, seed), [type, cycleCount, seed]);
 
   return (
-    <div className="mt-10 w-full max-w-sm">
+    <div className={cn('w-full max-w-sm', className)}>
       <div className="panel p-5">
         <div className="flex items-start gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-break/12 text-break">
