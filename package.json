@@ -15,7 +15,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:bundle": "node scripts/check-bundle.mjs"
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "build:extension": "tsc -b && vite build --config vite.extension.config.ts --mode extension && node scripts/package-extension.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

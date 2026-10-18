@@ -1,0 +1,166 @@
+/* Colours follow the app's "midnight" and "light" themes (src/index.css). */
+:root {
+  --bg: 11 12 20;
+  --surface: 18 20 32;
+  --border: 38 42 62;
+  --fg: 233 236 248;
+  --muted: 148 156 184;
+  --accent: 120 134 255;
+  --accent-fg: 11 12 20;
+  --break: 64 206 178;
+  color-scheme: dark;
+}
+
+:root[data-mode="light"] {
+  --bg: 248 248 251;
+  --surface: 255 255 255;
+  --border: 228 228 235;
+  --fg: 18 18 23;
+  --muted: 104 104 120;
+  --accent: 88 86 214;
+  --accent-fg: 255 255 255;
+  --break: 13 128 99;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 14px 16px 12px;
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pill {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgb(var(--accent) / 0.15);
+  color: rgb(var(--accent));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+body[data-break] .pill {
+  background: rgb(var(--break) / 0.15);
+  color: rgb(var(--break));
+}
+
+main {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.time {
+  font-size: 52px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.bar {
+  height: 4px;
+  margin: 12px 0 8px;
+  border-radius: 999px;
+  background: rgb(var(--border));
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: rgb(var(--accent));
+  transition: width 0.4s ease;
+}
+
+body[data-break] .bar span {
+  background: rgb(var(--break));
+}
+
+.detail {
+  min-height: 1.4em;
+  margin: 0;
+  color: rgb(var(--muted));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+button {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid rgb(var(--border));
+  border-radius: 12px;
+  background: rgb(var(--surface));
+  color: rgb(var(--fg));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: rgb(var(--accent) / 0.5);
+}
+
+button:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+
+button.primary {
+  flex: 2;
+  border-color: transparent;
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-fg));
+}
+
+button.primary:hover {
+  filter: brightness(1.08);
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(var(--border));
+}
+
+button.link {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(var(--accent));
+}
+
+.hint {
+  color: rgb(var(--muted));
+  font-size: 11px;
+}

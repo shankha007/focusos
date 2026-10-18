@@ -26,8 +26,19 @@ function migrateHashRoute() {
   window.history.replaceState(null, "", target + search);
 }
 
-migrateHashRoute();
-registerPwa();
+// The extension routes on the fragment on purpose (see App), and has no
+// service worker of the website's to register: the browser installs and
+// updates its files.
+//
+// Spelled out rather than read from extension/env's IS_EXTENSION: inline, Vite
+// replaces it with a literal before the bundler splits chunks, so the website
+// build emits no bridge chunk at all instead of one nothing loads.
+if (import.meta.env.MODE === "extension") {
+  void import("./extension/bridge").then((m) => m.startExtensionBridge());
+} else {
+  migrateHashRoute();
+  registerPwa();
+}
 
 const container = document.getElementById("root")!;
 
@@ -61,6 +72,10 @@ if (container.firstElementChild) {
  * chunks after that.
  */
 const preloadRest = () => void preloadAllMarketingPages();
-// Safari has no requestIdleCallback.
-if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(preloadRest);
-else window.setTimeout(preloadRest, 1500);
+// The extension opens straight into the workspace and has no network to wait
+// on, so there is nothing to fetch ahead of a footer link.
+if (import.meta.env.MODE !== "extension") {
+  // Safari has no requestIdleCallback.
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(preloadRest);
+  else window.setTimeout(preloadRest, 1500);
+}

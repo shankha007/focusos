@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-mode="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FocusOS</title>
+    <link rel="stylesheet" href="popup.css" />
+    <!-- Not deferred: it sets the colour scheme before the first paint. -->
+    <script src="popup-theme.js"></script>
+  </head>
+  <body>
+    <header>
+      <img src="favicon.svg" alt="" width="22" height="22" />
+      <span class="brand">FocusOS</span>
+      <span id="type" class="pill">Focus</span>
+    </header>
+
+    <main>
+      <div id="time" class="time" role="timer" aria-live="off">25:00</div>
+      <div class="bar" aria-hidden="true"><span id="progress"></span></div>
+      <p id="detail" class="detail">Ready when you are.</p>
+
+      <div class="actions">
+        <button id="primary" class="primary" type="button">Start focus</button>
+        <button id="skip" type="button" hidden>Skip</button>
+      </div>
+    </main>
+
+    <footer>
+      <button id="open" class="link" type="button">Open FocusOS</button>
+      <span class="hint">Alt+Shift+P to start / pause</span>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

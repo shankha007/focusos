@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LandingPage } from '@/features/landing/LandingPage';
 import {
   PomodoroTechniquePage,
@@ -8,6 +8,7 @@ import {
   TwentyFiveMinuteTimerPage,
 } from '@/features/landing/pages';
 import { ErrorBoundary } from './ErrorBoundary';
+import { IS_EXTENSION } from '@/extension/env';
 
 /**
  * Only the landing page is part of the initial bundle. The other marketing
@@ -68,7 +69,12 @@ export function AppRoutes() {
         <Routes>
           {/* No sidebar, no timer chrome, and no database. The installed PWA
               starts at /dashboard instead (see start_url in vite.config.ts). */}
-          <Route path="/" element={<LandingPage />} />
+          {/* The extension's user installed it to use it, so its front door
+              is the workspace. */}
+          <Route
+            path="/"
+            element={IS_EXTENSION ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+          />
           {/* Marketing pages, pre-rendered at build time by
               scripts/prerender.mjs. Their markup ships in the HTML, so each is
               preloaded before React renders it rather than suspending on a
@@ -94,11 +100,18 @@ export function AppRoutes() {
   );
 }
 
+/**
+ * Real paths on the website, the fragment in the extension. An extension page is
+ * a file: reloading `chrome-extension://<id>/dashboard` finds nothing, while
+ * `app.html#/dashboard` reloads onto the same route.
+ */
+const Router = IS_EXTENSION ? HashRouter : BrowserRouter;
+
 /** Application root in the browser. */
 export function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <AppRoutes />
-    </BrowserRouter>
+    </Router>
   );
 }
