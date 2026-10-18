@@ -14,7 +14,7 @@ import jsxA11y from "eslint-plugin-jsx-a11y";
  */
 export default tseslint.config(
   {
-    ignores: ["dist/**", "dev-dist/**", "coverage/**", "*.tsbuildinfo"],
+    ignores: ["dist/**", "dist-extension/**", "dev-dist/**", "coverage/**", "*.tsbuildinfo"],
   },
 
   js.configs.recommended,
@@ -130,6 +130,21 @@ export default tseslint.config(
     files: ["*.config.{js,ts}", "postcss.config.js", "tailwind.config.js", "scripts/**/*.{js,mjs}"],
     languageOptions: {
       globals: { ...globals.node },
+    },
+  },
+
+  /* ── Extension scripts ─────────────────────────────────────── */
+  // Plain scripts the browser loads from disk next to the built app: the
+  // popup and the background worker. Not part of any tsconfig, so no type
+  // information to lint with.
+  {
+    files: ["extension/**/*.js"],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ["extension/**/*.js"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.webextensions, ...globals.serviceworker },
     },
   },
 );
