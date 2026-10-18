@@ -20,25 +20,25 @@
     }
   },
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
-  "permissions": ["storage", "alarms", "notifications"],
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Alt+Shift+F" },
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
       "description": "Open the FocusOS popup"
     },
     "toggle-timer": {
-      "suggested_key": { "default": "Alt+Shift+P" },
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
       "description": "Start, pause or resume the timer"
-    }
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "focusos@focusos.pro",
-      "strict_min_version": "121.0",
-      "data_collection_permissions": { "required": ["none"] }
     }
   }
 }
