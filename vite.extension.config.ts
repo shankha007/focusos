@@ -55,6 +55,12 @@ function adaptAppHtml(): Plugin {
  * Copies the extension's own files next to the app: the manifest, the popup and
  * the background worker, and the icons. The manifest's version is taken from
  * package.json so the two cannot drift.
+ *
+ * The manifest written here is the Chromium one (Chrome, Edge, Brave, Opera),
+ * so dist-extension/ loads unpacked in any of them. Firefox needs a different
+ * background key, and the stores reject a manifest carrying both, so
+ * scripts/package-extension.mjs applies extension/manifest.firefox.json for
+ * the Firefox package only.
  */
 function copyExtensionFiles(): Plugin {
   return {
@@ -71,7 +77,7 @@ function copyExtensionFiles(): Plugin {
           const source = path.join(from, entry.name);
           const target = path.join(to, entry.name);
           if (entry.isDirectory()) copyDir(source, target);
-          else if (entry.name !== "manifest.json") copyFileSync(source, target);
+          else if (!entry.name.startsWith("manifest.")) copyFileSync(source, target);
         }
       };
       copyDir(staticDir, outDir);

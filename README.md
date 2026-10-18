@@ -105,13 +105,19 @@ Build it:
 npm run build:extension
 ```
 
-That writes the unpacked extension to `dist-extension/` and a store-ready
-`focusos-extension-<version>.zip` beside it. To try it locally:
+That writes the unpacked extension to `dist-extension/` and two store-ready packages beside it:
+
+- `focusos-extension-<version>-chromium.zip` for the Chrome Web Store, Edge Add-ons and Opera
+- `focusos-extension-<version>-firefox.zip` for Firefox Add-ons
+
+They differ only in the manifest. Chromium runs the background script as a service worker,
+Firefox doesn't support that, and the stores reject a manifest that declares both
+(`extension/manifest.firefox.json` holds Firefox's additions). To try it locally:
 
 - **Chrome / Edge / Brave / Opera** — open `chrome://extensions` (`edge://extensions` in Edge),
   switch on **Developer mode**, click **Load unpacked** and pick `dist-extension/`
 - **Firefox** — open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and
-  pick `dist-extension/manifest.json`
+  pick `focusos-extension-<version>-firefox.zip`
 
 How it fits together: the timer runs in the app tab, exactly as on the website. The app publishes
 a small summary of it to `chrome.storage.local` (`src/extension/bridge.ts`), which the popup and the
