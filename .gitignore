@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-extension
+focusos-extension-*.zip
 dev-dist
 *.local
 .DS_Store

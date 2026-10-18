@@ -75,6 +75,7 @@ caching, and security headers.
 | `npm run typecheck` | Type-check only, no output |
 | `npm test` | Run the engine unit tests (66 tests) |
 | `npm run test:watch` | Tests in watch mode |
+| `npm run build:extension` | Build the browser extension to `dist-extension/` and zip it |
 
 ### Installing as an app (PWA)
 
@@ -84,6 +85,43 @@ server) and your browser will offer an **Install** option (address-bar icon in C
 chrome and works with no internet connection.
 
 ---
+
+### Browser extension (Chrome, Edge, Brave, Opera, Firefox)
+
+The whole app also ships as a Manifest V3 browser extension, so it's one click away in the
+toolbar instead of a tab you have to remember to keep open.
+
+- **Toolbar popup** — the live countdown with Start / Pause / Resume and Skip, and a link into the
+  full app
+- **Badge** — minutes left on the toolbar icon (`❚❚` while paused), visible from any tab
+- **Shortcuts** — `Alt+Shift+F` opens the popup, `Alt+Shift+P` starts or pauses the timer (change
+  them at `chrome://extensions/shortcuts`)
+- **The full workspace** — Dashboard, Tasks, Analytics, Deep Focus and Settings open in an
+  extension tab, the same app as the website, fully offline
+
+Build it:
+
+```bash
+npm run build:extension
+```
+
+That writes the unpacked extension to `dist-extension/` and a store-ready
+`focusos-extension-<version>.zip` beside it. To try it locally:
+
+- **Chrome / Edge / Brave / Opera** — open `chrome://extensions` (`edge://extensions` in Edge),
+  switch on **Developer mode**, click **Load unpacked** and pick `dist-extension/`
+- **Firefox** — open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and
+  pick `dist-extension/manifest.json`
+
+How it fits together: the timer runs in the app tab, exactly as on the website. The app publishes
+a small summary of it to `chrome.storage.local` (`src/extension/bridge.ts`), which the popup and the
+background worker (`extension/`) read; their buttons send commands back the same way. If you close
+the app tab mid-session, the background worker reopens it behind your current tab when the session
+ends, so it's recorded on time.
+
+The extension keeps its own data, separate from [focusos.pro](https://focusos.pro) — browsers give
+every extension its own storage. To move your history across, use **Settings → Export everything** on
+one and **Restore from backup** on the other.
 
 ## The tabs
 

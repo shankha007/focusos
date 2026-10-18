@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { appHref } from '@/extension/env';
 
 interface Props {
   children: ReactNode;
@@ -61,7 +62,7 @@ export class ErrorBoundary extends Component<Props, State> {
             {/* A full navigation rather than a router link: the router may be
                 what is broken, and a fresh load of Settings starts clean. */}
             <a
-              href="/settings"
+              href={appHref('/settings')}
               className="rounded-xl border border-border px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-fg"
             >
               Open Settings
